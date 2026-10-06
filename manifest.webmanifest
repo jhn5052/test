@@ -1,6 +1,6 @@
 {
-  "name": "기출의 결 · 공인중개사 학습실",
-  "short_name": "기출의 결",
+  "name": "공인중개사 기출연습",
+  "short_name": "기출연습",
   "description": "공인중개사 기출 풀이와 오답노트",
   "lang": "ko-KR",
   "start_url": "./",

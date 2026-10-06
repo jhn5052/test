@@ -61,6 +61,7 @@ function renderChoiceText(text) {
   if (combo) return `<span class="choice-combination">${combo[1].split(/\s*[,·ㆍ]\s*/).map(label => `<b>${label}</b>`).join("")}</span>`;
   return escapeHTML(text);
 }
+function yearLabel(year) { return year ? `${year}년` : "2020~2025년 전체"; }
 function explanationUrl(question) {
   const subjectIndex = SUBJECTS.indexOf(question.subject);
   return `https://www.gongin.kr/past-questions/${question.year}-${EXPLANATION_SLUGS[subjectIndex]}-q${question.number}/`;
@@ -120,7 +121,7 @@ function renderDashboard() {
     </section>
     <section class="section-row">
       <article class="panel recent-panel"><div class="panel-head"><div><h2>최근 시험</h2><p>가장 최근에 제출한 기록</p></div>${attempts.length ? `<button class="panel-link" data-action="show-history">전체 기록 ${attempts.length}회</button>` : ""}</div>
-       ${recent.length ? `<div class="recent-list">${recent.map((item, index) => `<button class="recent-item" data-result="${index}"><span><span class="recent-name">${item.year}년 기출 · ${item.scope === "all" ? "전과목 혼합" : escapeHTML(item.subject)}</span><span class="recent-meta">${fmtDate(item.completedAt)} · ${item.correct}/${item.total} 정답</span></span><span class="recent-score ${item.score >= 60 ? "score-good" : "score-low"}">${item.score}<small>점</small></span><span class="result-date">›</span></button>`).join("")}</div>` : `<div class="no-records">아직 시험 기록이 없어요. 첫 시험을 시작해 보세요.</div>`}</article>
+       ${recent.length ? `<div class="recent-list">${recent.map((item, index) => `<button class="recent-item" data-result="${index}"><span><span class="recent-name">${yearLabel(item.year)} 기출 · ${item.scope === "all" ? "전과목 혼합" : escapeHTML(item.subject)}</span><span class="recent-meta">${fmtDate(item.completedAt)} · ${item.correct}/${item.total} 정답</span></span><span class="recent-score ${item.score >= 60 ? "score-good" : "score-low"}">${item.score}<small>점</small></span><span class="result-date">›</span></button>`).join("")}</div>` : `<div class="no-records">아직 시험 기록이 없어요. 첫 시험을 시작해 보세요.</div>`}</article>
       <article class="panel quick-card"><div><div class="eyebrow">${years.length ? `기출 ${Math.min(...years)} — ${Math.max(...years)}` : "기출 데이터"}</div><h3>오늘의 공부를 시작할까요?</h3><p>40분 집중해서 실전 감각을 쌓아보세요.<br>과목을 골라 가볍게 풀어도 좋아요.</p></div><button class="button" data-action="start-exam">시험 설정하기 <span>→</span></button></article>
     </section>`;
 }
@@ -148,10 +149,9 @@ function renderSubjectStats(stats) {
 }
 function renderSetup() {
   const years = [...new Set(bank.map(q => q.year))].sort((a, b) => b - a);
-  const selectedYear = years[0] || new Date().getFullYear();
   return `${titleBlock("PRACTICE MODE", "오늘 풀 기출을 골라요", "실제 시험처럼 전과목을 풀거나, 한 과목에 집중할 수 있어요.")}
     <div class="exam-layout"><section class="panel setup-card"><h2>시험 구성</h2><p>설정을 마치면 40분 타이머가 시작됩니다.</p>
-      <label class="form-label" for="exam-year">기출 연도</label><select class="year-select" id="exam-year">${years.map(y => `<option value="${y}" ${y === selectedYear ? "selected" : ""}>${y}년 제${y - 1989}회</option>`).join("")}</select>
+      <label class="form-label" for="exam-year">기출 연도</label><select class="year-select" id="exam-year"><option value="all" selected>2020~2025년 전체</option>${years.map(y => `<option value="${y}">${y}년 제${y - 1989}회</option>`).join("")}</select>
       <span class="form-label">풀이 범위</span><div class="segmented" id="scope-switch"><button class="segment selected" data-scope="all">전과목 혼합</button><button class="segment" data-scope="subject">단일 과목</button></div>
       <div id="subject-picker" hidden><span class="form-label">과목 선택</span><div class="subject-options">${SUBJECTS.map((s, i) => `<label class="subject-option ${i === 0 ? "selected" : ""}"><input type="radio" name="subject" value="${escapeHTML(s)}" ${i === 0 ? "checked" : ""}><span>${escapeHTML(s)}</span></label>`).join("")}</div></div>
       <div class="setup-summary"><div class="summary-text">수록 문항 <b id="question-total">—</b></div><div class="summary-text">기준 <b id="question-benchmark">—</b></div><div class="summary-text">제한 시간 <b>40</b> 분</div></div>
@@ -174,22 +174,23 @@ function bindSetup() {
   updateQuestionTotal();
 }
 function selectedQuestions() {
-  const year = Number(document.querySelector("#exam-year")?.value);
+  const yearValue = document.querySelector("#exam-year")?.value || "all";
+  const year = yearValue === "all" ? null : Number(yearValue);
   const scope = document.querySelector("[data-scope].selected")?.dataset.scope || "all";
   const subject = document.querySelector("input[name=subject]:checked")?.value || SUBJECTS[0];
-  const list = bank.filter(q => q.year === year && (scope === "all" || q.subject === subject));
+  const list = bank.filter(q => (year === null || q.year === year) && (scope === "all" || q.subject === subject));
   return { year, scope, subject, list };
 }
 function updateQuestionTotal() {
   const total = document.querySelector("#question-total"); if (!total) return;
   const { year, scope, list } = selectedQuestions();
-  const benchmark = scope === "all" ? 200 : 40;
+  const benchmark = scope === "all" ? (year === null ? 1200 : 200) : (year === null ? 240 : 40);
   const count = list.length;
   total.textContent = `${count}문항`;
   document.querySelector("#question-benchmark").textContent = `${benchmark}문항`;
   const note = document.querySelector("#coverage-note");
   if (count < benchmark) {
-    note.textContent = `${year}년 원문에서 현재 ${count}/${benchmark}문항을 확인했습니다. 누락된 문항은 시험에 포함되지 않으니 수록 수를 확인하고 응시해 주세요.`;
+    note.textContent = `${yearLabel(year)} 원문 기준 ${count}/${benchmark}문항이 수록되어 있습니다. 빠진 문항은 시험에서 제외되니 수록 수를 확인하고 응시해 주세요.`;
     note.classList.add("coverage-incomplete");
   } else {
     note.textContent = "선택한 범위의 문항이 모두 수록되어 있습니다.";
@@ -215,7 +216,7 @@ function renderQuiz() {
   if (!q) return `<p>문제를 불러올 수 없습니다.</p>`;
   const elapsed = remainingMs();
   const answered = Object.keys(quiz.answers).length;
-  return `<div class="exam-topline"><div><div class="exam-kicker">${quiz.year}년 기출 · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-kicker" style="margin-top:6px">문제 ${quiz.index + 1} / ${questions.length}</div></div><div class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="timer">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</div></div>
+  return `<div class="exam-topline"><div><div class="exam-kicker">${yearLabel(quiz.year)} 기출 · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-kicker" style="margin-top:6px">문제 ${quiz.index + 1} / ${questions.length}</div></div><div class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="timer">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</div></div>
    <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span></div><div class="question-text">${renderQuestionText(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
    <aside class="exam-rail"><section class="rail-card"><div class="rail-head"><span>답안 현황</span><small>${answered} / ${questions.length}</small></div><div class="question-grid">${questions.map((item, i) => `<button class="question-dot ${i === quiz.index ? "current" : ""} ${quiz.answers[item.id] ? "answered" : ""}" data-goto="${i}" aria-label="${i + 1}번 문제${quiz.answers[item.id] ? " 답변 완료" : " 미응답"}">${i + 1}</button>`).join("")}</div><div class="rail-legend"><span><i class="legend-dot current"></i>현재</span><span><i class="legend-dot"></i>답변 완료</span></div><div class="progress-info"><span>진행률</span><span>${Math.round((quiz.index + 1) / questions.length * 100)}%</span></div></section>
    <section class="rail-card rail-actions"><button class="button button-quiet" id="pause-exam">${quiz.paused ? "시험 재개" : "일시정지"} ${quiz.paused ? "▶" : "Ⅱ"}</button><button class="button button-primary" id="submit-exam">답안 제출하기</button></section></aside></div>`;
@@ -268,7 +269,7 @@ function submitExam(reason) {
 function renderResult(attempt) {
   const subjects = Object.entries(attempt.subjects || {});
   const label = attempt.scope === "all" ? "전과목 혼합" : attempt.subject;
-  return `${titleBlock("EXAM RESULT", "수고했어요, 시험을 마쳤어요", `${attempt.year}년 기출 · ${escapeHTML(label)} · ${fmtDate(attempt.completedAt)}`)}
+  return `${titleBlock("EXAM RESULT", "수고했어요, 시험을 마쳤어요", `${yearLabel(attempt.year)} 기출 · ${escapeHTML(label)} · ${fmtDate(attempt.completedAt)}`)}
     <section class="result-hero"><div><div class="eyebrow">YOUR SCORE</div><h2>${attempt.correct}문제를 맞혔어요</h2><p>${attempt.timedOut ? "제한 시간이 끝나 답안이 자동 제출됐습니다." : "틀린 문제는 오답노트에 자동으로 모아두었어요."}</p></div><div class="result-score">${attempt.score}<small> 점</small></div></section>
     <section class="result-grid"><article class="panel"><div class="panel-head"><div><h2>과목별 결과</h2><p>정답 수와 정답률을 확인해 보세요</p></div></div><div class="result-subjects">${subjects.map(([name, s]) => `<div class="result-subject"><span>${escapeHTML(name)}</span><span>${s.correct}/${s.total} · ${Math.round(s.correct / s.total * 100)}%</span><div class="progress-track"><i style="width:${Math.round(s.correct / s.total * 100)}%"></i></div></div>`).join("")}</div></article>
     <article class="panel"><div class="panel-head"><div><h2>다음 학습</h2><p>오늘의 결과를 이어가요</p></div></div><p style="font-size:12px;color:#7f8c82;line-height:1.8;margin:0 0 18px">이번 시험에서 <b style="color:#b15a4b">${attempt.total - attempt.correct}문제</b>를 다시 볼 문제로 분류했어요. 오답노트에서 내가 고른 답과 정답을 비교해 보세요.</p><button class="button button-primary" data-action="mistakes">오답노트 확인 →</button> <button class="button button-outline" data-action="start-exam">다시 풀기</button></article></section>`;
