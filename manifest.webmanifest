@@ -1,0 +1,12 @@
+{
+  "name": "기출의 결 · 공인중개사 학습실",
+  "short_name": "기출의 결",
+  "description": "공인중개사 기출 풀이와 오답노트",
+  "lang": "ko-KR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f7f2",
+  "theme_color": "#172923",
+  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
