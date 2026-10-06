@@ -1,5 +1,6 @@
 const STORAGE_KEY = "gyeol-study-v1";
 const SUBJECTS = ["부동산학개론", "민법 및 민사특별법", "공인중개사법령 및 중개실무", "부동산공법", "부동산공시에 관한 법령 및 부동산 관련 세법"];
+const EXPLANATION_SLUGS = ["re-intro", "civil-law", "broker-law", "public-law", "tax-law"];
 const LETTERS = ["①", "②", "③", "④", "⑤"];
 let bank = [];
 let store = readStore();
@@ -34,6 +35,35 @@ function isCorrect(question, chosen) {
 function answerLabel(question) {
   const accepted = Array.isArray(question.answer) ? question.answer : [question.answer];
   return accepted.map(answer => `${LETTERS[answer - 1]} ${question.choices[answer - 1]}`).join(" / ");
+}
+function splitLabeledStatements(text) {
+  const pattern = /(^|\s)([ㄱㄴㄷㄹㅁㅂ])\s*[.．:：)]\s*/g;
+  const matches = [...text.matchAll(pattern)];
+  if (matches.length < 2) return null;
+  const first = matches[0];
+  const intro = text.slice(0, first.index + first[1].length).trim();
+  const items = matches.map((match, index) => {
+    const start = match.index + match[0].length;
+    const end = matches[index + 1]?.index ?? text.length;
+    return { label: match[2], text: text.slice(start, end).trim() };
+  }).filter(item => item.text);
+  return items.length >= 2 ? { intro, items } : null;
+}
+function renderQuestionText(text) {
+  const groups = splitLabeledStatements(text);
+  if (!groups) return escapeHTML(text);
+  return `${groups.intro ? `<div class="statement-intro">${escapeHTML(groups.intro)}</div>` : ""}<div class="statement-grid">${groups.items.map(item => `<div class="statement-item"><b>${item.label}</b><span>${escapeHTML(item.text)}</span></div>`).join("")}</div>`;
+}
+function renderChoiceText(text) {
+  const groups = splitLabeledStatements(text);
+  if (groups) return `<span class="compound-choice">${groups.items.map(item => `<span class="compound-entry"><b>${item.label}</b>${escapeHTML(item.text)}</span>`).join("")}</span>`;
+  const combo = text.match(/^([ㄱㄴㄷㄹㅁㅂ](?:\s*[,·ㆍ]\s*[ㄱㄴㄷㄹㅁㅂ])*)$/);
+  if (combo) return `<span class="choice-combination">${combo[1].split(/\s*[,·ㆍ]\s*/).map(label => `<b>${label}</b>`).join("")}</span>`;
+  return escapeHTML(text);
+}
+function explanationUrl(question) {
+  const subjectIndex = SUBJECTS.indexOf(question.subject);
+  return `https://www.gongin.kr/past-questions/${question.year}-${EXPLANATION_SLUGS[subjectIndex]}-q${question.number}/`;
 }
 function toast(message) {
   const el = document.querySelector("#toast");
@@ -169,7 +199,11 @@ function updateQuestionTotal() {
 function beginExam() {
   const { year, scope, subject, list } = selectedQuestions();
   if (!list.length) { toast("선택한 조건에 등록된 문제가 없어요."); return; }
-  const shuffled = [...list].sort(() => Math.random() - .5);
+  const shuffled = [...list];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, questions: shuffled.map(q => q.id), answers: {}, index: 0, paused: false, remaining: 40 * 60 * 1000, endsAt: Date.now() + 40 * 60 * 1000, startedAt: new Date().toISOString() };
   persist(); setView("exam");
 }
@@ -182,7 +216,7 @@ function renderQuiz() {
   const elapsed = remainingMs();
   const answered = Object.keys(quiz.answers).length;
   return `<div class="exam-topline"><div><div class="exam-kicker">${quiz.year}년 기출 · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-kicker" style="margin-top:6px">문제 ${quiz.index + 1} / ${questions.length}</div></div><div class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="timer">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</div></div>
-   <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span></div><div class="question-text">${escapeHTML(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${escapeHTML(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
+   <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span></div><div class="question-text">${renderQuestionText(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
    <aside class="exam-rail"><section class="rail-card"><div class="rail-head"><span>답안 현황</span><small>${answered} / ${questions.length}</small></div><div class="question-grid">${questions.map((item, i) => `<button class="question-dot ${i === quiz.index ? "current" : ""} ${quiz.answers[item.id] ? "answered" : ""}" data-goto="${i}" aria-label="${i + 1}번 문제${quiz.answers[item.id] ? " 답변 완료" : " 미응답"}">${i + 1}</button>`).join("")}</div><div class="rail-legend"><span><i class="legend-dot current"></i>현재</span><span><i class="legend-dot"></i>답변 완료</span></div><div class="progress-info"><span>진행률</span><span>${Math.round((quiz.index + 1) / questions.length * 100)}%</span></div></section>
    <section class="rail-card rail-actions"><button class="button button-quiet" id="pause-exam">${quiz.paused ? "시험 재개" : "일시정지"} ${quiz.paused ? "▶" : "Ⅱ"}</button><button class="button button-primary" id="submit-exam">답안 제출하기</button></section></aside></div>`;
 }
@@ -251,7 +285,11 @@ function renderMistakeCards(mistakes) {
   return mistakes.map(m => {
     const q = bank.find(item => item.id === m.questionId); if (!q) return "";
     const accepted = Array.isArray(q.answer) ? q.answer : [q.answer];
-    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><p class="mistake-question">${q.number}. ${escapeHTML(q.text)}</p><div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${escapeHTML(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>정답 해설</b> · ${escapeHTML(q.explanation || `정답은 ${accepted.map(answer => LETTERS[answer - 1]).join("·")}입니다. 원문에는 별도 해설이 포함되어 있지 않아 정답표를 기준으로 채점했습니다.`)}</div></article>`;
+    const hasDetailedExplanation = q.explanation && !q.explanation.includes("원문에는 별도 해설");
+    const explanation = hasDetailedExplanation
+      ? `<p>${escapeHTML(q.explanation)}</p>`
+      : `<p>원본 자료에는 정답표만 포함되어 있습니다. 외부 사이트에서 제공하는 AI 해설을 참고용으로 확인할 수 있습니다.</p>`;
+    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div><div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}<a class="explanation-link" href="${explanationUrl(q)}" target="_blank" rel="noopener noreferrer">외부 AI 해설 보기 ↗</a></div></article>`;
   }).join("");
 }
 function bindMistakes() {
@@ -275,7 +313,7 @@ document.querySelectorAll(".nav-item").forEach(button => button.addEventListener
   if (quiz) { toast("진행 중인 시험을 먼저 마쳐주세요."); return; }
   setView(button.dataset.view);
 }));
-document.querySelector("#reset-open").addEventListener("click", () => document.querySelector("#reset-dialog").showModal());
+document.querySelectorAll('[data-action="reset"]').forEach(button => button.addEventListener("click", () => document.querySelector("#reset-dialog").showModal()));
 document.querySelector("#reset-cancel").addEventListener("click", () => document.querySelector("#reset-dialog").close());
 document.querySelector("#reset-confirm").addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY); store = { history: [], mistakes: [], active: null }; quiz = null; stopClock();
