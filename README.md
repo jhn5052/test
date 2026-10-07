@@ -10,6 +10,8 @@ GitHub Pages에서 사이트를 열거나, 저장소 루트에서 `python3 -m ht
 
 ## 데이터
 
-문제은행은 `data/questions.json`, Q-Net 원본 파일은 [`exam/`](exam/)에 있습니다. 현재 문제은행은 753문항이며 2020~2025년 전체 1,200문항 중 일부가 누락되어 있습니다. 원본 정답표를 기준으로 채점하며, Q-Net 공개 자료에는 문항별 공식 해설이 포함되어 있지 않습니다.
+문제은행은 2020~2025년 과목별 40문항, 총 1,200문항입니다. 정답은 Q-Net 최종 정답표와 대조했고, 2025년 스캔 문제는 OCR 후 원문으로 누락 선택지를 보정했습니다. Q-Net 공개 자료에는 문항별 공식 해설이 포함되어 있지 않습니다.
+
+원본 파일은 [`exam/`](exam/)에, 정답표는 `data/answer-keys.json`, 2025년 OCR 검수 자료는 `data/questions-2025-source.json`에 있습니다. `python3 scripts/build_questions.py`로 문제은행을 다시 생성할 수 있습니다.
 
 GitHub Pages 주소는 저장소 **Settings → Pages**에서 확인할 수 있습니다. 저장소를 private으로 바꿔도 Pages 사이트가 자동으로 비공개가 되지는 않습니다.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "license-practice-v2";
+const CACHE_NAME = "license-practice-v3";
 const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon.svg", "./data/questions.json"];
 
 self.addEventListener("install", event => {

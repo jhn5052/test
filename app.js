@@ -154,7 +154,7 @@ function renderSetup() {
       <label class="form-label" for="exam-year">기출 연도</label><select class="year-select" id="exam-year"><option value="all" selected>2020~2025년 전체</option>${years.map(y => `<option value="${y}">${y}년 제${y - 1989}회</option>`).join("")}</select>
       <span class="form-label">풀이 범위</span><div class="segmented" id="scope-switch"><button class="segment selected" data-scope="all">전과목 혼합</button><button class="segment" data-scope="subject">단일 과목</button></div>
       <div id="subject-picker" hidden><span class="form-label">과목 선택</span><div class="subject-options">${SUBJECTS.map((s, i) => `<label class="subject-option ${i === 0 ? "selected" : ""}"><input type="radio" name="subject" value="${escapeHTML(s)}" ${i === 0 ? "checked" : ""}><span>${escapeHTML(s)}</span></label>`).join("")}</div></div>
-      <div class="setup-summary"><div class="summary-text">수록 문항 <b id="question-total">—</b></div><div class="summary-text">기준 <b id="question-benchmark">—</b></div><div class="summary-text">제한 시간 <b>40</b> 분</div></div>
+      <div class="setup-summary"><div class="summary-text">문제은행 <b id="question-total">—</b></div><div class="summary-text">이번 시험 <b id="question-benchmark">—</b></div><div class="summary-text">제한 시간 <b>40</b> 분</div></div>
       <p class="coverage-note" id="coverage-note" role="status"></p>
       <button class="button button-primary setup-submit" id="begin-exam">문제 셔플 후 시험 시작 <span>↗</span></button>
     </section><aside class="exam-side"><article class="exam-tip"><div class="eyebrow">A LITTLE GUIDE</div><h3>아는 만큼, 차근차근</h3><p>문제는 무작위 순서로 나옵니다. 답을 고르면 자동 저장되고, 이전 문제로 돌아가 답을 바꿀 수 있어요.</p><div class="tip-stat"><div><b>${bank.length.toLocaleString()}</b><span>등록 문항</span></div><div><b>40분</b><span>시험 시간</span></div><div><b>2020—25</b><span>기출 연도</span></div></div></article><p class="source-note">응시 중에는 언제든 일시정지하거나 제출할 수 있어요. 시간이 끝나면 답안이 자동으로 제출됩니다.</p></aside></div>`;
@@ -184,18 +184,13 @@ function selectedQuestions() {
 function updateQuestionTotal() {
   const total = document.querySelector("#question-total"); if (!total) return;
   const { year, scope, list } = selectedQuestions();
-  const benchmark = scope === "all" ? (year === null ? 1200 : 200) : (year === null ? 240 : 40);
   const count = list.length;
   total.textContent = `${count}문항`;
-  document.querySelector("#question-benchmark").textContent = `${benchmark}문항`;
+  const examCount = Math.min(count, 40);
+  document.querySelector("#question-benchmark").textContent = `${examCount}문항`;
   const note = document.querySelector("#coverage-note");
-  if (count < benchmark) {
-    note.textContent = `${yearLabel(year)} 원문 기준 ${count}/${benchmark}문항이 수록되어 있습니다. 빠진 문항은 시험에서 제외되니 수록 수를 확인하고 응시해 주세요.`;
-    note.classList.add("coverage-incomplete");
-  } else {
-    note.textContent = "선택한 범위의 문항이 모두 수록되어 있습니다.";
-    note.classList.remove("coverage-incomplete");
-  }
+  note.textContent = count ? `선택한 범위에서 무작위로 ${examCount}문항을 출제합니다. 전체 ${count}문항 중 최대 40문항입니다.` : "선택한 범위에 문제가 없습니다.";
+  note.classList.remove("coverage-incomplete");
 }
 function beginExam() {
   const { year, scope, subject, list } = selectedQuestions();
@@ -205,7 +200,7 @@ function beginExam() {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, questions: shuffled.map(q => q.id), answers: {}, index: 0, paused: false, remaining: 40 * 60 * 1000, endsAt: Date.now() + 40 * 60 * 1000, startedAt: new Date().toISOString() };
+  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, questions: shuffled.slice(0, 40).map(q => q.id), answers: {}, index: 0, paused: false, remaining: 40 * 60 * 1000, endsAt: Date.now() + 40 * 60 * 1000, startedAt: new Date().toISOString() };
   persist(); setView("exam");
 }
 function currentQuestions() { return quiz.questions.map(id => bank.find(q => q.id === id)).filter(Boolean); }
