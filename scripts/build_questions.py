@@ -149,6 +149,19 @@ def main():
         )
     questions.extend(year_2025)
 
+    overrides_path = DATA / "question-overrides.json"
+    if overrides_path.exists():
+        overrides = json.loads(overrides_path.read_text()).get("overrides", {})
+        questions_by_id = {question["id"]: question for question in questions}
+        unknown_overrides = set(overrides) - questions_by_id.keys()
+        if unknown_overrides:
+            raise ValueError(f"Overrides reference unknown questions: {sorted(unknown_overrides)[:5]}")
+        for question_id, fields in overrides.items():
+            unsupported = set(fields) - {"text", "choices"}
+            if unsupported:
+                raise ValueError(f"Unsupported override fields for {question_id}: {sorted(unsupported)}")
+            questions_by_id[question_id].update(fields)
+
     expected_ids = {f"{year}-{subject}-{number}" for year in range(2020, 2026) for subject in range(1, 6) for number in range(1, 41)}
     actual_ids = {question["id"] for question in questions}
     if len(questions) != 1200 or actual_ids != expected_ids:
