@@ -1,6 +1,5 @@
 const STORAGE_KEY = "gyeol-study-v1";
 const SUBJECTS = ["부동산학개론", "민법 및 민사특별법", "공인중개사법령 및 중개실무", "부동산공법", "부동산공시에 관한 법령 및 부동산 관련 세법"];
-const EXPLANATION_SLUGS = ["re-intro", "civil-law", "broker-law", "public-law", "tax-law"];
 const LETTERS = ["①", "②", "③", "④", "⑤"];
 let bank = [];
 let store = readStore();
@@ -8,10 +7,12 @@ let view = "dashboard";
 let quiz = store.active || null;
 let interval = null;
 let toastTimeout = null;
+let flashcardIndex = 0;
+let flashcardFlipped = false;
 
 function readStore() {
-  try { return { history: [], mistakes: [], active: null, ...(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")) }; }
-  catch { return { history: [], mistakes: [], active: null }; }
+  try { return { history: [], mistakes: [], flashcards: [], active: null, ...(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")) }; }
+  catch { return { history: [], mistakes: [], flashcards: [], active: null }; }
 }
 function persist() {
   store.active = quiz;
@@ -62,10 +63,6 @@ function renderChoiceText(text) {
   return escapeHTML(text);
 }
 function yearLabel(year) { return year ? `${year}년` : "2020~2025년 전체"; }
-function explanationUrl(question) {
-  const subjectIndex = SUBJECTS.indexOf(question.subject);
-  return `https://www.gongin.kr/past-questions/${question.year}-${EXPLANATION_SLUGS[subjectIndex]}-q${question.number}/`;
-}
 function toast(message) {
   const el = document.querySelector("#toast");
   el.textContent = message; el.classList.add("visible");
@@ -75,12 +72,14 @@ function updateCounts() {
   const el = document.querySelector("#mistake-count");
   if (el) el.textContent = store.mistakes.length;
   const days = document.querySelector("#streak-days");
+  const cards = document.querySelector("#flashcard-count");
+  if (cards) cards.textContent = store.flashcards.length;
   if (days) days.textContent = store.history.length ? `누적 ${store.history.length}회 응시` : "오늘도 한 걸음";
 }
 function setView(next) {
   view = next;
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === next));
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", result: "시험 결과" })[next] || "학습실";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", result: "시험 결과" })[next] || "학습실";
   render();
 }
 function render() {
@@ -89,9 +88,10 @@ function render() {
   stopClock();
   if (view === "exam") { root.innerHTML = renderSetup(); bindSetup(); }
   else if (view === "mistakes") { root.innerHTML = renderMistakes(); bindMistakes(); }
+  else if (view === "flashcards") { root.innerHTML = renderFlashcards(); bindFlashcards(); }
   else if (view === "result" && store.history[0]) { root.innerHTML = renderResult(store.history[0]); bindResult(); }
   else { view = "dashboard"; root.innerHTML = renderDashboard(); bindDashboard(); }
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", result: "시험 결과" })[view] || "시험 응시";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", result: "시험 결과" })[view] || "시험 응시";
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === (view === "taking" ? "exam" : view)));
   updateCounts();
 }
@@ -108,7 +108,7 @@ function renderDashboard() {
   const recent = attempts.slice(0, 5);
   const subjects = subjectStats(attempts);
   const chart = renderChart(attempts);
-  return `${titleBlock("YOUR STUDY JOURNAL", "공부의 결을 쌓아가요", "기출을 풀고, 자주 틀리는 부분을 다시 살펴보세요.", `<button class="button button-primary" data-action="start-exam">새 시험 시작 <span>↗</span></button>`)}
+  return `${titleBlock("공인중개사 기출연습", "기출로 합격에 가까워져요", "기출을 풀고, 틀린 문제는 오답노트와 암기카드로 복습하세요.", `<button class="button button-primary" data-action="start-exam">새 시험 시작 <span>↗</span></button>`)}
     <section class="stat-grid">
       <article class="stat-card"><span class="stat-label">평균 점수</span><span class="stat-glyph">◉</span><strong>${avg}<em>점</em></strong></article>
       <article class="stat-card"><span class="stat-label">총 풀이 문항</span><span class="stat-glyph">▤</span><strong>${solved.toLocaleString()}<em>문항</em></strong></article>
@@ -154,6 +154,7 @@ function renderSetup() {
       <label class="form-label" for="exam-year">기출 연도</label><select class="year-select" id="exam-year"><option value="all" selected>2020~2025년 전체</option>${years.map(y => `<option value="${y}">${y}년 제${y - 1989}회</option>`).join("")}</select>
       <span class="form-label">풀이 범위</span><div class="segmented" id="scope-switch"><button class="segment selected" data-scope="all">전과목 혼합</button><button class="segment" data-scope="subject">단일 과목</button></div>
       <div id="subject-picker" hidden><span class="form-label">과목 선택</span><div class="subject-options">${SUBJECTS.map((s, i) => `<label class="subject-option ${i === 0 ? "selected" : ""}"><input type="radio" name="subject" value="${escapeHTML(s)}" ${i === 0 ? "checked" : ""}><span>${escapeHTML(s)}</span></label>`).join("")}</div></div>
+      <label class="form-label" for="question-count">출제 문항 수</label><select class="year-select" id="question-count"><option value="10">10문제</option><option value="20">20문제</option><option value="30">30문제</option><option value="40" selected>40문제</option></select>
       <div class="setup-summary"><div class="summary-text">문제은행 <b id="question-total">—</b></div><div class="summary-text">이번 시험 <b id="question-benchmark">—</b></div><div class="summary-text">제한 시간 <b>40</b> 분</div></div>
       <p class="coverage-note" id="coverage-note" role="status"></p>
       <button class="button button-primary setup-submit" id="begin-exam">문제 셔플 후 시험 시작 <span>↗</span></button>
@@ -170,6 +171,7 @@ function bindSetup() {
     document.querySelectorAll(".subject-option").forEach(item => item.classList.toggle("selected", item.contains(input) && input.checked)); updateQuestionTotal();
   }));
   document.querySelector("#exam-year").addEventListener("change", updateQuestionTotal);
+  document.querySelector("#question-count").addEventListener("change", updateQuestionTotal);
   document.querySelector("#begin-exam").addEventListener("click", beginExam);
   updateQuestionTotal();
 }
@@ -186,21 +188,23 @@ function updateQuestionTotal() {
   const { year, scope, list } = selectedQuestions();
   const count = list.length;
   total.textContent = `${count}문항`;
-  const examCount = Math.min(count, 40);
+  const requestedCount = Number(document.querySelector("#question-count")?.value || 40);
+  const examCount = Math.min(count, requestedCount);
   document.querySelector("#question-benchmark").textContent = `${examCount}문항`;
   const note = document.querySelector("#coverage-note");
-  note.textContent = count ? `선택한 범위에서 무작위로 ${examCount}문항을 출제합니다. 전체 ${count}문항 중 최대 40문항입니다.` : "선택한 범위에 문제가 없습니다.";
+  note.textContent = count ? `선택한 범위에서 무작위로 ${examCount}문항을 출제합니다.${examCount < requestedCount ? ` 선택한 범위의 문항이 ${count}개라 ${count}문항으로 조정했습니다.` : ""}` : "선택한 범위에 문제가 없습니다.";
   note.classList.remove("coverage-incomplete");
 }
 function beginExam() {
   const { year, scope, subject, list } = selectedQuestions();
+  const requestedCount = Number(document.querySelector("#question-count")?.value || 40);
   if (!list.length) { toast("선택한 조건에 등록된 문제가 없어요."); return; }
   const shuffled = [...list];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, questions: shuffled.slice(0, 40).map(q => q.id), answers: {}, index: 0, paused: false, remaining: 40 * 60 * 1000, endsAt: Date.now() + 40 * 60 * 1000, startedAt: new Date().toISOString() };
+  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, questions: shuffled.slice(0, Math.min(list.length, requestedCount)).map(q => q.id), answers: {}, index: 0, paused: false, remaining: 40 * 60 * 1000, endsAt: Date.now() + 40 * 60 * 1000, startedAt: new Date().toISOString() };
   persist(); setView("exam");
 }
 function currentQuestions() { return quiz.questions.map(id => bank.find(q => q.id === id)).filter(Boolean); }
@@ -256,6 +260,7 @@ function submitExam(reason) {
   });
   const result = { id: quiz.id, year: quiz.year, scope: quiz.scope, subject: quiz.subject, total: questions.length, correct, score: Math.round(correct / questions.length * 100), subjects: subjectScores, completedAt: new Date().toISOString(), duration: Math.max(0, 40 * 60 * 1000 - remainingMs()), timedOut: reason === "timeout", results: questions.map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, correct: isCorrect(q, quiz.answers[q.id]) })) };
   const mistakes = questions.filter(q => !isCorrect(q, quiz.answers[q.id])).map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, attemptedAt: result.completedAt, attemptId: result.id }));
+  store.flashcards = [...new Set([...(store.flashcards || []), ...mistakes.map(m => m.questionId)])];
   const existing = new Set(store.mistakes.map(m => `${m.questionId}:${m.attemptId}`));
   store.mistakes.unshift(...mistakes.filter(m => !existing.has(`${m.questionId}:${m.attemptId}`)));
   store.history.unshift(result); store.active = null; quiz = null; persist(); view = "result"; render();
@@ -281,11 +286,12 @@ function renderMistakeCards(mistakes) {
   return mistakes.map(m => {
     const q = bank.find(item => item.id === m.questionId); if (!q) return "";
     const accepted = Array.isArray(q.answer) ? q.answer : [q.answer];
-    const hasDetailedExplanation = q.explanation && !q.explanation.includes("원문에는 별도 해설");
+    const hasDetailedExplanation = q.explanation && !q.explanation.includes("원문에는 별도 해설") && !q.explanation.includes("원본에는 별도 해설");
+    const inDeck = (store.flashcards || []).includes(q.id);
     const explanation = hasDetailedExplanation
       ? `<p>${escapeHTML(q.explanation)}</p>`
-      : `<p>원본 자료에는 정답표만 포함되어 있습니다. 외부 사이트에서 제공하는 AI 해설을 참고용으로 확인할 수 있습니다.</p>`;
-    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div><div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}<a class="explanation-link" href="${explanationUrl(q)}" target="_blank" rel="noopener noreferrer">외부 AI 해설 보기 ↗</a></div></article>`;
+      : `<p>Q-Net 공개 원본에는 정답표만 포함되어 있어, 이 문항의 풀이 해설은 아직 등록되지 않았습니다.</p>`;
+    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div><div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}</div><button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
   }).join("");
 }
 function bindMistakes() {
@@ -295,6 +301,33 @@ function bindMistakes() {
   };
   document.querySelector("#mistake-subject").addEventListener("change", filter); document.querySelector("#mistake-year").addEventListener("change", filter);
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
+  document.querySelectorAll("[data-flashcard]").forEach(button => button.addEventListener("click", () => toggleFlashcard(button.dataset.flashcard)));
+}
+function toggleFlashcard(questionId) {
+  store.flashcards ||= [];
+  store.flashcards = store.flashcards.includes(questionId) ? store.flashcards.filter(id => id !== questionId) : [...store.flashcards, questionId];
+  persist();
+  if (view === "flashcards") render(); else setView("mistakes");
+}
+function renderFlashcards() {
+  const cards = (store.flashcards || []).map(id => bank.find(q => q.id === id)).filter(Boolean);
+  if (!cards.length) return `${titleBlock("복습 카드", "암기카드", "틀린 문제를 카드로 반복해 기억을 확인하세요.")}<div class="flashcard-empty"><div class="empty-mark">✦</div><h2>아직 암기카드가 없어요</h2><p>시험에서 틀린 문제는 자동으로 담깁니다.<br>오답노트에서 원하는 문제를 직접 추가할 수도 있어요.</p><button class="button button-primary" data-action="mistakes">오답노트 보기</button></div>`;
+  flashcardIndex = Math.min(flashcardIndex, cards.length - 1);
+  const q = cards[flashcardIndex];
+  const latest = store.mistakes.find(m => m.questionId === q.id);
+  const answer = answerLabel(q);
+  const detailed = q.explanation && !q.explanation.includes("원문에는 별도 해설") && !q.explanation.includes("원본에는 별도 해설");
+  return `${titleBlock("복습 카드", "암기카드", "먼저 문제를 떠올린 뒤 카드를 뒤집어 정답을 확인하세요.")}<div class="flashcard-toolbar"><span>${flashcardIndex + 1} / ${cards.length}장</span><button class="button button-outline" data-remove-card="${escapeHTML(q.id)}">이 카드 삭제</button></div><div class="flashcard ${flashcardFlipped ? "is-flipped" : ""}" id="flashcard" role="button" tabindex="0" aria-label="카드를 뒤집어 정답 확인"><span class="flashcard-face flashcard-front"><span class="eyebrow">${q.year}년 · ${escapeHTML(q.subject)} · ${q.number}번</span><strong>${renderQuestionText(q.text)}</strong><span class="flashcard-options">${q.choices.map((choice,i)=>`<span>${LETTERS[i]} ${renderChoiceText(choice)}</span>`).join("")}</span><small>눌러서 정답 확인 ↻</small></span><span class="flashcard-face flashcard-back"><span class="eyebrow">정답</span><strong>${escapeHTML(answer)}</strong><span>${detailed ? escapeHTML(q.explanation) : "아직 풀이 해설은 작성되지 않았습니다. 정답표 기준 정답입니다."}</span>${latest ? `<small>풀이 시점 · ${fmtDate(latest.attemptedAt)}</small>` : ""}<small class="flashcard-more">눌러서 문제로 돌아가기 ↻</small></span></div><div class="flashcard-controls"><button class="button button-outline" id="card-prev" ${flashcardIndex===0?"disabled":""}>← 이전</button><button class="button button-primary" id="card-next" ${flashcardIndex===cards.length-1?"disabled":""}>다음 →</button></div>${!detailed ? `<p class="flashcard-source">이 문제는 현재 정답만 등록되어 있고 풀이 해설은 작성 중입니다.</p>` : ""}`;
+}
+function bindFlashcards() {
+  const card = document.querySelector("#flashcard");
+  const flipCard = () => { flashcardFlipped = !flashcardFlipped; render(); };
+  card?.addEventListener("click", flipCard);
+  card?.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); flipCard(); } });
+  document.querySelector("#card-prev")?.addEventListener("click", () => { flashcardIndex = Math.max(0, flashcardIndex - 1); flashcardFlipped = false; render(); });
+  document.querySelector("#card-next")?.addEventListener("click", () => { flashcardIndex = Math.min(store.flashcards.length - 1, flashcardIndex + 1); flashcardFlipped = false; render(); });
+  document.querySelector("[data-remove-card]")?.addEventListener("click", event => toggleFlashcard(event.currentTarget.dataset.removeCard));
+  document.querySelector("[data-action=mistakes]")?.addEventListener("click", () => setView("mistakes"));
 }
 function bindDashboard() {
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
@@ -312,7 +345,7 @@ document.querySelectorAll(".nav-item").forEach(button => button.addEventListener
 document.querySelectorAll('[data-action="reset"]').forEach(button => button.addEventListener("click", () => document.querySelector("#reset-dialog").showModal()));
 document.querySelector("#reset-cancel").addEventListener("click", () => document.querySelector("#reset-dialog").close());
 document.querySelector("#reset-confirm").addEventListener("click", () => {
-  localStorage.removeItem(STORAGE_KEY); store = { history: [], mistakes: [], active: null }; quiz = null; stopClock();
+  localStorage.removeItem(STORAGE_KEY); store = { history: [], mistakes: [], flashcards: [], active: null }; quiz = null; stopClock();
   document.querySelector("#reset-dialog").close(); setView("dashboard"); toast("시험과 오답 기록을 모두 삭제했어요.");
 });
 document.querySelector("#reset-dialog").addEventListener("click", event => { if (event.target === event.currentTarget) event.currentTarget.close(); });

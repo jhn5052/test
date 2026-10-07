@@ -22,7 +22,7 @@ SUBJECTS = [
 
 def question_docs(year):
     found = {}
-    for archive in EXAM.glob("*.zip"):
+    for archive in EXAM.rglob("*.zip"):
         if str(year) not in unicodedata.normalize("NFC", archive.name):
             continue
         with zipfile.ZipFile(archive) as source:
@@ -101,6 +101,7 @@ def split_questions(text, part):
 
 def main():
     answer_keys = json.loads((DATA / "answer-keys.json").read_text())["answerKeys"]
+    explanations = json.loads((DATA / "explanations.json").read_text())["explanations"]
     questions = []
     for year in range(2020, 2025):
         docs = question_docs(year)
@@ -123,7 +124,7 @@ def main():
                         "text": clean_footer(stem),
                         "choices": [clean_footer(choice) for choice in choices],
                         "answer": answer,
-                        "explanation": (
+                        "explanation": explanations.get(question_id) or (
                             f"정답은 {'·'.join(map(str, accepted))}번입니다. "
                             "원문에는 별도 해설이 포함되어 있지 않아 정답표를 기준으로 채점합니다."
                         ),
@@ -142,7 +143,7 @@ def main():
             raise ValueError(f"No official answer key for {question_id}")
         question["answer"] = answer_keys[question_id]
         accepted = question["answer"] if isinstance(question["answer"], list) else [question["answer"]]
-        question["explanation"] = (
+        question["explanation"] = explanations.get(question_id) or (
             f"정답은 {'·'.join(map(str, accepted))}번입니다. "
             "원문에는 별도 해설이 포함되어 있지 않아 정답표를 기준으로 채점합니다."
         )
@@ -152,6 +153,9 @@ def main():
     actual_ids = {question["id"] for question in questions}
     if len(questions) != 1200 or actual_ids != expected_ids:
         raise ValueError(f"Expected 1,200 unique questions; got {len(questions)} records and {len(actual_ids)} IDs")
+    unknown_explanations = set(explanations) - actual_ids
+    if unknown_explanations:
+        raise ValueError(f"Explanations reference unknown questions: {sorted(unknown_explanations)[:5]}")
     for question in questions:
         if len(question["choices"]) != 5 or any(not choice.strip() for choice in question["choices"]):
             raise ValueError(f"Incomplete stem/options for {question['id']}")
