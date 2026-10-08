@@ -2,6 +2,7 @@ const STORAGE_KEY = "gyeol-study-v1";
 const SUBJECTS = ["부동산학개론", "민법 및 민사특별법", "공인중개사법령 및 중개실무", "부동산공법", "부동산공시에 관한 법령 및 부동산 관련 세법"];
 const LETTERS = ["①", "②", "③", "④", "⑤"];
 let bank = [];
+let studyTypes = [];
 let store = readStore();
 let view = "dashboard";
 let quiz = store.active || null;
@@ -9,6 +10,10 @@ let interval = null;
 let toastTimeout = null;
 let flashcardIndex = 0;
 let flashcardFlipped = false;
+let studyTypeIndex = 0;
+let studyTypeFlipped = false;
+let studyTypeSubject = "all";
+let showAllHistory = false;
 
 function readStore() {
   try { return { history: [], mistakes: [], flashcards: [], active: null, ...(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")) }; }
@@ -79,7 +84,7 @@ function updateCounts() {
 function setView(next) {
   view = next;
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === next));
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", result: "시험 결과" })[next] || "학습실";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "핵심 유형", result: "시험 결과" })[next] || "학습실";
   render();
 }
 function render() {
@@ -89,9 +94,10 @@ function render() {
   if (view === "exam") { root.innerHTML = renderSetup(); bindSetup(); }
   else if (view === "mistakes") { root.innerHTML = renderMistakes(); bindMistakes(); }
   else if (view === "flashcards") { root.innerHTML = renderFlashcards(); bindFlashcards(); }
+  else if (view === "study-types") { root.innerHTML = renderStudyTypes(); bindStudyTypes(); }
   else if (view === "result" && store.history[0]) { root.innerHTML = renderResult(store.history[0]); bindResult(); }
   else { view = "dashboard"; root.innerHTML = renderDashboard(); bindDashboard(); }
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", result: "시험 결과" })[view] || "시험 응시";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "핵심 유형", result: "시험 결과" })[view] || "시험 응시";
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === (view === "taking" ? "exam" : view)));
   updateCounts();
 }
@@ -105,7 +111,7 @@ function renderDashboard() {
   const correct = attempts.reduce((sum, a) => sum + a.correct, 0);
   const accuracy = solved ? Math.round(correct / solved * 100) : 0;
   const years = [...new Set(bank.map(q => q.year))].sort((a, b) => b - a);
-  const recent = attempts.slice(0, 5);
+  const recent = showAllHistory ? attempts : attempts.slice(0, 5);
   const subjects = subjectStats(attempts);
   const chart = renderChart(attempts);
   return `${titleBlock("공인중개사 기출연습", "기출로 합격에 가까워져요", "기출을 풀고, 틀린 문제는 오답노트와 암기카드로 복습하세요.", `<button class="button button-primary" data-action="start-exam">새 시험 시작 <span>↗</span></button>`)}
@@ -120,7 +126,7 @@ function renderDashboard() {
       <article class="panel"><div class="panel-head"><div><h2>과목별 정답률</h2><p>지금까지 푼 문제 기준</p></div></div>${renderSubjectStats(subjects)}</article>
     </section>
     <section class="section-row">
-      <article class="panel recent-panel"><div class="panel-head"><div><h2>최근 시험</h2><p>가장 최근에 제출한 기록</p></div>${attempts.length ? `<button class="panel-link" data-action="show-history">전체 기록 ${attempts.length}회</button>` : ""}</div>
+      <article class="panel recent-panel"><div class="panel-head"><div><h2>${showAllHistory ? "전체 시험 기록" : "최근 시험"}</h2><p>${showAllHistory ? `총 ${attempts.length}회 응시` : "가장 최근에 제출한 기록"}</p></div>${attempts.length ? `<button class="panel-link" data-action="show-history">${showAllHistory ? "최근 5회만 보기" : `전체 기록 ${attempts.length}회`}</button>` : ""}</div>
        ${recent.length ? `<div class="recent-list">${recent.map((item, index) => `<button class="recent-item" data-result="${index}"><span><span class="recent-name">${yearLabel(item.year)} 기출 · ${item.scope === "all" ? "전과목 혼합" : escapeHTML(item.subject)}</span><span class="recent-meta">${fmtDate(item.completedAt)} · ${item.correct}/${item.total} 정답</span></span><span class="recent-score ${item.score >= 60 ? "score-good" : "score-low"}">${item.score}<small>점</small></span><span class="result-date">›</span></button>`).join("")}</div>` : `<div class="no-records">아직 시험 기록이 없어요. 첫 시험을 시작해 보세요.</div>`}</article>
       <article class="panel quick-card"><div><div class="eyebrow">${years.length ? `기출 ${Math.min(...years)} — ${Math.max(...years)}` : "기출 데이터"}</div><h3>오늘의 공부를 시작할까요?</h3><p>40분 집중해서 실전 감각을 쌓아보세요.<br>과목을 골라 가볍게 풀어도 좋아요.</p></div><button class="button" data-action="start-exam">시험 설정하기 <span>→</span></button></article>
     </section>`;
@@ -329,10 +335,37 @@ function bindFlashcards() {
   document.querySelector("[data-remove-card]")?.addEventListener("click", event => toggleFlashcard(event.currentTarget.dataset.removeCard));
   document.querySelector("[data-action=mistakes]")?.addEventListener("click", () => setView("mistakes"));
 }
+function renderStudyTypes() {
+  const available = studyTypes.filter(card => studyTypeSubject === "all" || card.subject === studyTypeSubject);
+  const subjects = [...new Set(studyTypes.map(card => card.subject))];
+  if (!available.length) return `${titleBlock("기출에서 뽑은 복습 주제", "핵심 기출 유형", "2020~2025년 기출에서 반복해서 확인할 개념을 과목별 카드로 정리했습니다.")}<div class="flashcard-empty"><h2>유형 카드를 불러오지 못했어요</h2><p>페이지를 새로고침한 뒤 다시 확인해 주세요.</p></div>`;
+  studyTypeIndex = Math.min(studyTypeIndex, available.length - 1);
+  const card = available[studyTypeIndex];
+  const q = bank.find(item => item.id === card.sourceId);
+  return `${titleBlock("기출에서 뽑은 복습 주제", "핵심 기출 유형", "앞면의 질문을 먼저 떠올린 뒤 카드를 눌러 핵심 정리와 대표 기출 해설을 확인하세요.")}
+    <div class="study-type-toolbar"><label class="eyebrow" for="study-type-subject">과목별 복습</label><select class="filter-select" id="study-type-subject"><option value="all" ${studyTypeSubject === "all" ? "selected" : ""}>전체 과목 · ${studyTypes.length}개 유형</option>${subjects.map(subject => `<option value="${escapeHTML(subject)}" ${studyTypeSubject === subject ? "selected" : ""}>${escapeHTML(subject)} · ${studyTypes.filter(item => item.subject === subject).length}개</option>`).join("")}</select><span>${studyTypeIndex + 1} / ${available.length}</span></div>
+    <button class="type-flashcard ${studyTypeFlipped ? "is-flipped" : ""}" id="study-type-card" aria-pressed="${studyTypeFlipped}" aria-label="${studyTypeFlipped ? "카드를 앞면으로 뒤집기" : "카드를 뒤집어 핵심 정리 보기"}">
+      <span class="type-card-face type-card-front"><span class="eyebrow">${escapeHTML(card.subject)} · 핵심 유형</span><strong>${escapeHTML(card.title)}</strong><span class="type-card-prompt">${escapeHTML(card.front)}</span><small>눌러서 핵심 정리 보기 ↻</small></span>
+      <span class="type-card-face type-card-back"><span class="eyebrow">기억할 내용</span><strong>${escapeHTML(card.title)}</strong><span class="type-card-note">${escapeHTML(card.back)}</span>${q ? `<span class="type-source"><b>대표 기출 · ${q.year}년 ${escapeHTML(q.subject)} ${q.number}번</b><span class="type-source-question">${renderQuestionText(q.text)}</span><span class="type-source-answer">${escapeHTML(answerLabel(q))}</span><span class="type-source-explanation">${escapeHTML(q.explanation || "정답표 기준")}</span></span>` : ""}<small>눌러서 질문으로 돌아가기 ↻</small></span>
+    </button>
+    <div class="flashcard-controls study-type-controls"><button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 유형</button><button class="button button-quiet" id="type-shuffle">순서 섞기 ↻</button><button class="button button-primary" id="type-next" ${studyTypeIndex === available.length - 1 ? "disabled" : ""}>다음 유형 →</button></div>
+    <p class="study-type-footnote">유형 요약은 기출과 앱에 등록된 해설을 복습하기 쉽게 정리한 참고 카드입니다. 법령 숫자는 해당 연도 기출 기준으로 표시합니다.</p>`;
+}
+function bindStudyTypes() {
+  document.querySelector("#study-type-subject")?.addEventListener("change", event => { studyTypeSubject = event.target.value; studyTypeIndex = 0; studyTypeFlipped = false; render(); });
+  document.querySelector("#study-type-card")?.addEventListener("click", () => { studyTypeFlipped = !studyTypeFlipped; render(); });
+  document.querySelector("#type-prev")?.addEventListener("click", () => { studyTypeIndex = Math.max(0, studyTypeIndex - 1); studyTypeFlipped = false; render(); });
+  document.querySelector("#type-next")?.addEventListener("click", () => { studyTypeIndex = Math.min(studyTypes.filter(card => studyTypeSubject === "all" || card.subject === studyTypeSubject).length - 1, studyTypeIndex + 1); studyTypeFlipped = false; render(); });
+  document.querySelector("#type-shuffle")?.addEventListener("click", () => {
+    const count = studyTypes.filter(card => studyTypeSubject === "all" || card.subject === studyTypeSubject).length;
+    studyTypeIndex = count > 1 ? (studyTypeIndex + 1 + Math.floor(Math.random() * (count - 1))) % count : 0;
+    studyTypeFlipped = false; render();
+  });
+}
 function bindDashboard() {
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
   document.querySelectorAll("[data-result]").forEach(button => button.addEventListener("click", () => { view = "result"; renderResultView(Number(button.dataset.result)); }));
-  document.querySelector("[data-action=show-history]")?.addEventListener("click", () => toast(`총 ${store.history.length}회의 시험 기록이 있어요.`));
+  document.querySelector("[data-action=show-history]")?.addEventListener("click", () => { showAllHistory = !showAllHistory; render(); });
 }
 function renderResultView(index) {
   const attempt = store.history[index]; if (!attempt) return;
@@ -360,6 +393,12 @@ async function loadBank() {
     bank = [];
     console.warn(error);
   }
+  try {
+    const response = await fetch("./data/study-types.json");
+    if (!response.ok) throw new Error("핵심 유형 카드를 찾을 수 없습니다.");
+    studyTypes = (await response.json()).cards || [];
+    studyTypes = studyTypes.filter(card => card.id && card.subject && card.title && card.front && card.back && bank.some(q => q.id === card.sourceId));
+  } catch (error) { studyTypes = []; console.warn(error); }
   if (quiz && !quiz.questions.every(id => bank.some(q => q.id === id))) { quiz = null; store.active = null; persist(); }
   render();
 }
