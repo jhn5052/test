@@ -97,6 +97,7 @@ function setView(next) {
 }
 function render() {
   const root = document.querySelector("#app-main");
+  document.body.classList.toggle("exam-taking", Boolean(quiz));
   if (quiz) { view = "taking"; root.innerHTML = renderQuiz(); bindQuiz(); startClock(); return; }
   stopClock();
   if (view === "exam") { root.innerHTML = renderSetup(); bindSetup(); }
@@ -287,22 +288,29 @@ function renderQuiz() {
   if (!q) return `<p>문제를 불러올 수 없습니다.</p>`;
   const elapsed = remainingMs();
   const answered = Object.keys(quiz.answers).length;
-  return `<div class="exam-topline"><div><div class="exam-kicker">${yearLabel(quiz.year)} 기출 · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-kicker" style="margin-top:6px">문제 ${quiz.index + 1} / ${questions.length}</div></div><div class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="timer">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</div></div>
-   <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span></div><div class="question-text">${renderQuestionText(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
-   <aside class="exam-rail"><section class="rail-card"><div class="rail-head"><span>답안 현황</span><small>${answered} / ${questions.length}</small></div><div class="question-grid">${questions.map((item, i) => `<button class="question-dot ${i === quiz.index ? "current" : ""} ${quiz.answers[item.id] ? "answered" : ""}" data-goto="${i}" aria-label="${i + 1}번 문제${quiz.answers[item.id] ? " 답변 완료" : " 미응답"}">${i + 1}</button>`).join("")}</div><div class="rail-legend"><span><i class="legend-dot current"></i>현재</span><span><i class="legend-dot"></i>답변 완료</span></div><div class="progress-info"><span>진행률</span><span>${Math.round((quiz.index + 1) / questions.length * 100)}%</span></div></section>
-   <section class="rail-card rail-actions"><button class="button button-quiet" id="pause-exam">${quiz.paused ? "시험 재개" : "일시정지"} ${quiz.paused ? "▶" : "Ⅱ"}</button><button class="button button-primary" id="submit-exam">답안 제출하기</button></section></aside></div>`;
+  const answeredPercent = Math.round(answered / questions.length * 100);
+  return `<div class="exam-topline"><div class="exam-topline-copy"><div class="exam-kicker">${yearLabel(quiz.year)} 기출 · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-counter"><b>${quiz.index + 1}</b><span>/ ${questions.length}번</span><small>${answered}개 답변</small></div><div class="exam-progress-track" role="progressbar" aria-label="답변 진행률" aria-valuenow="${answered}" aria-valuemin="0" aria-valuemax="${questions.length}"><i style="width:${answeredPercent}%"></i></div></div><button class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="pause-exam" aria-label="${quiz.paused ? "시험 재개" : "시험 일시정지"}" title="눌러서 ${quiz.paused ? "시험 재개" : "일시정지"}"><span id="timer-value">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</span><small>${quiz.paused ? "재개 ▶" : "일시정지 Ⅱ"}</small></button></div>
+   <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span></div><div class="question-text">${renderQuestionText(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}" aria-pressed="${Number(quiz.answers[q.id]) === i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
+   <aside class="exam-rail"><section class="rail-card" id="question-map"><div class="rail-head"><span>답안 현황</span><small>${answered} / ${questions.length}</small></div><div class="question-grid">${questions.map((item, i) => `<button class="question-dot ${i === quiz.index ? "current" : ""} ${quiz.answers[item.id] ? "answered" : ""}" data-goto="${i}" aria-label="${i + 1}번 문제${quiz.answers[item.id] ? " 답변 완료" : " 미응답"}">${i + 1}</button>`).join("")}</div><div class="rail-legend"><span><i class="legend-dot current"></i>현재</span><span><i class="legend-dot"></i>답변 완료</span></div><div class="progress-info"><span>답변한 문제</span><span>${answeredPercent}%</span></div></section>
+   <section class="rail-card rail-actions"><button class="button button-primary" id="submit-exam">답안 제출하기</button></section></aside></div>
+   <div class="exam-mobile-bar" aria-label="시험 조작"><button class="mobile-exam-control" id="mobile-prev" ${quiz.index === 0 ? "disabled" : ""} aria-label="이전 문제">←<small>이전</small></button><button class="mobile-exam-control mobile-map-control" id="mobile-map" aria-label="문제 목록 보기"><span>${quiz.index + 1}/${questions.length}</span><small>목록</small></button><button class="mobile-exam-control mobile-next-control" id="mobile-next" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음<small>문제 →</small></button><button class="mobile-submit-control" id="mobile-submit">제출</button></div>`;
 }
 function bindQuiz() {
   document.querySelectorAll("[data-answer]").forEach(button => button.addEventListener("click", () => {
-    const q = currentQuestions()[quiz.index]; quiz.answers[q.id] = Number(button.dataset.answer); persist(); render();
+    const q = currentQuestions()[quiz.index]; const scrollTop = window.scrollY; quiz.answers[q.id] = Number(button.dataset.answer); persist(); render(); window.scrollTo(0, scrollTop);
   }));
-  document.querySelectorAll("[data-goto]").forEach(button => button.addEventListener("click", () => { quiz.index = Number(button.dataset.goto); persist(); render(); }));
+  document.querySelectorAll("[data-goto]").forEach(button => button.addEventListener("click", () => { quiz.index = Number(button.dataset.goto); persist(); render(); scrollToExamQuestion(); }));
   document.querySelector("#previous-question").addEventListener("click", () => moveQuestion(-1));
   document.querySelector("#next-question").addEventListener("click", () => moveQuestion(1));
   document.querySelector("#pause-exam").addEventListener("click", togglePause);
   document.querySelector("#submit-exam").addEventListener("click", () => submitExam("manual"));
+  document.querySelector("#mobile-prev").addEventListener("click", () => moveQuestion(-1));
+  document.querySelector("#mobile-next").addEventListener("click", () => moveQuestion(1));
+  document.querySelector("#mobile-map").addEventListener("click", () => document.querySelector("#question-map").scrollIntoView({ behavior: "smooth", block: "center" }));
+  document.querySelector("#mobile-submit").addEventListener("click", () => submitExam("manual"));
 }
-function moveQuestion(delta) { quiz.index = Math.min(quiz.questions.length - 1, Math.max(0, quiz.index + delta)); persist(); render(); }
+function scrollToExamQuestion() { if (matchMedia("(max-width: 720px)").matches) document.querySelector(".exam-topline")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+function moveQuestion(delta) { quiz.index = Math.min(quiz.questions.length - 1, Math.max(0, quiz.index + delta)); persist(); render(); scrollToExamQuestion(); }
 function togglePause() {
   if (quiz.paused) { quiz.paused = false; quiz.endsAt = Date.now() + quiz.remaining; }
   else { quiz.remaining = remainingMs(); quiz.paused = true; }
@@ -312,9 +320,9 @@ function startClock() {
   stopClock();
   if (!quiz || quiz.paused) return;
   interval = setInterval(() => {
-    const timer = document.querySelector("#timer");
+    const timer = document.querySelector("#timer-value");
     if (!timer) { stopClock(); return; }
-    const ms = remainingMs(); timer.textContent = fmtDuration(ms); timer.classList.toggle("warning", ms < 300000);
+    const ms = remainingMs(); timer.textContent = fmtDuration(ms); document.querySelector("#pause-exam")?.classList.toggle("warning", ms < 300000);
     if (ms <= 0) submitExam("timeout");
   }, 300);
 }
@@ -452,8 +460,7 @@ function renderStudyTypes() {
       <div class="type-card-face type-card-front"><span class="memory-card-kicker"><span>${escapeHTML(card.subject)}</span><b>${studyTypeIndex + 1} / ${available.length}</b></span><strong class="memory-card-title">${escapeHTML(card.title)}</strong><span class="memory-recall-label">먼저 답을 떠올려보세요</span><div class="type-card-prompt">${escapeHTML(card.prompt || q?.text || card.title)}</div><button class="type-flip-action" data-concept-flip>정답과 암기 포인트 보기 <span>↻</span></button></div>
       <div class="type-card-face type-card-back"><span class="memory-card-kicker"><span>정답 · 핵심 암기</span><b>${escapeHTML(card.subject)}</b></span><strong class="memory-answer">${escapeHTML(card.answer || (q ? answerLabel(q) : card.title))}</strong><section class="memory-facts"><b>외울 기준</b><ul class="concept-points">${(card.memorize || card.concept).map(point => `<li>${escapeHTML(point)}</li>`).join("")}</ul></section>${q ? `<details class="type-source memory-exam" ${studyTypeQuestionOpen ? "open" : ""}><summary><b>${q.year}년 ${escapeHTML(q.subject)} ${q.number}번 · 기출로 확인</b><span>문제와 보기 펼치기＋</span></summary><div class="memory-exam-content"><div class="type-source-question">${renderQuestionText(q.text)}</div><div class="type-answer-options">${q.choices.map((choice, index) => `<button class="type-answer-option ${studyTypeSelected === index + 1 ? "is-selected" : ""} ${studyTypeRevealed && accepted.includes(index + 1) ? "is-answer" : ""} ${studyTypeRevealed && studyTypeSelected === index + 1 && !accepted.includes(index + 1) ? "is-incorrect" : ""}" data-concept-answer="${index + 1}"><b>${LETTERS[index]}</b><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><button class="button button-primary type-check-answer" data-concept-check ${studyTypeRevealed || !studyTypeSelected ? "disabled" : ""}>정답 확인</button>${feedback}<p class="type-source-explanation">${escapeHTML(q.explanation || "정답표 기준 정답입니다.")}</p></div></details>` : `<span class="type-card-note">연결된 기출문제를 찾을 수 없습니다.</span>`}<button class="type-flip-action back-flip-action" data-concept-flip>질문으로 돌아가기 ↻</button></div>
     </div>
-    <div class="flashcard-controls study-type-controls"><button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 유형</button><button class="button button-quiet" id="type-shuffle">순서 섞기 ↻</button><button class="button button-primary" id="type-next" ${studyTypeIndex === available.length - 1 ? "disabled" : ""}>다음 유형 →</button></div>
-    <p class="study-type-footnote">부동산학개론 1~40번은 제공해 주신 개념 요약 사진을 참고했습니다. 다른 과목은 기출문제와 해설에서 개념을 정리했습니다. 법령 숫자는 연결된 기출 회차 기준입니다.</p>`;
+    <div class="flashcard-controls study-type-controls"><button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 유형</button><button class="button button-quiet" id="type-shuffle">순서 섞기 ↻</button><button class="button button-primary" id="type-next" ${studyTypeIndex === available.length - 1 ? "disabled" : ""}>다음 유형 →</button></div>`;
 }
 function bindStudyTypes() {
   document.querySelectorAll("[data-study-mode]").forEach(button => button.addEventListener("click", () => { studyTypeMode = button.dataset.studyMode; studyTypeFlipped = false; studyTypeSelected = null; studyTypeRevealed = false; studyTypeQuestionOpen = false; render(); }));
