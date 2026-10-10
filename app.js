@@ -13,6 +13,8 @@ let flashcardFlipped = false;
 let studyTypeIndex = 0;
 let studyTypeFlipped = false;
 let studyTypeSubject = "all";
+let studyTypeSelected = null;
+let studyTypeRevealed = false;
 let showAllHistory = false;
 
 function readStore() {
@@ -294,10 +296,11 @@ function renderMistakeCards(mistakes) {
     const accepted = Array.isArray(q.answer) ? q.answer : [q.answer];
     const hasDetailedExplanation = q.explanation && !q.explanation.includes("원문에는 별도 해설") && !q.explanation.includes("원본에는 별도 해설");
     const inDeck = (store.flashcards || []).includes(q.id);
+    const relatedCards = relatedConceptCards(q);
     const explanation = hasDetailedExplanation
       ? `<p>${escapeHTML(q.explanation)}</p>`
       : `<p>Q-Net 공개 원본에는 정답표만 포함되어 있어, 이 문항의 풀이 해설은 아직 등록되지 않았습니다.</p>`;
-    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div><div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}</div><button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
+    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div><div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}</div>${relatedCards.length ? `<div class="related-concepts"><b>관련 개념 정리</b><div>${relatedCards.map(card => `<button class="related-concept-button" data-open-concept="${escapeHTML(card.id)}">${escapeHTML(card.title)} <span>개념 + 기출 →</span></button>`).join("")}</div></div>` : `<div class="related-concepts"><b>개념 복습</b><div><button class="related-concept-button" data-open-subject="${escapeHTML(q.subject)}">${escapeHTML(q.subject)} 개념 카드 보기 <span>과목별 개념 + 기출 →</span></button></div></div>`}<button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
   }).join("");
 }
 function bindMistakes() {
@@ -308,6 +311,8 @@ function bindMistakes() {
   document.querySelector("#mistake-subject").addEventListener("change", filter); document.querySelector("#mistake-year").addEventListener("change", filter);
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
   document.querySelectorAll("[data-flashcard]").forEach(button => button.addEventListener("click", () => toggleFlashcard(button.dataset.flashcard)));
+  document.querySelectorAll("[data-open-concept]").forEach(button => button.addEventListener("click", () => openConceptCard(button.dataset.openConcept)));
+  document.querySelectorAll("[data-open-subject]").forEach(button => button.addEventListener("click", () => openSubjectConcepts(button.dataset.openSubject)));
 }
 function toggleFlashcard(questionId) {
   store.flashcards ||= [];
@@ -338,29 +343,58 @@ function bindFlashcards() {
 function renderStudyTypes() {
   const available = studyTypes.filter(card => studyTypeSubject === "all" || card.subject === studyTypeSubject);
   const subjects = [...new Set(studyTypes.map(card => card.subject))];
-  if (!available.length) return `${titleBlock("기출에서 뽑은 복습 주제", "핵심 기출 유형", "2020~2025년 기출에서 반복해서 확인할 개념을 과목별 카드로 정리했습니다.")}<div class="flashcard-empty"><h2>유형 카드를 불러오지 못했어요</h2><p>페이지를 새로고침한 뒤 다시 확인해 주세요.</p></div>`;
+  if (!available.length) return `${titleBlock("개념 정리 + 기출 적용", "핵심 기출 유형", "개념을 먼저 읽고, 카드를 뒤집어 연결된 기출문제를 풀어보세요.")}<div class="flashcard-empty"><h2>개념 카드를 불러오지 못했어요</h2><p>페이지를 새로고침한 뒤 다시 확인해 주세요.</p></div>`;
   studyTypeIndex = Math.min(studyTypeIndex, available.length - 1);
   const card = available[studyTypeIndex];
   const q = bank.find(item => item.id === card.sourceId);
-  return `${titleBlock("기출에서 뽑은 복습 주제", "핵심 기출 유형", "앞면의 질문을 먼저 떠올린 뒤 카드를 눌러 핵심 정리와 대표 기출 해설을 확인하세요.")}
+  const accepted = q ? (Array.isArray(q.answer) ? q.answer : [q.answer]) : [];
+  const feedback = studyTypeRevealed && q ? `<div class="type-answer-feedback ${isCorrect(q, studyTypeSelected) ? "is-correct" : "is-wrong"}"><b>${isCorrect(q, studyTypeSelected) ? "정답이에요" : "다시 확인해 보세요"}</b><span>정답 ${escapeHTML(answerLabel(q))}</span><p>${escapeHTML(q.explanation || "등록된 정답을 확인하세요.")}</p></div>` : "";
+  return `${titleBlock("개념 정리 + 기출 적용", "핵심 기출 유형", "앞면에서 개념을 정리하고, 카드를 뒤집어 연결된 기출문제를 풀어보세요. 틀린 문항에서는 관련 개념 카드로 바로 이동할 수 있습니다.")}
     <div class="study-type-toolbar"><label class="eyebrow" for="study-type-subject">과목별 복습</label><select class="filter-select" id="study-type-subject"><option value="all" ${studyTypeSubject === "all" ? "selected" : ""}>전체 과목 · ${studyTypes.length}개 유형</option>${subjects.map(subject => `<option value="${escapeHTML(subject)}" ${studyTypeSubject === subject ? "selected" : ""}>${escapeHTML(subject)} · ${studyTypes.filter(item => item.subject === subject).length}개</option>`).join("")}</select><span>${studyTypeIndex + 1} / ${available.length}</span></div>
-    <button class="type-flashcard ${studyTypeFlipped ? "is-flipped" : ""}" id="study-type-card" aria-pressed="${studyTypeFlipped}" aria-label="${studyTypeFlipped ? "카드를 앞면으로 뒤집기" : "카드를 뒤집어 핵심 정리 보기"}">
-      <span class="type-card-face type-card-front"><span class="eyebrow">${escapeHTML(card.subject)} · 핵심 유형</span><strong>${escapeHTML(card.title)}</strong><span class="type-card-prompt">${escapeHTML(card.front)}</span><small>눌러서 핵심 정리 보기 ↻</small></span>
-      <span class="type-card-face type-card-back"><span class="eyebrow">기억할 내용</span><strong>${escapeHTML(card.title)}</strong><span class="type-card-note">${escapeHTML(card.back)}</span>${q ? `<span class="type-source"><b>대표 기출 · ${q.year}년 ${escapeHTML(q.subject)} ${q.number}번</b><span class="type-source-question">${renderQuestionText(q.text)}</span><span class="type-source-answer">${escapeHTML(answerLabel(q))}</span><span class="type-source-explanation">${escapeHTML(q.explanation || "정답표 기준")}</span></span>` : ""}<small>눌러서 질문으로 돌아가기 ↻</small></span>
-    </button>
+    <div class="type-flashcard ${studyTypeFlipped ? "is-flipped" : ""}" id="study-type-card" role="group" aria-label="${escapeHTML(card.title)} 개념 및 기출 카드">
+      <div class="type-card-face type-card-front"><span class="eyebrow">${escapeHTML(card.subject)} · 개념 정리${card.bookQuestionNumber ? ` · 예상문제 ${String(card.bookQuestionNumber).padStart(2, "0")}` : ""}</span><strong>${escapeHTML(card.title)}</strong><ul class="concept-points">${card.concept.map(point => `<li>${escapeHTML(point)}</li>`).join("")}</ul><button class="type-flip-action" data-concept-flip>개념 확인했어요 · 예상문제 풀기 ↻</button></div>
+      <div class="type-card-face type-card-back"><span class="eyebrow">예상문제 · 대표 기출 적용</span><strong>${escapeHTML(card.title)}</strong>${q ? `<span class="type-source"><b>${q.year}년 ${escapeHTML(q.subject)} ${q.number}번</b><span class="type-source-question">${renderQuestionText(q.text)}</span></span><div class="type-answer-options">${q.choices.map((choice, index) => `<button class="type-answer-option ${studyTypeSelected === index + 1 ? "is-selected" : ""} ${studyTypeRevealed && accepted.includes(index + 1) ? "is-answer" : ""} ${studyTypeRevealed && studyTypeSelected === index + 1 && !accepted.includes(index + 1) ? "is-incorrect" : ""}" data-concept-answer="${index + 1}"><b>${LETTERS[index]}</b><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><button class="button button-primary type-check-answer" data-concept-check ${studyTypeRevealed || !studyTypeSelected ? "disabled" : ""}>정답 확인</button>${feedback}` : `<span class="type-card-note">연결된 기출문제를 찾을 수 없습니다.</span>`}<button class="type-flip-action back-flip-action" data-concept-flip>개념 정리로 돌아가기 ↻</button></div>
+    </div>
     <div class="flashcard-controls study-type-controls"><button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 유형</button><button class="button button-quiet" id="type-shuffle">순서 섞기 ↻</button><button class="button button-primary" id="type-next" ${studyTypeIndex === available.length - 1 ? "disabled" : ""}>다음 유형 →</button></div>
-    <p class="study-type-footnote">유형 요약은 기출과 앱에 등록된 해설을 복습하기 쉽게 정리한 참고 카드입니다. 법령 숫자는 해당 연도 기출 기준으로 표시합니다.</p>`;
+    <p class="study-type-footnote">부동산학개론 1~40번은 제공해 주신 개념 요약 사진을 참고했습니다. 다른 과목은 기출문제와 해설에서 개념을 정리했습니다. 법령 숫자는 연결된 기출 회차 기준입니다.</p>`;
 }
 function bindStudyTypes() {
-  document.querySelector("#study-type-subject")?.addEventListener("change", event => { studyTypeSubject = event.target.value; studyTypeIndex = 0; studyTypeFlipped = false; render(); });
-  document.querySelector("#study-type-card")?.addEventListener("click", () => { studyTypeFlipped = !studyTypeFlipped; render(); });
-  document.querySelector("#type-prev")?.addEventListener("click", () => { studyTypeIndex = Math.max(0, studyTypeIndex - 1); studyTypeFlipped = false; render(); });
-  document.querySelector("#type-next")?.addEventListener("click", () => { studyTypeIndex = Math.min(studyTypes.filter(card => studyTypeSubject === "all" || card.subject === studyTypeSubject).length - 1, studyTypeIndex + 1); studyTypeFlipped = false; render(); });
+  document.querySelector("#study-type-subject")?.addEventListener("change", event => { studyTypeSubject = event.target.value; studyTypeIndex = 0; studyTypeFlipped = false; studyTypeSelected = null; studyTypeRevealed = false; render(); });
+  const cardElement = document.querySelector("#study-type-card");
+  cardElement?.addEventListener("click", event => {
+    const answerButton = event.target.closest("[data-concept-answer]");
+    const checkButton = event.target.closest("[data-concept-check]");
+    if (answerButton) { event.stopPropagation(); studyTypeSelected = Number(answerButton.dataset.conceptAnswer); studyTypeRevealed = false; render(); return; }
+    if (checkButton) { event.stopPropagation(); studyTypeRevealed = true; render(); return; }
+    studyTypeFlipped = !studyTypeFlipped;
+    studyTypeSelected = null; studyTypeRevealed = false;
+    render();
+  });
+  document.querySelector("#type-prev")?.addEventListener("click", () => { studyTypeIndex = Math.max(0, studyTypeIndex - 1); studyTypeFlipped = false; studyTypeSelected = null; studyTypeRevealed = false; render(); });
+  document.querySelector("#type-next")?.addEventListener("click", () => { studyTypeIndex = Math.min(studyTypes.filter(card => studyTypeSubject === "all" || card.subject === studyTypeSubject).length - 1, studyTypeIndex + 1); studyTypeFlipped = false; studyTypeSelected = null; studyTypeRevealed = false; render(); });
   document.querySelector("#type-shuffle")?.addEventListener("click", () => {
     const count = studyTypes.filter(card => studyTypeSubject === "all" || card.subject === studyTypeSubject).length;
     studyTypeIndex = count > 1 ? (studyTypeIndex + 1 + Math.floor(Math.random() * (count - 1))) % count : 0;
-    studyTypeFlipped = false; render();
+    studyTypeFlipped = false; studyTypeSelected = null; studyTypeRevealed = false; render();
   });
+}
+function relatedConceptCards(question) {
+  const searchable = `${question.text} ${question.explanation || ""} ${question.choices.join(" ")}`.replace(/\s+/g, " ");
+  const ranked = studyTypes.filter(card => card.subject === question.subject).map(card => ({
+    card,
+    score: (card.sourceId === question.id ? 100 : 0) + card.relatedTerms.filter(term => searchable.includes(term)).length,
+  })).filter(item => item.score > 0).sort((a, b) => b.score - a.score);
+  return ranked.slice(0, 2).map(item => item.card);
+}
+function openConceptCard(id) {
+  const index = studyTypes.findIndex(card => card.id === id);
+  if (index < 0) return;
+  studyTypeSubject = "all"; studyTypeIndex = index; studyTypeFlipped = false; studyTypeSelected = null; studyTypeRevealed = false;
+  setView("study-types");
+}
+function openSubjectConcepts(subject) {
+  studyTypeSubject = subject; studyTypeIndex = 0; studyTypeFlipped = false; studyTypeSelected = null; studyTypeRevealed = false;
+  setView("study-types");
 }
 function bindDashboard() {
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
@@ -397,7 +431,7 @@ async function loadBank() {
     const response = await fetch("./data/study-types.json");
     if (!response.ok) throw new Error("핵심 유형 카드를 찾을 수 없습니다.");
     studyTypes = (await response.json()).cards || [];
-    studyTypes = studyTypes.filter(card => card.id && card.subject && card.title && card.front && card.back && bank.some(q => q.id === card.sourceId));
+    studyTypes = studyTypes.filter(card => card.id && card.subject && card.title && Array.isArray(card.concept) && card.concept.length && Array.isArray(card.relatedTerms) && bank.some(q => q.id === card.sourceId));
   } catch (error) { studyTypes = []; console.warn(error); }
   if (quiz && !quiz.questions.every(id => bank.some(q => q.id === id))) { quiz = null; store.active = null; persist(); }
   render();

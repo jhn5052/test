@@ -4,4 +4,4 @@
 
 시험과 기록은 사용 중인 브라우저의 `localStorage`에 저장됩니다. 다른 기기나 브라우저로 자동 동기화되지 않습니다. Pages 링크에서 열거나, 저장소 루트에서 `python3 -m http.server 8000`을 실행해 사용할 수 있습니다.
 
-문제 원본과 최종 정답표는 [`exam/`](exam/)에, 문제은행은 [`data/questions.json`](data/questions.json)에 있습니다. 모든 1,200문항에 해설이 등록되어 있으며, 반복 유형 카드는 [`data/study-types.json`](data/study-types.json)에서 관리합니다. 문제은행은 `python3 scripts/build_questions.py`로 다시 생성할 수 있습니다.
+문제 원본과 최종 정답표는 [`exam/`](exam/)에, 문제은행은 [`data/questions.json`](data/questions.json)에 있습니다. 모든 1,200문항에 해설이 등록되어 있습니다. 개념 정리와 대표 기출을 연결한 복습 카드는 [`data/study-types.json`](data/study-types.json)에서 관리하며, 오답노트에서 관련 개념 카드로 이동할 수 있습니다. 문제은행은 `python3 scripts/build_questions.py`로 다시 생성할 수 있습니다.
