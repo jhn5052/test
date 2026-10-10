@@ -123,6 +123,7 @@ function renderDashboard() {
       <article class="stat-card"><span class="stat-label">누적 정답률</span><span class="stat-glyph">↗</span><strong>${accuracy}<em>%</em></strong></article>
       <article class="stat-card"><span class="stat-label">다시 볼 오답</span><span class="stat-glyph">↺</span><strong>${store.mistakes.length}<em>문항</em></strong></article>
     </section>
+    ${renderLearningInsights(attempts, subjects)}
     <section class="content-grid">
       <article class="panel"><div class="panel-head"><div><h2>회차별 점수</h2><p>시험을 마칠 때마다 성적이 쌓입니다</p></div><span class="eyebrow">SCORE / 100</span></div>${chart}</article>
       <article class="panel"><div class="panel-head"><div><h2>과목별 정답률</h2><p>지금까지 푼 문제 기준</p></div></div>${renderSubjectStats(subjects)}</article>
@@ -132,6 +133,63 @@ function renderDashboard() {
        ${recent.length ? `<div class="recent-list">${recent.map((item, index) => `<button class="recent-item" data-result="${index}"><span><span class="recent-name">${yearLabel(item.year)} 기출 · ${item.scope === "all" ? "전과목 혼합" : escapeHTML(item.subject)}</span><span class="recent-meta">${fmtDate(item.completedAt)} · ${item.correct}/${item.total} 정답</span></span><span class="recent-score ${item.score >= 60 ? "score-good" : "score-low"}">${item.score}<small>점</small></span><span class="result-date">›</span></button>`).join("")}</div>` : `<div class="no-records">아직 시험 기록이 없어요. 첫 시험을 시작해 보세요.</div>`}</article>
       <article class="panel quick-card"><div><div class="eyebrow">${years.length ? `기출 ${Math.min(...years)} — ${Math.max(...years)}` : "기출 데이터"}</div><h3>오늘의 공부를 시작할까요?</h3><p>40분 집중해서 실전 감각을 쌓아보세요.<br>과목을 골라 가볍게 풀어도 좋아요.</p></div><button class="button" data-action="start-exam">시험 설정하기 <span>→</span></button></article>
     </section>`;
+}
+function accuracyForAttempt(attempt) {
+  if (Array.isArray(attempt.results) && attempt.results.length) {
+    return { correct: attempt.results.filter(result => result.correct).length, total: attempt.results.length };
+  }
+  return { correct: Number(attempt.correct) || 0, total: Number(attempt.total) || 0 };
+}
+function renderLearningInsights(attempts, subjects) {
+  const recent = attempts.slice(0, 3).map(accuracyForAttempt);
+  const previous = attempts.slice(3, 6).map(accuracyForAttempt);
+  const recentTotal = recent.reduce((sum, item) => sum + item.total, 0);
+  const recentCorrect = recent.reduce((sum, item) => sum + item.correct, 0);
+  const recentRate = recentTotal ? Math.round(recentCorrect / recentTotal * 100) : null;
+  const previousTotal = previous.reduce((sum, item) => sum + item.total, 0);
+  const previousCorrect = previous.reduce((sum, item) => sum + item.correct, 0);
+  const previousRate = previousTotal ? Math.round(previousCorrect / previousTotal * 100) : null;
+  const trendReady = attempts.length >= 6 && recentTotal && previousTotal;
+  const change = trendReady ? recentRate - previousRate : null;
+  const weakSubjects = Object.entries(subjects).filter(([, value]) => value.total >= 5).sort((a, b) => a[1].correct / a[1].total - b[1].correct / b[1].total).slice(0, 2);
+
+  const byConcept = new Map();
+  (store.mistakes || []).forEach(mistake => {
+    const question = bank.find(item => item.id === mistake.questionId);
+    if (!question) return;
+    const card = relatedConceptCards(question)[0];
+    if (!card) return;
+    const item = byConcept.get(card.id) || { card, wrong: 0, sessions: new Set() };
+    item.wrong++;
+    item.sessions.add(mistake.attemptId || mistake.attemptedAt || mistake.questionId);
+    byConcept.set(card.id, item);
+  });
+  const concepts = [...byConcept.values()].sort((a, b) => b.sessions.size - a.sessions.size || b.wrong - a.wrong).slice(0, 3);
+  const questionSessions = new Map();
+  (store.mistakes || []).forEach(item => {
+    if (!item.questionId) return;
+    const sessions = questionSessions.get(item.questionId) || new Set();
+    sessions.add(item.attemptId || item.attemptedAt || item.questionId);
+    questionSessions.set(item.questionId, sessions);
+  });
+  const repeatedQuestionCount = [...questionSessions.values()].filter(sessions => sessions.size > 1).length;
+  const accuracyLabel = recentRate === null ? "기록 없음" : `${recentRate}%`;
+  const trendText = !attempts.length
+    ? "첫 시험을 마치면 풀이 흐름과 반복 오답을 분석해 드려요."
+    : trendReady
+      ? `최근 ${recent.length}회 정답률 ${recentRate}% · 직전 ${previous.length}회보다 ${Math.abs(change)}%p ${change > 0 ? "올랐어요" : change < 0 ? "낮아졌어요" : "같아요"}.`
+      : `최근 정답률 ${accuracyLabel}. 비교할 기록이 더 쌓이면 공부 흐름을 보여드려요.`;
+  const trendBadge = trendReady ? `<span class="insight-delta ${change > 0 ? "is-up" : change < 0 ? "is-down" : ""}">${change > 0 ? "+" : ""}${change}%p</span>` : `<span class="insight-delta">${attempts.length}회 응시</span>`;
+  const subjectContent = weakSubjects.length
+    ? `<div class="insight-subjects"><b>보완이 필요한 과목</b>${weakSubjects.map(([name, value]) => `<div><span>${escapeHTML(name)}</span><strong>${Math.round(value.correct / value.total * 100)}% · ${value.total}문항</strong></div>`).join("")}</div>`
+    : `<p class="insight-note">과목별 분석은 각 과목을 5문항 이상 풀면 표시됩니다.</p>`;
+  const conceptContent = concepts.length
+    ? `<div class="insight-concepts">${concepts.map(item => `<button class="insight-concept" data-open-concept="${escapeHTML(item.card.id)}"><span><b>${escapeHTML(item.card.title)}</b><small>${escapeHTML(item.card.subject)}</small></span><strong>${item.sessions.size}회 시험 · ${item.wrong}회 오답</strong><i>›</i></button>`).join("")}</div><p class="insight-note">같은 개념으로 연결된 오답을 묶었습니다. 문제 표현이 다르면 연결이 완벽하지 않을 수 있어요.</p>`
+    : `<div class="insight-empty">${attempts.length ? "현재 기록에서는 반복 오답 유형이 보이지 않아요. 잘하고 있어요!" : "시험 기록이 쌓이면 자주 틀리는 개념을 찾아드려요."}</div>`;
+  return `<section class="insight-grid" aria-label="학습 진단">
+    <article class="panel insight-panel"><div class="panel-head"><div><h2>학습 흐름</h2><p>최근 정답률과 과목별 보완 지점</p></div>${trendBadge}</div><p class="insight-summary">${trendText}</p>${subjectContent}</article>
+    <article class="panel insight-panel"><div class="panel-head"><div><h2>반복 오답 유형</h2><p>틀린 문제를 개념 카드 기준으로 묶었어요</p></div><span class="eyebrow">${repeatedQuestionCount ? `같은 문항 ${repeatedQuestionCount}개 반복` : "LOCAL ANALYSIS"}</span></div>${conceptContent}</article>
+  </section>`;
 }
 function renderChart(attempts) {
   if (!attempts.length) return `<div class="empty-chart">아직 성적 기록이 없어요.<br>첫 시험을 마치면 점수 흐름이 여기에 보여요.</div>`;
@@ -399,6 +457,7 @@ function openSubjectConcepts(subject) {
 function bindDashboard() {
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
   document.querySelectorAll("[data-result]").forEach(button => button.addEventListener("click", () => { view = "result"; renderResultView(Number(button.dataset.result)); }));
+  document.querySelectorAll("[data-open-concept]").forEach(button => button.addEventListener("click", () => openConceptCard(button.dataset.openConcept)));
   document.querySelector("[data-action=show-history]")?.addEventListener("click", () => { showAllHistory = !showAllHistory; render(); });
 }
 function renderResultView(index) {
