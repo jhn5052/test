@@ -18,6 +18,9 @@ let studyTypeSelected = null;
 let studyTypeRevealed = false;
 let studyTypeQuestionOpen = false;
 let showAllHistory = false;
+let mistakeRetryQuestionId = null;
+let mistakeRetrySelected = null;
+let mistakeRetryFeedback = "";
 
 function readStore() {
   try { return { history: [], mistakes: [], flashcards: [], active: null, ...(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")) }; }
@@ -330,8 +333,10 @@ function submitExam(reason) {
   const result = { id: quiz.id, year: quiz.year, scope: quiz.scope, subject: quiz.subject, total: questions.length, correct, score: Math.round(correct / questions.length * 100), subjects: subjectScores, completedAt: new Date().toISOString(), duration: Math.max(0, 40 * 60 * 1000 - remainingMs()), timedOut: reason === "timeout", results: questions.map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, correct: isCorrect(q, quiz.answers[q.id]) })) };
   const mistakes = questions.filter(q => !isCorrect(q, quiz.answers[q.id])).map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, attemptedAt: result.completedAt, attemptId: result.id }));
   store.flashcards = [...new Set([...(store.flashcards || []), ...mistakes.map(m => m.questionId)])];
-  const existing = new Set(store.mistakes.map(m => `${m.questionId}:${m.attemptId}`));
-  store.mistakes.unshift(...mistakes.filter(m => !existing.has(`${m.questionId}:${m.attemptId}`)));
+  const resolvedIds = new Set(questions.filter(q => isCorrect(q, quiz.answers[q.id])).map(q => q.id));
+  const missedIds = new Set(mistakes.map(m => m.questionId));
+  store.mistakes = store.mistakes.filter(m => !resolvedIds.has(m.questionId) && !missedIds.has(m.questionId));
+  store.mistakes.unshift(...mistakes);
   store.history.unshift(result); store.active = null; quiz = null; persist(); view = "result"; render();
   if (reason === "timeout") toast("시간이 끝나 답안이 자동 제출됐어요.");
 }
@@ -346,22 +351,25 @@ function renderResult(attempt) {
 function bindResult() { document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => button.dataset.action === "mistakes" ? setView("mistakes") : setView("exam"))); }
 function renderMistakes() {
   const options = [...new Set(store.mistakes.map(m => bank.find(q => q.id === m.questionId)?.subject).filter(Boolean))];
-  return `${titleBlock("REVIEW & REPEAT", "오답을 다시 만나는 시간", "틀린 문제를 모아두었어요. 한 번 더 풀어보고 기억을 다져보세요.")}
+  return `${titleBlock("REVIEW & REPEAT", "오답을 다시 만나는 시간", "문제에서 다시 정답을 맞히면 오답노트에서 자동으로 빠집니다.")}
    <div class="mistake-toolbar"><select class="filter-select" id="mistake-subject"><option value="all">모든 과목</option>${options.map(s => `<option>${escapeHTML(s)}</option>`).join("")}</select><select class="filter-select" id="mistake-year"><option value="all">모든 연도</option>${[...new Set(store.mistakes.map(m => bank.find(q => q.id === m.questionId)?.year).filter(Boolean))].sort((a,b)=>b-a).map(y=>`<option>${y}</option>`).join("")}</select><span class="summary-text" style="margin-left:auto">총 <b>${store.mistakes.length}</b>문항</span></div>
    <div class="mistake-list" id="mistake-list">${renderMistakeCards(store.mistakes)}</div>`;
 }
 function renderMistakeCards(mistakes) {
-  if (!mistakes.length) return `<div class="mistake-empty"><div class="empty-mark">✓</div><h2>아직 모인 오답이 없어요</h2><p>틀린 문제를 다시 풀어 확인하면<br>오답노트에 풀이 기록이 남습니다.</p><button class="button button-primary" data-action="start-exam">시험 응시하기</button></div>`;
+  if (!mistakes.length) return `<div class="mistake-empty"><div class="empty-mark">✓</div><h2>다시 볼 오답이 없어요</h2><p>오답을 다시 풀어 맞히거나 시험에서 정답을 맞히면<br>이 목록에서 자동으로 제외됩니다.</p><button class="button button-primary" data-action="start-exam">시험 응시하기</button></div>`;
   return mistakes.map(m => {
     const q = bank.find(item => item.id === m.questionId); if (!q) return "";
-    const accepted = Array.isArray(q.answer) ? q.answer : [q.answer];
     const hasDetailedExplanation = q.explanation && !q.explanation.includes("원문에는 별도 해설") && !q.explanation.includes("원본에는 별도 해설");
     const inDeck = (store.flashcards || []).includes(q.id);
     const relatedCards = relatedConceptCards(q);
+    const retrying = mistakeRetryQuestionId === q.id;
+    const retry = retrying
+      ? `<section class="mistake-retry"><div class="mistake-retry-heading"><b>다시 풀어보기</b><button class="mistake-retry-close" data-review-start="${escapeHTML(q.id)}">닫기</button></div><p class="mistake-retry-hint">정답과 해설은 답을 확인한 뒤 다시 볼 수 있어요.</p><div class="mistake-retry-choices">${q.choices.map((choice, index) => `<button class="mistake-retry-choice ${mistakeRetrySelected === index + 1 ? "selected" : ""}" data-review-choice="${index + 1}" aria-pressed="${mistakeRetrySelected === index + 1}"><b>${LETTERS[index]}</b><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><button class="button button-primary" data-review-check="${escapeHTML(q.id)}" ${mistakeRetrySelected ? "" : "disabled"}>정답 확인</button>${mistakeRetryFeedback ? `<p class="mistake-retry-feedback" role="status">${escapeHTML(mistakeRetryFeedback)}</p>` : ""}</section>`
+      : `<button class="button button-primary mistake-retry-start" data-review-start="${escapeHTML(q.id)}">이 문제 다시 풀기 ↻</button>`;
     const explanation = hasDetailedExplanation
       ? `<p>${escapeHTML(q.explanation)}</p>`
       : `<p>Q-Net 공개 원본에는 정답표만 포함되어 있어, 이 문항의 풀이 해설은 아직 등록되지 않았습니다.</p>`;
-    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div><div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}</div>${relatedCards.length ? `<div class="related-concepts"><b>관련 개념 정리</b><div>${relatedCards.map(card => `<button class="related-concept-button" data-open-concept="${escapeHTML(card.id)}">${escapeHTML(card.title)} <span>개념 + 기출 →</span></button>`).join("")}</div></div>` : `<div class="related-concepts"><b>개념 복습</b><div><button class="related-concept-button" data-open-subject="${escapeHTML(q.subject)}">${escapeHTML(q.subject)} 개념 카드 보기 <span>과목별 개념 + 기출 →</span></button></div></div>`}<button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
+    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div>${retrying ? "" : `<div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}</div>`}${retry}${relatedCards.length ? `<div class="related-concepts"><b>관련 개념 정리</b><div>${relatedCards.map(card => `<button class="related-concept-button" data-open-concept="${escapeHTML(card.id)}">${escapeHTML(card.title)} <span>개념 + 기출 →</span></button>`).join("")}</div></div>` : `<div class="related-concepts"><b>개념 복습</b><div><button class="related-concept-button" data-open-subject="${escapeHTML(q.subject)}">${escapeHTML(q.subject)} 개념 카드 보기 <span>과목별 개념 + 기출 →</span></button></div></div>`}<button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
   }).join("");
 }
 function bindMistakes() {
@@ -371,6 +379,30 @@ function bindMistakes() {
   };
   document.querySelector("#mistake-subject").addEventListener("change", filter); document.querySelector("#mistake-year").addEventListener("change", filter);
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
+  document.querySelectorAll("[data-review-start]").forEach(button => button.addEventListener("click", () => { mistakeRetryQuestionId = mistakeRetryQuestionId === button.dataset.reviewStart ? null : button.dataset.reviewStart; mistakeRetrySelected = null; mistakeRetryFeedback = ""; render(); }));
+  document.querySelectorAll("[data-review-choice]").forEach(button => button.addEventListener("click", () => {
+    mistakeRetrySelected = Number(button.dataset.reviewChoice);
+    mistakeRetryFeedback = "";
+    document.querySelectorAll("[data-review-choice]").forEach(choice => { const selected = Number(choice.dataset.reviewChoice) === mistakeRetrySelected; choice.classList.toggle("selected", selected); choice.setAttribute("aria-pressed", String(selected)); });
+    document.querySelector("[data-review-check]").disabled = false;
+  }));
+  document.querySelectorAll("[data-review-check]").forEach(button => button.addEventListener("click", () => {
+    const questionId = button.dataset.reviewCheck;
+    const q = bank.find(item => item.id === questionId);
+    if (!q || !mistakeRetrySelected) return;
+    if (isCorrect(q, mistakeRetrySelected)) {
+      store.mistakes = store.mistakes.filter(item => item.questionId !== questionId);
+      mistakeRetryQuestionId = null; mistakeRetrySelected = null; mistakeRetryFeedback = "";
+      persist(); render(); toast("정답이에요. 오답노트에서 제외했어요.");
+      return;
+    }
+    const oldRecord = store.mistakes.find(item => item.questionId === questionId) || {};
+    const attemptedAt = new Date().toISOString();
+    store.mistakes = store.mistakes.filter(item => item.questionId !== questionId);
+    store.mistakes.unshift({ ...oldRecord, questionId, chosen: mistakeRetrySelected, answer: q.answer, attemptedAt, attemptId: `review-${Date.now()}` });
+    mistakeRetryFeedback = "아직 틀렸어요. 다른 보기를 골라 다시 시도해 보세요.";
+    persist(); render();
+  }));
   document.querySelectorAll("[data-flashcard]").forEach(button => button.addEventListener("click", () => toggleFlashcard(button.dataset.flashcard)));
   document.querySelectorAll("[data-open-concept]").forEach(button => button.addEventListener("click", () => openConceptCard(button.dataset.openConcept)));
   document.querySelectorAll("[data-open-subject]").forEach(button => button.addEventListener("click", () => openSubjectConcepts(button.dataset.openSubject)));
