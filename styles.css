@@ -148,3 +148,21 @@
 .mistake-retry .button:disabled{opacity:.48;cursor:not-allowed}
 .mistake-retry-feedback{margin:11px 0 0;padding:10px 12px;border-radius:8px;background:#fff2e3;color:#805a23;font-size:13px;line-height:1.6}
 @media(max-width:720px){.mistake-retry{margin:14px 0;padding:14px}.mistake-retry-choice{font-size:13px;padding:10px}}
+
+/* Tablet: give the study content the full width and move navigation above it. */
+@media (min-width:721px) and (max-width:1200px){
+  .sidebar{position:sticky;inset:0 0 auto;width:100%;height:76px;padding:9px 20px;flex-direction:row;align-items:center;gap:20px;box-shadow:0 3px 14px #17292312}
+  .brand{flex:0 0 auto;padding:0 18px 0 0;border-right:1px solid #ffffff24}
+  .brand small{display:none}
+  .sidebar-label,.sidebar-bottom{display:none}
+  .primary-nav{display:flex;align-items:center;gap:6px;margin-left:auto}
+  .nav-item{height:48px;padding:0 13px;white-space:nowrap}
+  .main-column{margin-left:0;padding-bottom:0}
+  .topbar{height:58px}
+  #app-main{padding-left:clamp(22px,4vw,52px);padding-right:clamp(22px,4vw,52px)}
+}
+.memory-comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0 0 17px}
+.memory-comparison-row{display:flex;flex-direction:column;gap:8px;min-width:0;padding:13px 14px;border:1px solid #d7dfd3;border-radius:11px;background:#fff}
+.memory-comparison-row>b{color:#294938;font-size:13px}
+.memory-comparison-row>span{color:#25352b;font-size:15px;font-weight:750;line-height:1.6;overflow-wrap:anywhere}
+@media(max-width:720px){.memory-comparison{grid-template-columns:1fr 1fr;gap:7px}.memory-comparison-row{padding:11px}.memory-comparison-row>span{font-size:13px}}
