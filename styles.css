@@ -184,3 +184,5 @@
 .readiness-footnote{margin:0;color:#77837a;font-size:11px;line-height:1.6}
 @media(max-width:1050px){.insight-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.readiness-row{grid-template-columns:minmax(0,1fr) auto;gap:7px 10px}.readiness-track{grid-column:1/-1;grid-row:2}.readiness-row>strong{font-size:11px}.readiness-row>strong small{font-size:10px}}
+
+.memory-facts .concept-points li{white-space:pre-line}
