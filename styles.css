@@ -50,13 +50,15 @@
 .type-flip-action{margin-top:auto;min-height:48px;padding:12px 17px;border:0;border-radius:11px;background:#244b38;color:#fff;font:inherit;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 3px 0 #173827}
 .type-flip-action:hover{background:#183b2a}
 .type-flip-action span{margin-left:6px}
-.memory-answer{display:block;margin:18px 0 24px;padding:17px 19px;border-left:5px solid #b58b35;border-radius:4px 12px 12px 4px;background:#f4ecd9;color:#20392c;font-size:clamp(18px,3vw,24px);line-height:1.65;font-weight:800;overflow-wrap:anywhere}
+.memory-answer{display:block;margin:12px 0 16px;padding:12px 16px;border-left:4px solid #b58b35;border-radius:4px 10px 10px 4px;background:#f4ecd9;color:#20392c;font-size:clamp(15px,2vw,18px);line-height:1.55;font-weight:700;overflow-wrap:anywhere}
+.memory-answer-label{display:block;margin-bottom:5px;color:#765c25;font:800 11px/1.4 Pretendard,sans-serif;letter-spacing:.02em}
 .memory-facts{margin:0 0 20px;padding:16px 18px;border:1px solid #d6e0d5;border-radius:13px;background:#f0f5ef}
 .memory-facts>b{display:block;margin-bottom:10px;color:#294938;font-size:14px}
 .memory-facts .concept-points{padding-left:21px;color:#303d34;font-size:15px;line-height:1.75}
 .memory-facts .concept-points li{white-space:pre-line}
 .memory-facts .concept-points li+li{margin-top:7px}
 .memory-exam{margin-top:14px;border:1px solid #d7d5ca;border-radius:12px;background:#fff;overflow:hidden}
+.memory-answer,.memory-facts,.memory-exam,.back-flip-action{flex-shrink:0}
 .memory-exam summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 16px;color:#233a2d;cursor:pointer;list-style:none}
 .memory-exam summary::-webkit-details-marker{display:none}
 .memory-exam summary span{color:#6b6247;font-size:12px;font-weight:700;white-space:nowrap}
