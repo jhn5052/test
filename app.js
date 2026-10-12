@@ -147,7 +147,7 @@ function renderDashboard() {
     <section class="section-row">
       <article class="panel recent-panel"><div class="panel-head"><div><h2>${showAllHistory ? "전체 시험 기록" : "최근 시험"}</h2><p>${showAllHistory ? `총 ${attempts.length}회 응시` : "가장 최근에 제출한 기록"}</p></div>${attempts.length ? `<button class="panel-link" data-action="show-history">${showAllHistory ? "최근 5회만 보기" : `전체 기록 ${attempts.length}회`}</button>` : ""}</div>
        ${recent.length ? `<div class="recent-list">${recent.map((item, index) => `<button class="recent-item" data-result="${index}"><span><span class="recent-name">${item.year === 2026 ? "2026년 예상문제" : `${yearLabel(item.year)} 기출`} · ${item.scope === "all" ? "전과목 혼합" : escapeHTML(item.subject)}</span><span class="recent-meta">${fmtDate(item.completedAt)} · ${item.correct}/${item.total} 정답</span></span><span class="recent-score ${item.score >= 60 ? "score-good" : "score-low"}">${item.score}<small>점</small></span><span class="result-date">›</span></button>`).join("")}</div>` : `<div class="no-records">아직 시험 기록이 없어요. 첫 시험을 시작해 보세요.</div>`}</article>
-      <article class="panel quick-card"><div><div class="eyebrow">${years.includes(2026) ? "기출 2020—2025 · 예상 2026" : years.length ? `기출 ${Math.min(...years)} — ${Math.max(...years)}` : "기출 데이터"}</div><h3>오늘의 공부를 시작할까요?</h3><p>40분 집중해서 실전 감각을 쌓아보세요.<br>과목을 골라 가볍게 풀어도 좋아요.</p></div><button class="button" data-action="start-exam">시험 설정하기 <span>→</span></button></article>
+      <article class="panel quick-card"><div><div class="eyebrow">${years.includes(2026) ? "기출 2020—2025 · 예상 2026" : years.length ? `기출 ${Math.min(...years)} — ${Math.max(...years)}` : "기출 데이터"}</div><h3>오늘의 공부를 시작할까요?</h3><p>원하는 시간만큼 집중해 실전 감각을 쌓아보세요.<br>과목을 골라 가볍게 풀어도 좋아요.</p></div><button class="button" data-action="start-exam">시험 설정하기 <span>→</span></button></article>
     </section>`;
 }
 function accuracyForAttempt(attempt) {
@@ -256,15 +256,16 @@ function renderPassReadiness(stats) {
 function renderSetup() {
   const years = [...new Set(bank.map(q => q.year))].sort((a, b) => b - a);
   return `${titleBlock("PRACTICE MODE", "기출·예상문제를 골라요", "실제 기출을 풀거나 2026년 예상문제로 연습할 수 있어요.")}
-    <div class="exam-layout"><section class="panel setup-card"><h2>시험 구성</h2><p>설정을 마치면 40분 타이머가 시작됩니다.</p>
+    <div class="exam-layout"><section class="panel setup-card"><h2>시험 구성</h2><p>시험 시간은 10·20·30·40분 중 선택할 수 있어요.</p>
       <label class="form-label" for="exam-year">문제 연도</label><select class="year-select" id="exam-year"><option value="all" selected>2020~2026년 전체</option>${years.map(y => `<option value="${y}">${y === 2026 ? "2026년 예상문제 (100문항)" : `${y}년 제${y - 1989}회`}</option>`).join("")}</select>
       <span class="form-label">풀이 범위</span><div class="segmented" id="scope-switch"><button class="segment selected" data-scope="all">전과목 혼합</button><button class="segment" data-scope="subject">단일 과목</button></div>
       <div id="subject-picker" hidden><span class="form-label">과목 선택</span><div class="subject-options">${SUBJECTS.map((s, i) => `<label class="subject-option ${i === 0 ? "selected" : ""}"><input type="radio" name="subject" value="${escapeHTML(s)}" ${i === 0 ? "checked" : ""}><span>${escapeHTML(s)}</span></label>`).join("")}</div></div>
       <label class="form-label" for="question-count">출제 문항 수</label><select class="year-select" id="question-count"><option value="10">10문제</option><option value="20">20문제</option><option value="30">30문제</option><option value="40" selected>40문제</option></select>
-      <div class="setup-summary"><div class="summary-text">문제은행 <b id="question-total">—</b></div><div class="summary-text">이번 시험 <b id="question-benchmark">—</b></div><div class="summary-text">제한 시간 <b>40</b> 분</div></div>
+      <label class="form-label" for="exam-duration">시험 시간</label><select class="year-select" id="exam-duration"><option value="10">10분</option><option value="20">20분</option><option value="30">30분</option><option value="40" selected>40분</option></select>
+      <div class="setup-summary"><div class="summary-text">문제은행 <b id="question-total">—</b></div><div class="summary-text">이번 시험 <b id="question-benchmark">—</b></div><div class="summary-text">제한 시간 <b id="duration-summary">40</b>분</div></div>
       <p class="coverage-note" id="coverage-note" role="status"></p>
       <button class="button button-primary setup-submit" id="begin-exam">문제 셔플 후 시험 시작 <span>↗</span></button>
-    </section><aside class="exam-side"><article class="exam-tip"><div class="eyebrow">A LITTLE GUIDE</div><h3>아는 만큼, 차근차근</h3><p>문제는 무작위 순서로 나옵니다. 답을 고르면 자동 저장되고, 이전 문제로 돌아가 답을 바꿀 수 있어요.</p><div class="tip-stat"><div><b>${bank.length.toLocaleString()}</b><span>등록 문항</span></div><div><b>40분</b><span>시험 시간</span></div><div><b>2020—25 · 26</b><span>기출·예상</span></div></div></article><p class="source-note">응시 중에는 언제든 일시정지하거나 제출할 수 있어요. 시간이 끝나면 답안이 자동으로 제출됩니다.</p></aside></div>`;
+    </section><aside class="exam-side"><article class="exam-tip"><div class="eyebrow">A LITTLE GUIDE</div><h3>아는 만큼, 차근차근</h3><p>문제는 무작위 순서로 나옵니다. 답을 고르면 자동 저장되고, 이전 문제로 돌아가 답을 바꿀 수 있어요.</p><div class="tip-stat"><div><b>${bank.length.toLocaleString()}</b><span>등록 문항</span></div><div><b>10·20·30·40</b><span>분 선택</span></div><div><b>2020—25 · 26</b><span>기출·예상</span></div></div></article><p class="source-note">응시 중에는 언제든 일시정지하거나 제출할 수 있어요. 시간이 끝나면 답안이 자동으로 제출됩니다.</p></aside></div>`;
 }
 function bindSetup() {
   const scope = document.querySelector("#scope-switch");
@@ -278,6 +279,7 @@ function bindSetup() {
   }));
   document.querySelector("#exam-year").addEventListener("change", updateQuestionTotal);
   document.querySelector("#question-count").addEventListener("change", updateQuestionTotal);
+  document.querySelector("#exam-duration").addEventListener("change", event => { document.querySelector("#duration-summary").textContent = event.target.value; });
   document.querySelector("#begin-exam").addEventListener("click", beginExam);
   updateQuestionTotal();
 }
@@ -304,16 +306,18 @@ function updateQuestionTotal() {
 function beginExam() {
   const { year, scope, subject, list } = selectedQuestions();
   const requestedCount = Number(document.querySelector("#question-count")?.value || 40);
+  const durationMs = Number(document.querySelector("#exam-duration")?.value || 40) * 60 * 1000;
   if (!list.length) { toast("선택한 조건에 등록된 문제가 없어요."); return; }
   const shuffled = [...list];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, questions: shuffled.slice(0, Math.min(list.length, requestedCount)).map(q => q.id), answers: {}, index: 0, paused: false, remaining: 40 * 60 * 1000, endsAt: Date.now() + 40 * 60 * 1000, startedAt: new Date().toISOString() };
+  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, questions: shuffled.slice(0, Math.min(list.length, requestedCount)).map(q => q.id), answers: {}, index: 0, paused: false, durationMs, remaining: durationMs, endsAt: Date.now() + durationMs, startedAt: new Date().toISOString() };
   persist(); setView("exam");
 }
 function currentQuestions() { return quiz.questions.map(id => bank.find(q => q.id === id)).filter(Boolean); }
+function quizDurationMs() { return Number(quiz?.durationMs) || 40 * 60 * 1000; }
 function remainingMs() { return quiz.paused ? quiz.remaining : Math.max(0, quiz.endsAt - Date.now()); }
 function renderQuiz() {
   const questions = currentQuestions();
@@ -466,7 +470,7 @@ function submitExam(reason) {
     subject.total++;
     if (isCorrect(q, quiz.answers[q.id])) { subject.correct++; correct++; }
   });
-  const result = { id: quiz.id, year: quiz.year, scope: quiz.scope, subject: quiz.subject, total: questions.length, correct, score: Math.round(correct / questions.length * 100), subjects: subjectScores, completedAt: new Date().toISOString(), duration: Math.max(0, 40 * 60 * 1000 - remainingMs()), timedOut: reason === "timeout", results: questions.map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, correct: isCorrect(q, quiz.answers[q.id]) })) };
+  const result = { id: quiz.id, year: quiz.year, scope: quiz.scope, subject: quiz.subject, total: questions.length, correct, score: Math.round(correct / questions.length * 100), subjects: subjectScores, completedAt: new Date().toISOString(), duration: Math.max(0, quizDurationMs() - remainingMs()), durationLimit: quizDurationMs(), timedOut: reason === "timeout", results: questions.map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, correct: isCorrect(q, quiz.answers[q.id]) })) };
   const mistakes = questions.filter(q => !isCorrect(q, quiz.answers[q.id])).map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, attemptedAt: result.completedAt, attemptId: result.id }));
   store.flashcards = [...new Set([...(store.flashcards || []), ...mistakes.map(m => m.questionId)])];
   const resolvedIds = new Set(questions.filter(q => isCorrect(q, quiz.answers[q.id])).map(q => q.id));
