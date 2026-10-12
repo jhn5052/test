@@ -21,6 +21,7 @@ let showAllHistory = false;
 let mistakeRetryQuestionId = null;
 let mistakeRetrySelected = null;
 let mistakeRetryFeedback = "";
+let calculatorState = { display: "0", expression: "", stored: null, operator: null, waitingForOperand: false };
 
 function readStore() {
   try { return { history: [], mistakes: [], flashcards: [], active: null, ...(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")) }; }
@@ -313,11 +314,11 @@ function renderQuiz() {
   const elapsed = remainingMs();
   const answered = Object.keys(quiz.answers).length;
   const answeredPercent = Math.round(answered / questions.length * 100);
-  return `<div class="exam-topline"><div class="exam-topline-copy"><div class="exam-kicker">${quiz.year === 2026 ? "2026년 예상문제" : `${yearLabel(quiz.year)} 기출`} · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-counter"><b>${quiz.index + 1}</b><span>/ ${questions.length}번</span><small>${answered}개 답변</small></div><div class="exam-progress-track" role="progressbar" aria-label="답변 진행률" aria-valuenow="${answered}" aria-valuemin="0" aria-valuemax="${questions.length}"><i style="width:${answeredPercent}%"></i></div></div><button class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="pause-exam" aria-label="${quiz.paused ? "시험 재개" : "시험 일시정지"}" title="눌러서 ${quiz.paused ? "시험 재개" : "일시정지"}"><span id="timer-value">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</span><small>${quiz.paused ? "재개 ▶" : "일시정지 Ⅱ"}</small></button></div>
+  return `<div class="exam-topline"><div class="exam-topline-copy"><div class="exam-kicker">${quiz.year === 2026 ? "2026년 예상문제" : `${yearLabel(quiz.year)} 기출`} · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-counter"><b>${quiz.index + 1}</b><span>/ ${questions.length}번</span><small>${answered}개 답변</small></div><div class="exam-progress-track" role="progressbar" aria-label="답변 진행률" aria-valuenow="${answered}" aria-valuemin="0" aria-valuemax="${questions.length}"><i style="width:${answeredPercent}%"></i></div></div><div class="exam-utilities"><button type="button" class="calculator-open-button" id="open-calculator" aria-label="계산기 열기">▦ <span>계산기</span></button><button class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="pause-exam" aria-label="${quiz.paused ? "시험 재개" : "시험 일시정지"}" title="눌러서 ${quiz.paused ? "시험 재개" : "일시정지"}"><span id="timer-value">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</span><small>${quiz.paused ? "재개 ▶" : "일시정지 Ⅱ"}</small></button></div></div>
    <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span></div><div class="question-text">${renderQuestionText(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}" aria-pressed="${Number(quiz.answers[q.id]) === i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
    <aside class="exam-rail"><section class="rail-card" id="question-map"><div class="rail-head"><span>답안 현황</span><small>${answered} / ${questions.length}</small></div><div class="question-grid">${questions.map((item, i) => `<button class="question-dot ${i === quiz.index ? "current" : ""} ${quiz.answers[item.id] ? "answered" : ""}" data-goto="${i}" aria-label="${i + 1}번 문제${quiz.answers[item.id] ? " 답변 완료" : " 미응답"}">${i + 1}</button>`).join("")}</div><div class="rail-legend"><span><i class="legend-dot current"></i>현재</span><span><i class="legend-dot"></i>답변 완료</span></div><div class="progress-info"><span>답변한 문제</span><span>${answeredPercent}%</span></div></section>
    <section class="rail-card rail-actions"><button class="button button-primary" id="submit-exam">답안 제출하기</button></section></aside></div>
-   <div class="exam-mobile-bar" aria-label="시험 조작"><button class="mobile-exam-control" id="mobile-prev" ${quiz.index === 0 ? "disabled" : ""} aria-label="이전 문제">←<small>이전</small></button><button class="mobile-exam-control mobile-map-control" id="mobile-map" aria-label="문제 목록 보기"><span>${quiz.index + 1}/${questions.length}</span><small>목록</small></button><button class="mobile-exam-control mobile-next-control" id="mobile-next" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음<small>문제 →</small></button><button class="mobile-submit-control" id="mobile-submit">제출</button></div>`;
+   <div class="exam-mobile-bar" aria-label="시험 조작"><button class="mobile-exam-control" id="mobile-prev" ${quiz.index === 0 ? "disabled" : ""} aria-label="이전 문제">←<small>이전</small></button><button class="mobile-exam-control mobile-map-control" id="mobile-map" aria-label="문제 목록 보기"><span>${quiz.index + 1}/${questions.length}</span><small>목록</small></button><button class="mobile-exam-control mobile-next-control" id="mobile-next" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음<small>문제 →</small></button><button class="mobile-submit-control" id="mobile-submit">제출</button></div><dialog class="calculator-dialog" id="calculator-dialog" aria-label="계산기"><div class="calculator-head"><div><span class="eyebrow">시험 중 도구</span><h2>계산기</h2></div><button type="button" class="calculator-close" id="close-calculator" aria-label="계산기 닫기">×</button></div><div class="calculator-screen" aria-live="polite"><div id="calculator-expression" class="calculator-expression">계산 결과</div><output id="calculator-display" class="calculator-display">0</output></div><div class="calculator-keys">${[["clear","AC"],["backspace","⌫"],["percent","%"],["operator","÷"],["digit","7"],["digit","8"],["digit","9"],["operator","×"],["digit","4"],["digit","5"],["digit","6"],["operator","−"],["digit","1"],["digit","2"],["digit","3"],["operator","+"],["sign","+/−"],["digit","0"],["decimal","."],["equals","="]].map(([action,label])=>`<button type="button" class="calculator-key ${action === "operator" ? "is-operator" : ""} ${action === "equals" ? "is-equals" : ""}" data-calc="${action}" data-value="${label}">${label}</button>`).join("")}</div></dialog>`;
 }
 function bindQuiz() {
   document.querySelectorAll("[data-answer]").forEach(button => button.addEventListener("click", () => {
@@ -332,6 +333,94 @@ function bindQuiz() {
   document.querySelector("#mobile-next").addEventListener("click", () => moveQuestion(1));
   document.querySelector("#mobile-map").addEventListener("click", () => document.querySelector("#question-map").scrollIntoView({ behavior: "smooth", block: "center" }));
   document.querySelector("#mobile-submit").addEventListener("click", () => submitExam("manual"));
+  bindCalculator();
+}
+function calculatorUpdate() {
+  const display = document.querySelector("#calculator-display");
+  const expression = document.querySelector("#calculator-expression");
+  if (display) display.textContent = calculatorState.display;
+  if (expression) expression.textContent = calculatorState.expression || "계산 결과";
+}
+function calculatorNumber(value) {
+  if (!Number.isFinite(value)) return "오류";
+  if (Object.is(value, -0) || value === 0) return "0";
+  return String(Number(value.toPrecision(12)));
+}
+function calculatorCompute(left, right, operator) {
+  if (operator === "+") return left + right;
+  if (operator === "−") return left - right;
+  if (operator === "×") return left * right;
+  if (operator === "÷") return right === 0 ? NaN : left / right;
+  return right;
+}
+function calculatorInput(action, value = "") {
+  const state = calculatorState;
+  if (action === "clear") {
+    calculatorState = { display: "0", expression: "", stored: null, operator: null, waitingForOperand: false };
+  } else if (action === "digit") {
+    if (state.display === "오류" || state.waitingForOperand) {
+      state.display = value;
+      state.waitingForOperand = false;
+    } else if (state.display.replace(/[.\-]/g, "").length < 14) {
+      state.display = state.display === "0" ? value : state.display + value;
+    }
+    if (state.operator === null) state.expression = "";
+  } else if (action === "decimal") {
+    if (state.display === "오류" || state.waitingForOperand) {
+      state.display = "0.";
+      state.waitingForOperand = false;
+    } else if (!state.display.includes(".")) state.display += ".";
+  } else if (action === "backspace") {
+    if (state.display === "오류" || state.waitingForOperand) state.display = "0";
+    else state.display = state.display.length <= 1 || (state.display.length === 2 && state.display.startsWith("-")) ? "0" : state.display.slice(0, -1);
+    state.waitingForOperand = false;
+  } else if (action === "sign") {
+    if (state.display !== "0" && state.display !== "오류") state.display = state.display.startsWith("-") ? state.display.slice(1) : `-${state.display}`;
+  } else if (action === "percent") {
+    if (state.display !== "오류") state.display = calculatorNumber(Number(state.display) / 100);
+    state.expression = `${state.display} × 1%`;
+  } else if (action === "operator") {
+    if (state.display === "오류") return;
+    const current = Number(state.display);
+    if (state.operator && !state.waitingForOperand) {
+      const result = calculatorCompute(state.stored, current, state.operator);
+      state.display = calculatorNumber(result);
+      state.stored = Number.isFinite(result) ? result : null;
+    } else if (state.stored === null) state.stored = current;
+    state.operator = value;
+    state.expression = `${state.display} ${value}`;
+    state.waitingForOperand = true;
+  } else if (action === "equals") {
+    if (state.operator && state.stored !== null && !state.waitingForOperand && state.display !== "오류") {
+      const left = state.stored;
+      const right = Number(state.display);
+      const operator = state.operator;
+      const result = calculatorCompute(left, right, operator);
+      state.expression = `${calculatorNumber(left)} ${operator} ${calculatorNumber(right)} =`;
+      state.display = calculatorNumber(result);
+      state.stored = null;
+      state.operator = null;
+      state.waitingForOperand = true;
+    }
+  }
+  calculatorUpdate();
+}
+function bindCalculator() {
+  const dialog = document.querySelector("#calculator-dialog");
+  const openButton = document.querySelector("#open-calculator");
+  openButton?.addEventListener("click", () => { dialog?.showModal(); calculatorUpdate(); });
+  document.querySelector("#close-calculator")?.addEventListener("click", () => dialog?.close());
+  dialog?.querySelectorAll("[data-calc]").forEach(button => button.addEventListener("click", () => calculatorInput(button.dataset.calc, button.dataset.value)));
+  dialog?.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+  dialog?.addEventListener("keydown", event => {
+    if (/^\d$/.test(event.key)) { event.preventDefault(); calculatorInput("digit", event.key); }
+    else if (event.key === ".") { event.preventDefault(); calculatorInput("decimal"); }
+    else if (["+", "-", "*", "/"].includes(event.key)) { event.preventDefault(); calculatorInput("operator", ({ "+": "+", "-": "−", "*": "×", "/": "÷" })[event.key]); }
+    else if (event.key === "Enter" || event.key === "=") { event.preventDefault(); calculatorInput("equals"); }
+    else if (event.key === "Backspace") { event.preventDefault(); calculatorInput("backspace"); }
+    else if (event.key.toLowerCase() === "c") { event.preventDefault(); calculatorInput("clear"); }
+  });
+  dialog?.addEventListener("close", () => openButton?.focus());
 }
 function scrollToExamQuestion() { if (matchMedia("(max-width: 720px)").matches) document.querySelector(".exam-topline")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
 function moveQuestion(delta) { quiz.index = Math.min(quiz.questions.length - 1, Math.max(0, quiz.index + delta)); persist(); render(); scrollToExamQuestion(); }
