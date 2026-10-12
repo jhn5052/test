@@ -196,6 +196,7 @@ function renderLearningInsights(attempts, subjects) {
   return `<section class="insight-grid" aria-label="학습 진단">
     <article class="panel insight-panel"><div class="panel-head"><div><h2>학습 흐름</h2><p>최근 정답률과 과목별 보완 지점</p></div>${trendBadge}</div><p class="insight-summary">${trendText}</p>${subjectContent}</article>
     <article class="panel insight-panel"><div class="panel-head"><div><h2>반복 오답 유형</h2><p>틀린 문제를 개념 카드 기준으로 묶었어요</p></div><span class="eyebrow">${repeatedQuestionCount ? `같은 문항 ${repeatedQuestionCount}개 반복` : "LOCAL ANALYSIS"}</span></div>${conceptContent}</article>
+    ${renderPassReadiness(subjects)}
   </section>`;
 }
 function renderChart(attempts) {
@@ -219,6 +220,29 @@ function renderSubjectStats(stats) {
   const active = Object.entries(stats).filter(([, s]) => s.total);
   if (!active.length) return `<div class="empty-small">풀이 기록이 쌓이면<br>과목별 강점과 보완점을 볼 수 있어요.</div>`;
   return `<div class="subject-list">${active.map(([name, s]) => `<div class="subject-row"><span class="subject-name">${escapeHTML(name)}</span><span class="subject-numbers">${Math.round(s.correct / s.total * 100)}% · 오답 ${s.wrong}</span><div class="progress-track"><i style="width:${Math.round(s.correct / s.total * 100)}%"></i></div></div>`).join("")}</div>`;
+}
+function renderPassReadiness(stats) {
+  const rows = SUBJECTS.map(name => {
+    const item = stats[name] || { total: 0, correct: 0 };
+    const rate = item.total ? Math.round(item.correct / item.total * 100) : null;
+    return { name, total: item.total, rate };
+  });
+  const measured = rows.filter(item => item.rate !== null);
+  const mean = measured.length ? Math.round(measured.reduce((sum, item) => sum + item.rate, 0) / measured.length) : null;
+  const lowest = measured.length ? Math.min(...measured.map(item => item.rate)) : null;
+  const enoughSample = rows.every(item => item.total >= 20);
+  const goalReached = enoughSample && mean >= 65 && lowest >= 45;
+  const badge = goalReached ? "목표선 도달" : enoughSample ? "보완 필요" : "표본 쌓는 중";
+  const summary = !measured.length
+    ? "시험 기록이 생기면 평균 65점과 과목별 45점 목표를 과목별 누적 정답률로 점검합니다."
+    : enoughSample
+      ? `과목 평균 ${mean}점 · 최저 과목 ${lowest}점${goalReached ? " · 두 목표선을 넘었어요." : " · 평균 65점과 각 과목 45점을 확인하세요."}`
+      : `현재 과목 평균 ${mean}점 · 최저 과목 ${lowest}점 · 과목마다 20문항 이상 풀면 목표선을 점검할 수 있어요.`;
+  return `<article class="panel insight-panel readiness-panel"><div class="panel-head"><div><h2>합격 목표 점검</h2><p>평균 65점 · 과목별 45점 기준</p></div><span class="readiness-badge ${goalReached ? "is-ready" : ""}">${badge}</span></div><p class="insight-summary">${summary}</p><div class="readiness-subjects">${rows.map(item => {
+    const width = item.rate === null ? 0 : item.rate;
+    const state = item.rate === null ? "is-empty" : item.rate >= 45 ? "is-safe" : "is-low";
+    return `<div class="readiness-row ${state}"><span>${escapeHTML(item.name)}</span><div class="readiness-track"><i style="width:${width}%"></i><b style="left:45%"></b></div><strong>${item.rate === null ? "기록 없음" : `${item.rate}%`} <small>· ${item.total}문항</small></strong></div>`;
+  }).join("")}</div><p class="readiness-footnote">누적 풀이 기준 참고치이며 합격을 보장하지 않습니다. 과목당 20문항 미만은 목표 판정을 보류합니다.</p></article>`;
 }
 function renderSetup() {
   const years = [...new Set(bank.map(q => q.year))].sort((a, b) => b - a);
