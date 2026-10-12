@@ -54,6 +54,7 @@
 .memory-facts{margin:0 0 20px;padding:16px 18px;border:1px solid #d6e0d5;border-radius:13px;background:#f0f5ef}
 .memory-facts>b{display:block;margin-bottom:10px;color:#294938;font-size:14px}
 .memory-facts .concept-points{padding-left:21px;color:#303d34;font-size:15px;line-height:1.75}
+.memory-facts .concept-points li{white-space:pre-line}
 .memory-facts .concept-points li+li{margin-top:7px}
 .memory-exam{margin-top:14px;border:1px solid #d7d5ca;border-radius:12px;background:#fff;overflow:hidden}
 .memory-exam summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 16px;color:#233a2d;cursor:pointer;list-style:none}
@@ -184,5 +185,6 @@
 .readiness-footnote{margin:0;color:#77837a;font-size:11px;line-height:1.6}
 @media(max-width:1050px){.insight-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.readiness-row{grid-template-columns:minmax(0,1fr) auto;gap:7px 10px}.readiness-track{grid-column:1/-1;grid-row:2}.readiness-row>strong{font-size:11px}.readiness-row>strong small{font-size:10px}}
-
-.memory-facts .concept-points li{white-space:pre-line}
+.concept-term-list{display:flex;align-content:flex-start;align-items:flex-start;flex-wrap:wrap;gap:9px;max-width:650px}
+.concept-term-list span{display:inline-flex;align-items:center;padding:8px 13px;border:1px solid rgba(49,91,61,.2);border-radius:999px;background:#edf2e9;color:#214733;font:700 clamp(14px,2vw,18px)/1.35 "Pretendard",sans-serif;white-space:normal}
+.concept-term-list .concept-term-more{background:#f4ead3;color:#644f24}
