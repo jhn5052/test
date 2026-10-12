@@ -239,3 +239,50 @@
 .mistake-extra-concept .mistake-concept-group{font-size:11px}
 .mistake-concept-review.is-unmapped p{color:#65746a;font-size:12px;line-height:1.7}
 @media(max-width:720px){.mistake-concept-review{padding:13px}.mistake-concept-review h3{font-size:16px}.mistake-concept-group{font-size:11px}.mistake-concept-answer{font-size:12px}}
+
+.data-quality-panel{margin-top:15px;padding:0;overflow:hidden}
+.data-quality-panel>summary{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:17px 20px;cursor:pointer;list-style:none}
+.data-quality-panel>summary::-webkit-details-marker{display:none}
+.data-quality-panel>summary>span:first-child{display:grid;gap:4px}
+.data-quality-panel>summary b{font-size:13px;color:#34483a}
+.data-quality-panel>summary small{font-size:10px;color:#89948b}
+.data-quality-summary{display:flex;align-items:flex-end;flex-direction:column;gap:4px;text-align:right}
+.data-quality-summary b{font:600 11px Pretendard,sans-serif!important;color:#477152!important}
+.data-quality-summary b.has-data-issue{color:#a75343!important}
+.data-quality-summary i{font-style:normal;color:#89948b;font-size:10px}
+.data-quality-content{padding:0 20px 20px;border-top:1px solid #edf0eb}
+.data-quality-top{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:15px}
+.audit-stat{display:grid;gap:7px;padding:14px;border:1px solid #e8ece5;border-radius:9px;background:#fbfcf9}
+.audit-stat small{font-size:10px;color:#78867b}
+.audit-stat b{font:650 14px Pretendard,sans-serif;color:#35543d}
+.audit-stat span{font-size:10px;line-height:1.7;color:#879188}
+.coverage-audit{display:grid;gap:11px;margin-top:18px}
+.coverage-audit>b,.issue-audit-head>b{font-size:11px;color:#3d5143}
+.coverage-audit-row{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(60px,2fr) auto;gap:10px;align-items:center;color:#657368;font-size:10px}
+.coverage-audit-row strong{font:10px "DM Mono",monospace;color:#5d6e60}
+.coverage-audit-track{height:6px;overflow:hidden;border-radius:9px;background:#edf0eb}
+.coverage-audit-track i{display:block;height:100%;border-radius:inherit;background:#62886c}
+.issue-audit{margin-top:20px;padding-top:15px;border-top:1px solid #edf0eb}
+.issue-audit-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
+.issue-audit-head span,.issue-audit-empty{font-size:10px;color:#89948b}
+.issue-audit-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #f0f2ee}
+.issue-audit-item>div{display:grid;gap:4px;min-width:0}
+.issue-audit-item>div>b{font-size:10px;color:#46594b}
+.issue-audit-item small{font-size:10px;color:#89948b;overflow-wrap:anywhere}
+.issue-audit-item .button{flex:0 0 auto;padding:8px 10px;font-size:10px}
+.issue-audit-empty{margin:8px 0 0;line-height:1.7}
+.question-issue-button{margin-left:auto;border:1px solid #e7ded0;border-radius:6px;background:#fffaf0;color:#8b7041;padding:6px 8px;font-size:9px;white-space:nowrap}
+.question-issue-button:hover{border-color:#c5a96f;background:#fbf1dd}
+.mistake-card>.question-issue-button{display:block;margin:-3px 0 14px auto}
+.issue-dialog{text-align:left}
+.issue-dialog form{display:grid;gap:9px}
+.issue-dialog-icon{margin:0;background:#f6f0df;color:#8d7040}
+.issue-dialog h2{margin-top:0}
+.issue-dialog .dialog-copy{margin:0;text-align:left}
+.issue-field-label{margin-top:7px;color:#526257;font-size:11px;font-weight:650}
+.issue-field-label span{font-size:10px;font-weight:400;color:#99a198}
+.issue-dialog select{width:100%}
+.issue-dialog textarea{width:100%;resize:vertical;min-height:90px;border:1px solid var(--line);border-radius:7px;padding:10px 11px;color:#34483a;font:12px/1.6 Pretendard,sans-serif}
+.issue-dialog textarea:focus,.issue-dialog select:focus{outline:2px solid #a9c2aa;outline-offset:1px}
+.issue-dialog .dialog-actions{margin-top:9px;justify-content:flex-end}
+@media(max-width:720px){.data-quality-panel>summary{padding:14px}.data-quality-content{padding:0 14px 15px}.data-quality-top{grid-template-columns:1fr}.coverage-audit-row{grid-template-columns:minmax(95px,1fr) minmax(55px,1.3fr) auto;gap:7px}.issue-audit-item{align-items:flex-start}.question-issue-button{font-size:9px}}

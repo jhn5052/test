@@ -3,6 +3,7 @@ const SUBJECTS = ["부동산학개론", "민법 및 민사특별법", "공인중
 const LETTERS = ["①", "②", "③", "④", "⑤"];
 let bank = [];
 let studyTypes = [];
+let answerKeys = {};
 let store = readStore();
 let view = "dashboard";
 let quiz = store.active || null;
@@ -22,10 +23,14 @@ let mistakeRetryQuestionId = null;
 let mistakeRetrySelected = null;
 let mistakeRetryFeedback = "";
 let calculatorState = { display: "0", expression: "", stored: null, operator: null, waitingForOperand: false };
+let issueQuestionId = null;
 
 function readStore() {
-  try { return { history: [], mistakes: [], flashcards: [], active: null, ...(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")) }; }
-  catch { return { history: [], mistakes: [], flashcards: [], active: null }; }
+  const defaults = { history: [], mistakes: [], flashcards: [], questionIssues: [], active: null };
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return { ...defaults, ...saved, history: Array.isArray(saved.history) ? saved.history.map(normalizeAttempt).filter(Boolean) : [], mistakes: Array.isArray(saved.mistakes) ? saved.mistakes : [], flashcards: Array.isArray(saved.flashcards) ? saved.flashcards : [], questionIssues: Array.isArray(saved.questionIssues) ? saved.questionIssues : [] };
+  } catch { return defaults; }
 }
 function persist() {
   store.active = quiz;
@@ -49,6 +54,30 @@ function isCorrect(question, chosen) {
 function answerLabel(question) {
   const accepted = Array.isArray(question.answer) ? question.answer : [question.answer];
   return accepted.map(answer => `${LETTERS[answer - 1]} ${question.choices[answer - 1]}`).join(" / ");
+}
+function finiteStoredNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+function normalizeAttempt(attempt) {
+  if (!attempt || typeof attempt !== "object") return null;
+  const results = Array.isArray(attempt.results) ? attempt.results : [];
+  const subjectRows = Object.values(attempt.subjects && typeof attempt.subjects === "object" ? attempt.subjects : {});
+  const subjectTotal = subjectRows.reduce((sum, item) => sum + (finiteStoredNumber(item?.total) || 0), 0);
+  const subjectCorrect = subjectRows.reduce((sum, item) => sum + (finiteStoredNumber(item?.correct) || 0), 0);
+  const totalValue = finiteStoredNumber(attempt.total);
+  const total = totalValue > 0 ? totalValue : results.length || subjectTotal;
+  const correctValue = finiteStoredNumber(attempt.correct);
+  const hasResultFlags = results.length && results.every(result => typeof result.correct === "boolean");
+  const correct = hasResultFlags ? results.filter(result => result.correct).length : correctValue ?? (subjectTotal ? subjectCorrect : null);
+  const rawScore = finiteStoredNumber(attempt.score);
+  const score = total > 0 && correct !== null ? Math.round(correct / total * 100) : rawScore;
+  if (score === null || score < 0 || score > 100) return null;
+  const yearValue = finiteStoredNumber(attempt.year);
+  const yearFromQuestion = results.map(result => String(result.questionId || "").match(/^(20\d{2})-/)?.[1]).find(Boolean);
+  const year = yearValue >= 2000 && yearValue <= 2100 ? yearValue : yearFromQuestion ? Number(yearFromQuestion) : null;
+  return { ...attempt, year, score: Math.round(score), total: total || finiteStoredNumber(attempt.total) || 0, correct: correct ?? correctValue ?? Math.round(score * (total || 100) / 100), subjects: attempt.subjects && typeof attempt.subjects === "object" ? attempt.subjects : {} };
 }
 function splitLabeledStatements(text) {
   const pattern = /(^|\s|\()([ㄱㄴㄷㄹㅁㅂ])\s*(?:[.．:：)]|\))\s*(?:[:：]\s*)?/g;
@@ -171,7 +200,8 @@ function titleBlock(kicker, title, sub, action = "") {
   return `<div class="page-heading"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`;
 }
 function renderDashboard() {
-  const attempts = store.history;
+  const attempts = store.history.map(normalizeAttempt).filter(Boolean);
+  store.history = attempts;
   const avg = attempts.length ? Math.round(attempts.reduce((sum, a) => sum + a.score, 0) / attempts.length) : 0;
   const solved = attempts.reduce((sum, a) => sum + a.total, 0);
   const correct = attempts.reduce((sum, a) => sum + a.correct, 0);
@@ -192,6 +222,7 @@ function renderDashboard() {
       <article class="panel"><div class="panel-head"><div><h2>회차별 점수</h2><p>시험을 마칠 때마다 성적이 쌓입니다</p></div><span class="eyebrow">SCORE / 100</span></div>${chart}</article>
       <article class="panel"><div class="panel-head"><div><h2>과목별 정답률</h2><p>지금까지 푼 문제 기준</p></div></div>${renderSubjectStats(subjects)}</article>
     </section>
+    ${renderDataQualityPanel()}
     <section class="section-row">
       <article class="panel recent-panel"><div class="panel-head"><div><h2>${showAllHistory ? "전체 시험 기록" : "최근 시험"}</h2><p>${showAllHistory ? `총 ${attempts.length}회 응시` : "가장 최근에 제출한 기록"}</p></div>${attempts.length ? `<button class="panel-link" data-action="show-history">${showAllHistory ? "최근 5회만 보기" : `전체 기록 ${attempts.length}회`}</button>` : ""}</div>
        ${recent.length ? `<div class="recent-list">${recent.map((item, index) => `<button class="recent-item" data-result="${index}"><span><span class="recent-name">${item.year === 2026 ? "2026년 예상문제" : `${yearLabel(item.year)} 기출`} · ${item.scope === "all" ? "전과목 혼합" : escapeHTML(item.subject)}</span><span class="recent-meta">${fmtDate(item.completedAt)} · ${item.correct}/${item.total} 정답</span></span><span class="recent-score ${item.score >= 60 ? "score-good" : "score-low"}">${item.score}<small>점</small></span><span class="result-date">›</span></button>`).join("")}</div>` : `<div class="no-records">아직 시험 기록이 없어요. 첫 시험을 시작해 보세요.</div>`}</article>
@@ -217,25 +248,39 @@ function renderLearningInsights(attempts, subjects) {
   const change = trendReady ? recentRate - previousRate : null;
   const weakSubjects = Object.entries(subjects).filter(([, value]) => value.total >= 5).sort((a, b) => a[1].correct / a[1].total - b[1].correct / b[1].total).slice(0, 2);
 
-  const byConcept = new Map();
+  const wrongEvents = [];
+  const seenEvents = new Set();
+  attempts.forEach(attempt => (attempt.results || []).forEach(result => {
+    if (result.correct !== false || !result.questionId) return;
+    const session = attempt.id || attempt.completedAt || `history-${attempt.year}-${attempt.score}`;
+    const key = `${session}:${result.questionId}`;
+    seenEvents.add(key);
+    wrongEvents.push({ questionId: result.questionId, session, key });
+  }));
   (store.mistakes || []).forEach(mistake => {
-    const question = bank.find(item => item.id === mistake.questionId);
+    if (!mistake.questionId) return;
+    const session = mistake.attemptId || mistake.attemptedAt || mistake.questionId;
+    const key = `${session}:${mistake.questionId}`;
+    if (!seenEvents.has(key)) wrongEvents.push({ questionId: mistake.questionId, session, key });
+  });
+  const byConcept = new Map();
+  const questionSessions = new Map();
+  wrongEvents.forEach(event => {
+    const question = bank.find(item => item.id === event.questionId);
     if (!question) return;
     const card = relatedConceptCards(question)[0];
-    if (!card) return;
-    const item = byConcept.get(card.id) || { card, wrong: 0, sessions: new Set() };
-    item.wrong++;
-    item.sessions.add(mistake.attemptId || mistake.attemptedAt || mistake.questionId);
-    byConcept.set(card.id, item);
+    if (card) {
+      const item = byConcept.get(card.id) || { card, wrong: 0, sessions: new Set(), questions: new Set() };
+      item.wrong++;
+      item.sessions.add(event.session);
+      item.questions.add(question.id);
+      byConcept.set(card.id, item);
+    }
+    const sessions = questionSessions.get(question.id) || new Set();
+    sessions.add(event.session);
+    questionSessions.set(question.id, sessions);
   });
   const concepts = [...byConcept.values()].sort((a, b) => b.sessions.size - a.sessions.size || b.wrong - a.wrong).slice(0, 3);
-  const questionSessions = new Map();
-  (store.mistakes || []).forEach(item => {
-    if (!item.questionId) return;
-    const sessions = questionSessions.get(item.questionId) || new Set();
-    sessions.add(item.attemptId || item.attemptedAt || item.questionId);
-    questionSessions.set(item.questionId, sessions);
-  });
   const repeatedQuestionCount = [...questionSessions.values()].filter(sessions => sessions.size > 1).length;
   const accuracyLabel = recentRate === null ? "기록 없음" : `${recentRate}%`;
   const trendText = !attempts.length
@@ -248,8 +293,8 @@ function renderLearningInsights(attempts, subjects) {
     ? `<div class="insight-subjects"><b>보완이 필요한 과목</b>${weakSubjects.map(([name, value]) => `<div><span>${escapeHTML(name)}</span><strong>${Math.round(value.correct / value.total * 100)}% · ${value.total}문항</strong></div>`).join("")}</div>`
     : `<p class="insight-note">과목별 분석은 각 과목을 5문항 이상 풀면 표시됩니다.</p>`;
   const conceptContent = concepts.length
-    ? `<div class="insight-concepts">${concepts.map(item => `<button class="insight-concept" data-open-concept="${escapeHTML(item.card.id)}"><span><b>${escapeHTML(item.card.title)}</b><small>${escapeHTML(item.card.subject)}</small></span><strong>${item.sessions.size}회 시험 · ${item.wrong}회 오답</strong><i>›</i></button>`).join("")}</div><p class="insight-note">같은 개념으로 연결된 오답을 묶었습니다. 문제 표현이 다르면 연결이 완벽하지 않을 수 있어요.</p>`
-    : `<div class="insight-empty">${attempts.length ? "현재 기록에서는 반복 오답 유형이 보이지 않아요. 잘하고 있어요!" : "시험 기록이 쌓이면 자주 틀리는 개념을 찾아드려요."}</div>`;
+    ? `<div class="insight-concepts">${concepts.map(item => `<button class="insight-concept" data-open-concept="${escapeHTML(item.card.id)}"><span><b>${escapeHTML(item.card.title)}</b><small>${escapeHTML(item.card.subject)} · 연결 문항 ${item.questions.size}개</small></span><strong>${item.sessions.size}회 시험 · ${item.wrong}회 오답</strong><i>›</i></button>`).join("")}</div><p class="insight-note">완료된 시험 기록과 현재 오답을 분석합니다. 개념 연결은 카드의 대표 기출 기준이라 일부 문항은 빠질 수 있어요.</p>`
+    : `<div class="insight-empty">${attempts.length ? "현재 기록에서 반복 오답으로 묶인 개념이 아직 없습니다." : "시험 기록이 쌓이면 자주 틀리는 개념을 찾아드려요."}</div>`;
   return `<section class="insight-grid" aria-label="학습 진단">
     <article class="panel insight-panel"><div class="panel-head"><div><h2>학습 흐름</h2><p>최근 정답률과 과목별 보완 지점</p></div>${trendBadge}</div><p class="insight-summary">${trendText}</p>${subjectContent}</article>
     <article class="panel insight-panel"><div class="panel-head"><div><h2>반복 오답 유형</h2><p>틀린 문제를 개념 카드 기준으로 묶었어요</p></div><span class="eyebrow">${repeatedQuestionCount ? `같은 문항 ${repeatedQuestionCount}개 반복` : "LOCAL ANALYSIS"}</span></div>${conceptContent}</article>
@@ -260,10 +305,10 @@ function renderChart(attempts) {
   if (!attempts.length) return `<div class="empty-chart">아직 성적 기록이 없어요.<br>첫 시험을 마치면 점수 흐름이 여기에 보여요.</div>`;
   const shown = attempts.slice(0, 8).reverse();
   const w = 600, h = 205, left = 31, right = 12, top = 13, bottom = 27;
-  const points = shown.map((a, i) => ({ x: shown.length === 1 ? w / 2 : left + i * (w - left - right) / (shown.length - 1), y: top + (100 - a.score) * (h - top - bottom) / 100, score: a.score }));
+  const points = shown.map((a, i) => ({ x: shown.length === 1 ? w / 2 : left + i * (w - left - right) / (shown.length - 1), y: top + (100 - Number(a.score)) * (h - top - bottom) / 100, score: Number(a.score) }));
   const line = points.map((p, i) => `${i ? "L" : "M"}${p.x},${p.y}`).join(" ");
   const area = `${line} L${points.at(-1).x},${h - bottom} L${points[0].x},${h - bottom} Z`;
-  return `<div class="chart-wrap"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="회차별 점수 그래프"><defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8eae8d" stop-opacity=".23"/><stop offset="1" stop-color="#8eae8d" stop-opacity=".015"/></linearGradient></defs>${[0, 50, 100].map(n => { const y = top + (100 - n) * (h - top - bottom) / 100; return `<line class="chart-grid" x1="${left}" x2="${w - right}" y1="${y}" y2="${y}"/><text class="chart-label" x="0" y="${y + 3}">${n}</text>`; }).join("")}<path class="chart-area" d="${area}"/><path class="chart-line" d="${line}"/>${points.map((p, i) => `<circle class="chart-point" cx="${p.x}" cy="${p.y}" r="4"/><text class="chart-label" text-anchor="middle" x="${p.x}" y="${h - 4}">${escapeHTML(shown[i].year)}.${String(new Date(shown[i].completedAt).getMonth() + 1).padStart(2, "0")}</text>`).join("")}</svg></div>`;
+  return `<div class="chart-wrap"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="회차별 점수 그래프"><defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8eae8d" stop-opacity=".23"/><stop offset="1" stop-color="#8eae8d" stop-opacity=".015"/></linearGradient></defs>${[0, 50, 100].map(n => { const y = top + (100 - n) * (h - top - bottom) / 100; return `<line class="chart-grid" x1="${left}" x2="${w - right}" y1="${y}" y2="${y}"/><text class="chart-label" x="0" y="${y + 3}">${n}</text>`; }).join("")}<path class="chart-area" d="${area}"/><path class="chart-line" d="${line}"/>${points.map((p, i) => { const date = new Date(shown[i].completedAt); const label = Number.isFinite(date.getTime()) ? `${shown[i].year || "기록"}.${String(date.getMonth() + 1).padStart(2, "0")}` : `${shown[i].year || "회차"} ${i + 1}`; return `<circle class="chart-point" cx="${p.x}" cy="${p.y}" r="4"><title>${p.score}점</title></circle><text class="chart-label" text-anchor="middle" x="${p.x}" y="${h - 4}">${escapeHTML(label)}</text>`; }).join("")}</svg></div>`;
 }
 function subjectStats(attempts) {
   const stats = Object.fromEntries(SUBJECTS.map(s => [s, { total: 0, correct: 0, wrong: 0 }]));
@@ -277,6 +322,66 @@ function renderSubjectStats(stats) {
   const active = Object.entries(stats).filter(([, s]) => s.total);
   if (!active.length) return `<div class="empty-small">풀이 기록이 쌓이면<br>과목별 강점과 보완점을 볼 수 있어요.</div>`;
   return `<div class="subject-list">${active.map(([name, s]) => `<div class="subject-row"><span class="subject-name">${escapeHTML(name)}</span><span class="subject-numbers">${Math.round(s.correct / s.total * 100)}% · 오답 ${s.wrong}</span><div class="progress-track"><i style="width:${Math.round(s.correct / s.total * 100)}%"></i></div></div>`).join("")}</div>`;
+}
+function sameAnswer(left, right) {
+  const normalize = value => (Array.isArray(value) ? value : [value]).map(Number).sort((a, b) => a - b);
+  return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
+}
+function renderDataQualityPanel() {
+  const official = bank.filter(question => question.year >= 2020 && question.year <= 2025);
+  const keyed = official.filter(question => Object.prototype.hasOwnProperty.call(answerKeys, question.id));
+  const matched = keyed.filter(question => sameAnswer(question.answer, answerKeys[question.id])).length;
+  const mismatches = keyed.length - matched;
+  const missing = official.length - keyed.length;
+  const mismatchIds = keyed.filter(question => !sameAnswer(question.answer, answerKeys[question.id])).slice(0, 8).map(question => `${question.year}년 ${question.subject} ${question.number}번`);
+  const linked = new Set(studyTypes.map(card => card.sourceId).filter(Boolean));
+  const openIssues = (store.questionIssues || []).filter(issue => issue.status !== "resolved");
+  const coverage = SUBJECTS.map(subject => {
+    const items = bank.filter(question => question.subject === subject);
+    const count = items.filter(question => linked.has(question.id)).length;
+    return { subject, count, total: items.length, percent: items.length ? Math.round(count / items.length * 100) : 0 };
+  });
+  const keyStatus = answerKeys && Object.keys(answerKeys).length
+    ? `${matched.toLocaleString()} / ${official.length.toLocaleString()} 문항 일치`
+    : "정답표를 불러오지 못했어요";
+  const keyNote = !Object.keys(answerKeys).length
+    ? "새로고침 후 다시 확인해 주세요."
+    : `${mismatches ? `불일치 ${mismatches}문항${mismatchIds.length ? ` (${mismatchIds.join(", ")}${mismatches > mismatchIds.length ? ", …" : ""})` : ""} · ` : "불일치 없음 · "}${missing ? `정답표 연결 누락 ${missing}문항` : "기출 정답표 연결 완료"} · 2026 예상문제 ${bank.filter(question => question.year === 2026).length}문항은 공식 정답표 대조 대상이 아닙니다.`;
+  return `<details class="panel data-quality-panel"><summary><span><b>문항·개념 자료 점검</b><small>정답표 대조, 개념 카드 연결, 오류 신고 확인</small></span><span class="data-quality-summary"><b class="${mismatches || missing ? "has-data-issue" : ""}">${escapeHTML(keyStatus)}</b><i>${openIssues.length ? `확인 요청 ${openIssues.length}건` : "열어 보기"}</i></span></summary><div class="data-quality-content"><div class="data-quality-top"><div class="audit-stat"><small>2020–2025 정답표 대조</small><b>${escapeHTML(keyStatus)}</b><span>${escapeHTML(keyNote)}</span></div><div class="audit-stat"><small>개념 카드 연결</small><b>${linked.size.toLocaleString()} / ${bank.length.toLocaleString()}문항</b><span>카드에 연결된 기출 수입니다. 전체 시험 범위의 개념 커버리지를 의미하지는 않습니다.</span></div></div><div class="coverage-audit"><b>과목별 카드 연결 현황</b>${coverage.map(item => `<div class="coverage-audit-row"><span>${escapeHTML(item.subject)}</span><div class="coverage-audit-track"><i style="width:${item.percent}%"></i></div><strong>${item.count}/${item.total}</strong></div>`).join("")}</div><div class="issue-audit"><div class="issue-audit-head"><b>오류 신고 · 확인 요청</b><span>${openIssues.length}건 대기 · ${(store.questionIssues || []).filter(issue => issue.status === "resolved").length}건 확인 완료</span></div>${openIssues.length ? openIssues.slice(0, 8).map(issue => { const question = bank.find(item => item.id === issue.questionId); return `<article class="issue-audit-item"><div><b>${question ? `${question.year}년 ${escapeHTML(question.subject)} ${question.number}번` : escapeHTML(issue.questionId)}</b><small>${escapeHTML(issue.category || "문항 오류")} · ${escapeHTML(issue.description || "상세 내용 없음")}</small></div><button class="button button-quiet" data-issue-done="${escapeHTML(issue.id)}">확인 완료</button></article>`; }).join("") : `<p class="issue-audit-empty">아직 신고된 문항이 없습니다. 문제에서 오류를 발견하면 해당 문항의 신고 버튼을 눌러 기록하세요.</p>`}</div></div></details>`;
+}
+function renderQuestionIssueButton(question) {
+  const pending = (store.questionIssues || []).some(issue => issue.questionId === question.id && issue.status !== "resolved");
+  return `<button type="button" class="question-issue-button" data-question-issue="${escapeHTML(question.id)}">${pending ? "오류 내용 추가하기" : "문항 오류 신고"}</button>`;
+}
+function openQuestionIssue(questionId) {
+  const question = bank.find(item => item.id === questionId);
+  if (!question) return;
+  issueQuestionId = questionId;
+  document.querySelector("#issue-question-label").textContent = `${question.year}년 ${question.subject} ${question.number}번`;
+  document.querySelector("#issue-description").value = "";
+  document.querySelector("#question-issue-dialog").showModal();
+}
+function bindQuestionIssueButtons() {
+  document.querySelectorAll("[data-question-issue]").forEach(button => button.addEventListener("click", () => openQuestionIssue(button.dataset.questionIssue)));
+}
+function saveQuestionIssue(event) {
+  event.preventDefault();
+  if (!issueQuestionId) return;
+  const issue = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `issue-${Date.now()}`,
+    questionId: issueQuestionId,
+    category: document.querySelector("#issue-category").value,
+    description: document.querySelector("#issue-description").value.trim().slice(0, 500),
+    status: "open",
+    createdAt: new Date().toISOString()
+  };
+  store.questionIssues ||= [];
+  store.questionIssues.unshift(issue);
+  issueQuestionId = null;
+  persist();
+  document.querySelector("#question-issue-dialog").close();
+  if (view === "dashboard") render();
+  toast("문항 확인 요청을 이 기기에 저장했어요.");
 }
 function renderPassReadiness(stats) {
   const rows = SUBJECTS.map(name => {
@@ -376,7 +481,7 @@ function renderQuiz() {
   const answeredPercent = Math.round(answered / questions.length * 100);
   return `<div class="exam-topline"><div class="exam-topline-copy"><div class="exam-kicker">${quiz.year === 2026 ? "2026년 예상문제" : `${yearLabel(quiz.year)} 기출`} · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-counter"><b>${quiz.index + 1}</b><span>/ ${questions.length}번</span><small>${answered}개 답변</small></div><div class="exam-progress-track" role="progressbar" aria-label="답변 진행률" aria-valuenow="${answered}" aria-valuemin="0" aria-valuemax="${questions.length}"><i style="width:${answeredPercent}%"></i></div></div><div class="exam-utilities"><button type="button" class="calculator-open-button" id="open-calculator" aria-expanded="false" aria-controls="calculator-panel">▦ <span>계산기 열기</span></button><button class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="pause-exam" aria-label="${quiz.paused ? "시험 재개" : "시험 일시정지"}" title="눌러서 ${quiz.paused ? "시험 재개" : "일시정지"}"><span id="timer-value">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</span><small>${quiz.paused ? "재개 ▶" : "일시정지 Ⅱ"}</small></button></div></div>
    <section class="calculator-panel" id="calculator-panel" aria-label="계산기" hidden><div class="calculator-panel-head"><div><span class="eyebrow">시험 중 도구</span><h2>계산기</h2></div><button type="button" class="calculator-close" id="close-calculator" aria-label="계산기 닫기">×</button></div><div class="calculator-screen" aria-live="polite"><div id="calculator-expression" class="calculator-expression">계산 결과</div><output id="calculator-display" class="calculator-display">0</output></div><div class="calculator-keys">${[["clear","AC"],["backspace","⌫"],["percent","%"],["operator","÷"],["digit","7"],["digit","8"],["digit","9"],["operator","×"],["digit","4"],["digit","5"],["digit","6"],["operator","−"],["digit","1"],["digit","2"],["digit","3"],["operator","+"],["sign","+/−"],["digit","0"],["decimal","."],["equals","="]].map(([action,label])=>`<button type="button" class="calculator-key ${action === "operator" ? "is-operator" : ""} ${action === "equals" ? "is-equals" : ""}" data-calc="${action}" data-value="${label}">${label}</button>`).join("")}</div></section>
-   <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span></div><div class="question-text">${renderQuestionText(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}" aria-pressed="${Number(quiz.answers[q.id]) === i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
+   <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span>${renderQuestionIssueButton(q)}</div><div class="question-text">${renderQuestionText(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}" aria-pressed="${Number(quiz.answers[q.id]) === i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
    <aside class="exam-rail"><section class="rail-card" id="question-map"><div class="rail-head"><span>답안 현황</span><small>${answered} / ${questions.length}</small></div><div class="question-grid">${questions.map((item, i) => `<button class="question-dot ${i === quiz.index ? "current" : ""} ${quiz.answers[item.id] ? "answered" : ""}" data-goto="${i}" aria-label="${i + 1}번 문제${quiz.answers[item.id] ? " 답변 완료" : " 미응답"}">${i + 1}</button>`).join("")}</div><div class="rail-legend"><span><i class="legend-dot current"></i>현재</span><span><i class="legend-dot"></i>답변 완료</span></div><div class="progress-info"><span>답변한 문제</span><span>${answeredPercent}%</span></div></section>
    <section class="rail-card rail-actions"><button class="button button-primary" id="submit-exam">답안 제출하기</button></section></aside></div>
    <div class="exam-mobile-bar" aria-label="시험 조작"><button class="mobile-exam-control" id="mobile-prev" ${quiz.index === 0 ? "disabled" : ""} aria-label="이전 문제">←<small>이전</small></button><button class="mobile-exam-control mobile-map-control" id="mobile-map" aria-label="문제 목록 보기"><span>${quiz.index + 1}/${questions.length}</span><small>목록</small></button><button class="mobile-exam-control mobile-next-control" id="mobile-next" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음<small>문제 →</small></button><button class="mobile-submit-control" id="mobile-submit">제출</button></div>`;
@@ -395,6 +500,7 @@ function bindQuiz() {
   document.querySelector("#mobile-map").addEventListener("click", () => document.querySelector("#question-map").scrollIntoView({ behavior: "smooth", block: "center" }));
   document.querySelector("#mobile-submit").addEventListener("click", () => submitExam("manual"));
   bindCalculator();
+  bindQuestionIssueButtons();
 }
 function calculatorUpdate() {
   const display = document.querySelector("#calculator-display");
@@ -560,7 +666,7 @@ function renderMistakeCards(mistakes) {
     const conceptReview = relatedCards.length
       ? `<section class="mistake-concept-review"><div class="mistake-concept-heading"><span>먼저 개념 정리</span><b>${escapeHTML(relatedCards[0].subject)}</b></div><h3>${escapeHTML(relatedCards[0].title)}</h3>${renderConceptSummary(relatedCards[0])}${relatedCards.length > 1 ? `<details class="mistake-extra-concept"><summary>추가 관련 개념: ${escapeHTML(relatedCards[1].title)}</summary>${renderConceptSummary(relatedCards[1])}</details>` : ""}</section>`
       : `<section class="mistake-concept-review is-unmapped"><div class="mistake-concept-heading"><span>개념 복습</span></div><p>이 문제에 직접 연결된 개념 정리는 아직 없습니다. 과목 개념을 확인한 뒤 다시 풀어보세요.</p><button class="related-concept-button" data-open-subject="${escapeHTML(q.subject)}">${escapeHTML(q.subject)} 개념 보기 <span>개념 카드 →</span></button></section>`;
-    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div>${retrying ? "" : `<div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}</div>`}${conceptReview}${retry}<button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
+    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div>${renderQuestionIssueButton(q)}${retrying ? "" : `<div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}</div>`}${conceptReview}${retry}<button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
   }).join("");
 }
 function renderConceptSummary(card) {
@@ -600,6 +706,7 @@ function bindMistakes() {
   document.querySelectorAll("[data-flashcard]").forEach(button => button.addEventListener("click", () => toggleFlashcard(button.dataset.flashcard)));
   document.querySelectorAll("[data-open-concept]").forEach(button => button.addEventListener("click", () => openConceptCard(button.dataset.openConcept)));
   document.querySelectorAll("[data-open-subject]").forEach(button => button.addEventListener("click", () => openSubjectConcepts(button.dataset.openSubject)));
+  bindQuestionIssueButtons();
 }
 function toggleFlashcard(questionId) {
   store.flashcards ||= [];
@@ -694,6 +801,12 @@ function bindDashboard() {
   document.querySelectorAll("[data-result]").forEach(button => button.addEventListener("click", () => { view = "result"; renderResultView(Number(button.dataset.result)); }));
   document.querySelectorAll("[data-open-concept]").forEach(button => button.addEventListener("click", () => openConceptCard(button.dataset.openConcept)));
   document.querySelector("[data-action=show-history]")?.addEventListener("click", () => { showAllHistory = !showAllHistory; render(); });
+  document.querySelectorAll("[data-issue-done]").forEach(button => button.addEventListener("click", () => {
+    const issue = (store.questionIssues || []).find(item => item.id === button.dataset.issueDone);
+    if (!issue) return;
+    issue.status = "resolved"; issue.resolvedAt = new Date().toISOString(); persist(); render();
+    toast("확인 완료로 표시했어요.");
+  }));
 }
 function renderResultView(index) {
   const attempt = store.history[index]; if (!attempt) return;
@@ -706,10 +819,14 @@ document.querySelectorAll(".nav-item").forEach(button => button.addEventListener
 document.querySelectorAll('[data-action="reset"]').forEach(button => button.addEventListener("click", () => document.querySelector("#reset-dialog").showModal()));
 document.querySelector("#reset-cancel").addEventListener("click", () => document.querySelector("#reset-dialog").close());
 document.querySelector("#reset-confirm").addEventListener("click", () => {
-  localStorage.removeItem(STORAGE_KEY); store = { history: [], mistakes: [], flashcards: [], active: null }; quiz = null; stopClock();
+  localStorage.removeItem(STORAGE_KEY); store = { history: [], mistakes: [], flashcards: [], questionIssues: [], active: null }; quiz = null; stopClock();
   document.querySelector("#reset-dialog").close(); setView("dashboard"); toast("시험과 오답 기록을 모두 삭제했어요.");
 });
 document.querySelector("#reset-dialog").addEventListener("click", event => { if (event.target === event.currentTarget) event.currentTarget.close(); });
+document.querySelector("#question-issue-form").addEventListener("submit", saveQuestionIssue);
+function closeQuestionIssueDialog() { issueQuestionId = null; document.querySelector("#question-issue-dialog").close(); }
+document.querySelectorAll("#issue-cancel, #issue-cancel-secondary").forEach(button => button.addEventListener("click", closeQuestionIssueDialog));
+document.querySelector("#question-issue-dialog").addEventListener("click", event => { if (event.target === event.currentTarget) event.currentTarget.close(); });
 
 async function loadBank() {
   try {
@@ -727,6 +844,11 @@ async function loadBank() {
     studyTypes = (await response.json()).cards || [];
     studyTypes = studyTypes.filter(card => card.id && card.subject && card.title && (Array.isArray(card.concept) && card.concept.length || Array.isArray(card.memorize) && card.memorize.length) && Array.isArray(card.relatedTerms) && bank.some(q => q.id === card.sourceId));
   } catch (error) { studyTypes = []; console.warn(error); }
+  try {
+    const response = await fetch("./data/answer-keys.json");
+    if (!response.ok) throw new Error("정답표 데이터를 찾을 수 없습니다.");
+    answerKeys = (await response.json()).answerKeys || {};
+  } catch (error) { answerKeys = {}; console.warn(error); }
   if (quiz && !quiz.questions.every(id => bank.some(q => q.id === id))) { quiz = null; store.active = null; persist(); }
   render();
 }
