@@ -213,12 +213,16 @@
 .concept-term-list .concept-term-more{background:#f4ead3;color:#644f24}
 .question-stem{padding:13px 15px;border-left:3px solid #4e7858;border-radius:0 9px 9px 0;background:#eff5ef}
 .question-section-label{display:block;margin-bottom:5px;color:#6a7f6e;font:700 10px Pretendard,sans-serif;letter-spacing:.04em}
-.question-prompt{color:#263a2d;font:700 17px/1.65 "Gowun Batang",serif;letter-spacing:-.025em}
+.question-prompt{color:#263a2d;font:700 17px/1.65 "Gowun Batang","Apple SD Gothic Neo","Noto Sans CJK KR",serif;letter-spacing:-.025em}
+.question-fill-blank{display:inline-block;min-width:2.25em;margin:0 .08em;padding:0 .32em;border:1px solid #d6c38f;border-radius:5px;background:#fbf3df;color:#315b40;font:700 .92em/1.55 Pretendard,sans-serif;text-align:center;vertical-align:baseline;white-space:nowrap}
+.question-fill-blank.is-empty{min-width:3.1em;color:#8c712d;letter-spacing:.02em}
 .question-body-block{margin-top:11px;padding:13px 15px;border:1px solid #e3e8e1;border-radius:9px;background:#fff}
-.question-body{color:#394a3e;font:500 14px/1.75 Pretendard,sans-serif;letter-spacing:0;white-space:pre-line}
+.question-body{color:#394a3e;font:500 14px/1.75 Pretendard,"Apple SD Gothic Neo","Noto Sans CJK KR",sans-serif;letter-spacing:0;white-space:pre-line;overflow-wrap:anywhere}
 .question-body .statement-intro{margin-bottom:8px}
 .question-body .statement-grid{margin:8px 0}
-@media(max-width:720px){.question-prompt{font-size:16px}.question-body-block{padding:11px 12px}.question-body{font-size:13px;line-height:1.7}}
+.question-condition-list{display:grid;gap:7px;margin-top:8px}
+.question-condition-item{padding:9px 11px;border:1px solid #e8ece6;border-radius:8px;background:#f8faf7;overflow-wrap:anywhere}
+@media(max-width:720px){.question-prompt{font-size:16px}.question-body-block{padding:11px 12px}.question-body{font-size:13px;line-height:1.7}.question-condition-item{padding:8px 9px}}
 .mistake-concept-review{margin:18px 0 14px;padding:16px;border:1px solid #dce7d9;border-radius:11px;background:#f1f6ef}
 .mistake-concept-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#315c40;font-size:12px;font-weight:750}
 .mistake-concept-heading>b{font-size:10px;color:#718275;text-align:right}

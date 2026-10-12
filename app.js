@@ -51,32 +51,80 @@ function answerLabel(question) {
   return accepted.map(answer => `${LETTERS[answer - 1]} ${question.choices[answer - 1]}`).join(" / ");
 }
 function splitLabeledStatements(text) {
-  const pattern = /(^|\s)([ㄱㄴㄷㄹㅁㅂ])\s*[.．:：)]\s*/g;
+  const pattern = /(^|\s|\()([ㄱㄴㄷㄹㅁㅂ])\s*(?:[.．:：)]|\))\s*(?:[:：]\s*)?/g;
   const matches = [...text.matchAll(pattern)];
   if (matches.length < 2) return null;
   const first = matches[0];
-  const intro = text.slice(0, first.index + first[1].length).trim();
+  const introEnd = first.index + first[1].length - (first[1] === "(" ? 1 : 0);
+  const intro = text.slice(0, introEnd).trim();
   const items = matches.map((match, index) => {
     const start = match.index + match[0].length;
     const end = matches[index + 1]?.index ?? text.length;
-    return { label: match[2], text: text.slice(start, end).trim() };
+    return { label: match[2], text: text.slice(start, end).replace(/^\s*[:：]\s*/, "").trim() };
   }).filter(item => item.text);
   return items.length >= 2 ? { intro, items } : null;
 }
+const OCR_WORD_FIXES = [
+  "토지거래허가구역", "부동산거래정보망", "도시개발사업", "공공시설용지", "토지취득방식", "부동산개발사업", "한국표준산업분류", "공인중개사법령", "양도소득세", "토지소유자", "도시개발구역", "주택단지가", "도시및주거환경정비법", "부동산공시법", "부동산공법",
+  "공인중개사", "금융기관", "건축물", "용도지역", "용도지구", "용도구역", "단독주택", "공동주택", "정비사업", "재산세", "과세표준", "과세대상", "신고기한", "사용검사", "용적률", "공급곡선", "공급량", "수요량", "균형거래량", "수익가액", "소유권", "지상권", "저당권", "매매계약", "균형가격", "공급함수", "수요함수", "감정평가방법", "수익환원법", "대상물건", "토지등소유자", "토지소유자의", "토지소유자가", "토지취득", "개발형태", "개발토지", "개발한", "배분하는", "분류상", "설명에", "설명으로", "내용으로", "내용이다", "들어갈", "알맞은", "해당하는", "분석하는", "분석기법", "타당성분석", "경쟁력을", "분양될", "투입요소", "변화가", "변화하였는가", "결과치", "어떠한", "영향을", "가격수준", "지역분석", "개별분석", "대상부동산", "부동산의", "이용이", "동질적이고", "가치형성", "지역요인", "주어진", "다음의", "기준에", "관련하여", "기초하여", "이용하여", "적용되는", "실시하는", "설치하는", "설명", "내용", "개발", "법령", "토지", "주택", "부동산", "옳은", "틀린", "해당", "경우", "수량의", "가격과", "나타냄", "변화하였다", "대출받았다", "대출금리", "상환액", "원리금", "공시지가", "비교표준지", "기대되는", "신고하여야", "도시개발법", "농어촌정비법", "지적소관청", "등록사항", "정정대상토지", "발급하는", "열람하게", "표시하거나", "공인중개사법", "업무정지처분", "개설등록", "손해배상책임", "공탁금", "회수할", "특별자치도", "가입이용신청", "정보처리기사", "특별시", "광역시", "재건축사업", "재개발사업", "추진위원회", "조합설립", "토지면적", "동의를", "신청하지", "수립고시", "지정고시", "실시계획", "인가를", "다만", "포함된", "아니하는", "정답으로", "문제에서", "관련된", "산정기준", "부과대상", "이었다", "이며", "월복리", "무시하며", "나타내고"
+].sort((a, b) => b.length - a.length);
+const OCR_MATH_GLYPHS = { "":"D", "":"P", "":"Q", "":"S", "":"X", "":"Y", "":"1", "":"2", "":"3", "":"4", "":"5", "":"9", "":"0", "":"−", "":"=", "":"+", "":",", "":"/", "":"{", "":"}", "":".", "":"(", "":")", "":"d", "":"s", "":"x", "":"y", "":"", "":"", "":"", "":"", "":"", "":"", "":"" };
+function normalizeQuestionText(text) {
+  let value = String(text || "").replace(/[\u200b\ufeff]/g, "");
+  value = value.replace(/[\uE000-\uF8FF]/g, glyph => Object.prototype.hasOwnProperty.call(OCR_MATH_GLYPHS, glyph) ? OCR_MATH_GLYPHS[glyph] : "□");
+  for (const word of OCR_WORD_FIXES) {
+    const pattern = word.split("").map(char => char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s*");
+    value = value.replace(new RegExp(pattern, "g"), word);
+  }
+  return value
+    .replace(/\(\s+/g, "(").replace(/\s+\)/g, ")")
+    .replace(/\[\s+/g, "[").replace(/\s+\]/g, "]")
+    .replace(/([?？])(?=\()/g, "$1 ")
+    .replace(/\/\s*(\d)\s+(\d)\b/g, "$2/$1")
+    .replace(/\s+([,.;:!?？％%])/g, "$1")
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\b(Q)\s+([DS])\s+(\d)\b/g, "$1$2$3")
+    .replace(/\b(Q[DS])\s+(\d)\b/g, "$1$2")
+    .replace(/\b(Q)\s+([ds])\b/g, "$1$2")
+    .replace(/\b((?:QD|QS)\d?|Q[dDs]|P|Q)\s+(는|가|은|의|를|와|과|에)/g, "$1$2")
+    .replace(/\b([XY])\s+축/g, "$1축")
+    .replace(/\s*([=+−])\s*/g, " $1 ")
+    .replace(/−\s+(?=[A-Za-z])/g, "−")
+    .replace(/(\d)\s+−(?=\s*[A-Za-z])/g, "$1 − ")
+    .replace(/(m)\s*2\b/g, "$1²")
+    .replace(/[ \t]{2,}/g, " ").trim();
+}
+function renderQuestionInline(text) {
+  return escapeHTML(normalizeQuestionText(text))
+    .replace(/\(\s*([ㄱㄴㄷㄹㅁㅂ])\s*\)/g, '<span class="question-fill-blank">($1)</span>')
+    .replace(/\(\s*\)/g, '<span class="question-fill-blank is-empty">(　　)</span>');
+}
 function renderQuestionText(text) {
-  const questionEnd = text.search(/[?？]/);
-  if (questionEnd < 0 || !text.slice(questionEnd + 1).trim()) return renderQuestionBody(text);
-  const prompt = text.slice(0, questionEnd + 1).trim();
-  const body = text.slice(questionEnd + 1).trim();
-  const conditionOnly = /^\(?\s*단[,，:：]/.test(body);
-  return `<div class="question-stem"><span class="question-section-label">질문</span><div class="question-prompt">${escapeHTML(prompt)}</div></div><div class="question-body-block"><span class="question-section-label">${conditionOnly ? "문제 조건" : "문제 본문"}</span><div class="question-body">${renderQuestionBody(body)}</div></div>`;
+  const normalized = normalizeQuestionText(text);
+  const questionEnd = normalized.search(/[?？]/);
+  if (questionEnd < 0 || !normalized.slice(questionEnd + 1).trim()) return renderQuestionBody(normalized);
+  const prompt = normalized.slice(0, questionEnd + 1).trim();
+  const body = normalized.slice(questionEnd + 1).trim();
+  const conditionList = /^(?:[([{]?\s*단[,，:：]|○\s*|\d+[.)]\s*|[([{]?[ㄱㄴㄷㄹㅁㅂ]\)?\s*[:：])/.test(body) || (body.match(/(?:^|\s)○\s*/g) || []).length > 1;
+  return `<div class="question-stem"><span class="question-section-label">질문</span><div class="question-prompt">${renderQuestionInline(prompt)}</div></div><div class="question-body-block"><span class="question-section-label">${conditionList ? "문제 조건" : "문제 본문"}</span><div class="question-body">${renderQuestionBody(body)}</div></div>`;
 }
 function renderQuestionBody(text) {
+  const bullets = [...text.matchAll(/(?:^|\s)○\s*/g)];
+  if (bullets.length >= 2) {
+    const intro = text.slice(0, bullets[0].index).trim();
+    const items = bullets.map((match, index) => {
+      const start = match.index + match[0].length;
+      const end = bullets[index + 1]?.index ?? text.length;
+      return text.slice(start, end).trim();
+    }).filter(Boolean);
+    return `${intro ? `<div class="statement-intro">${renderQuestionInline(intro)}</div>` : ""}<div class="question-condition-list">${items.map(item => `<div class="question-condition-item">${renderQuestionInline(item)}</div>`).join("")}</div>`;
+  }
   const groups = splitLabeledStatements(text);
-  if (!groups) return escapeHTML(text);
-  return `${groups.intro ? `<div class="statement-intro">${escapeHTML(groups.intro)}</div>` : ""}<div class="statement-grid">${groups.items.map(item => `<div class="statement-item"><b>${item.label}</b><span>${escapeHTML(item.text)}</span></div>`).join("")}</div>`;
+  if (!groups) return renderQuestionInline(text);
+  return `${groups.intro ? `<div class="statement-intro">${renderQuestionInline(groups.intro)}</div>` : ""}<div class="statement-grid">${groups.items.map(item => `<div class="statement-item"><b>${item.label}</b><span>${renderQuestionInline(item.text)}</span></div>`).join("")}</div>`;
 }
 function renderChoiceText(text) {
+  text = normalizeQuestionText(text);
   const groups = splitLabeledStatements(text);
   if (groups) return `<span class="compound-choice">${groups.items.map(item => `<span class="compound-entry"><b>${item.label}</b>${escapeHTML(item.text)}</span>`).join("")}</span>`;
   const combo = text.match(/^([ㄱㄴㄷㄹㅁㅂ](?:\s*[,·ㆍ]\s*[ㄱㄴㄷㄹㅁㅂ])*)$/);
