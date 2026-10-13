@@ -268,7 +268,7 @@ function renderLearningInsights(attempts, subjects) {
   wrongEvents.forEach(event => {
     const question = bank.find(item => item.id === event.questionId);
     if (!question) return;
-    const card = relatedConceptCards(question)[0];
+    const card = sourceConceptCards(question)[0];
     if (card) {
       const item = byConcept.get(card.id) || { card, wrong: 0, sessions: new Set(), questions: new Set() };
       item.wrong++;
@@ -655,7 +655,7 @@ function renderMistakeCards(mistakes) {
     const q = bank.find(item => item.id === m.questionId); if (!q) return "";
     const hasDetailedExplanation = q.explanation && !q.explanation.includes("원문에는 별도 해설") && !q.explanation.includes("원본에는 별도 해설");
     const inDeck = (store.flashcards || []).includes(q.id);
-    const relatedCards = relatedConceptCards(q);
+    const relatedCards = sourceConceptCards(q);
     const retrying = mistakeRetryQuestionId === q.id;
     const retry = retrying
       ? `<section class="mistake-retry"><div class="mistake-retry-heading"><b>다시 풀어보기</b><button class="mistake-retry-close" data-review-start="${escapeHTML(q.id)}">닫기</button></div><p class="mistake-retry-hint">정답과 해설은 답을 확인한 뒤 다시 볼 수 있어요.</p><div class="mistake-retry-choices">${q.choices.map((choice, index) => `<button class="mistake-retry-choice ${mistakeRetrySelected === index + 1 ? "selected" : ""}" data-review-choice="${index + 1}" aria-pressed="${mistakeRetrySelected === index + 1}"><b>${LETTERS[index]}</b><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><button class="button button-primary" data-review-check="${escapeHTML(q.id)}" ${mistakeRetrySelected ? "" : "disabled"}>정답 확인</button>${mistakeRetryFeedback ? `<p class="mistake-retry-feedback" role="status">${escapeHTML(mistakeRetryFeedback)}</p>` : ""}</section>`
@@ -670,7 +670,10 @@ function renderMistakeCards(mistakes) {
   }).join("");
 }
 function renderConceptSummary(card) {
-  return `<p class="mistake-concept-answer">${escapeHTML(card.answer || card.title)}</p>${card.comparison?.length ? `<div class="mistake-concept-comparison">${card.comparison.map(item => `<div><b>${escapeHTML(item.label)}</b><span>${escapeHTML(item.value).replace(/\n/g,"<br>")}</span></div>`).join("")}</div>` : ""}${card.concept?.length ? `<div class="mistake-concept-group"><b>개념 이해</b><ul>${card.concept.map(item => `<li>${escapeHTML(item).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}${card.memorize?.length ? `<div class="mistake-concept-group"><b>시험에서 외울 것</b><ul>${card.memorize.map(item => `<li>${escapeHTML(item).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}`;
+  const concise = card.id.startsWith("gap-");
+  const keyPoint = card.answer || card.concept?.[0] || card.title;
+  const concepts = concise ? (card.concept || []).slice(1) : (card.concept || []);
+  return `<p class="mistake-concept-answer">${escapeHTML(keyPoint)}</p>${card.comparison?.length ? `<div class="mistake-concept-comparison">${card.comparison.map(item => `<div><b>${escapeHTML(item.label)}</b><span>${escapeHTML(item.value).replace(/\n/g,"<br>")}</span></div>`).join("")}</div>` : ""}${concepts.length ? `<div class="mistake-concept-group"><b>개념 이해</b><ul>${concepts.map(item => `<li>${escapeHTML(item).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}${card.memorize?.length ? `<div class="mistake-concept-group"><b>시험에서 외울 것</b><ul>${card.memorize.map(item => `<li>${escapeHTML(item).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}`;
 }
 function bindMistakes() {
   const filter = () => {
@@ -745,13 +748,14 @@ function renderStudyTypes() {
   studyTypeIndex = Math.min(studyTypeIndex, available.length - 1);
   const card = available[studyTypeIndex];
   const q = bank.find(item => item.id === card.sourceId);
+  const cardConcepts = card.id.startsWith("gap-") ? (card.concept || []).slice(1) : card.concept;
   const accepted = q ? (Array.isArray(q.answer) ? q.answer : [q.answer]) : [];
   const feedback = studyTypeRevealed && q ? `<div class="type-answer-feedback ${isCorrect(q, studyTypeSelected) ? "is-correct" : "is-wrong"}"><b>${isCorrect(q, studyTypeSelected) ? "정답이에요" : "다시 확인해 보세요"}</b><span>정답 ${escapeHTML(answerLabel(q))}</span><p>${escapeHTML(q.explanation || "등록된 정답을 확인하세요.")}</p></div>` : "";
   return `${heading}${modeSwitch}
     <div class="study-type-toolbar"><label class="eyebrow" for="study-type-subject">과목</label><select class="filter-select" id="study-type-subject"><option value="all" ${studyTypeSubject === "all" ? "selected" : ""}>전체 과목 · ${studyTypes.length}장</option>${subjects.map(subject => `<option value="${escapeHTML(subject)}" ${studyTypeSubject === subject ? "selected" : ""}>${escapeHTML(subject)} · ${studyTypes.filter(item => item.subject === subject).length}장</option>`).join("")}</select><span>${studyTypeIndex + 1} / ${available.length}</span></div>
     <div class="type-flashcard ${studyTypeFlipped ? "is-flipped" : ""}" id="study-type-card" role="group" aria-label="${escapeHTML(card.title)} 개념 및 기출 카드">
       <div class="type-card-face type-card-front"><span class="memory-card-kicker"><span>${escapeHTML(card.subject)}</span><b>${studyTypeIndex + 1} / ${available.length}</b></span><strong class="memory-card-title">${escapeHTML(card.title)}</strong><span class="memory-recall-label">이 카드의 핵심 용어</span><div class="type-card-prompt concept-term-list">${(card.relatedTerms?.length ? card.relatedTerms : [card.title]).slice(0, 8).map(term => `<span>${escapeHTML(term)}</span>`).join("")}${(card.relatedTerms || []).length > 8 ? `<span class="concept-term-more">+${(card.relatedTerms || []).length - 8}</span>` : ""}</div><button class="type-flip-action" data-concept-flip>개념·암기 내용 펼치기 <span>↻</span></button></div>
-      <div class="type-card-face type-card-back"><span class="memory-card-kicker"><span>개념 설명 · 시험 암기</span><b>${escapeHTML(card.subject)}</b></span><strong class="memory-answer"><span class="memory-answer-label">한 줄 정리</span>${escapeHTML(card.answer || (q ? answerLabel(q) : card.title))}</strong>${card.comparison?.length ? `<section class="memory-comparison" aria-label="세율 비교">${card.comparison.map(item => `<div class="memory-comparison-row"><b>${escapeHTML(item.label)}</b><span>${escapeHTML(item.value).replace(/\n/g,"<br>")}</span></div>`).join("")}</section>` : ""}<section class="memory-facts">${card.concept?.length ? `<div class="memory-fact-group"><b>개념 이해</b><ul class="concept-points">${card.concept.map(point => `<li>${escapeHTML(point).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}${card.memorize?.length ? `<div class="memory-fact-group"><b>시험에서 외울 것</b><ul class="concept-points">${card.memorize.map(point => `<li>${escapeHTML(point).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}</section>${q ? `<details class="type-source memory-exam" ${studyTypeQuestionOpen ? "open" : ""}><summary><b>${q.year}년 ${escapeHTML(q.subject)} ${q.number}번 · 기출로 확인</b><span>문제와 보기 펼치기＋</span></summary><div class="memory-exam-content"><div class="type-source-question">${renderQuestionText(q.text)}</div><div class="type-answer-options">${q.choices.map((choice, index) => `<button class="type-answer-option ${studyTypeSelected === index + 1 ? "is-selected" : ""} ${studyTypeRevealed && accepted.includes(index + 1) ? "is-answer" : ""} ${studyTypeRevealed && studyTypeSelected === index + 1 && !accepted.includes(index + 1) ? "is-incorrect" : ""}" data-concept-answer="${index + 1}"><b>${LETTERS[index]}</b><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><button class="button button-primary type-check-answer" data-concept-check ${studyTypeRevealed || !studyTypeSelected ? "disabled" : ""}>정답 확인</button>${feedback}<p class="type-source-explanation">${escapeHTML(q.explanation || "정답표 기준 정답입니다.")}</p></div></details>` : `<span class="type-card-note">연결된 기출문제를 찾을 수 없습니다.</span>`}<button class="type-flip-action back-flip-action" data-concept-flip>앞면으로 돌아가기 ↻</button></div>
+      <div class="type-card-face type-card-back"><span class="memory-card-kicker"><span>개념 설명 · 시험 암기</span><b>${escapeHTML(card.subject)}</b></span><strong class="memory-answer"><span class="memory-answer-label">한 줄 정리</span>${escapeHTML(card.answer || card.concept?.[0] || card.title)}</strong>${card.comparison?.length ? `<section class="memory-comparison" aria-label="세율 비교">${card.comparison.map(item => `<div class="memory-comparison-row"><b>${escapeHTML(item.label)}</b><span>${escapeHTML(item.value).replace(/\n/g,"<br>")}</span></div>`).join("")}</section>` : ""}<section class="memory-facts">${cardConcepts?.length ? `<div class="memory-fact-group"><b>개념 이해</b><ul class="concept-points">${cardConcepts.map(point => `<li>${escapeHTML(point).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}${card.memorize?.length ? `<div class="memory-fact-group"><b>시험에서 외울 것</b><ul class="concept-points">${card.memorize.map(point => `<li>${escapeHTML(point).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}</section>${q ? `<details class="type-source memory-exam" ${studyTypeQuestionOpen ? "open" : ""}><summary><b>${q.year}년 ${escapeHTML(q.subject)} ${q.number}번 · 기출로 확인</b><span>문제와 보기 펼치기＋</span></summary><div class="memory-exam-content"><div class="type-source-question">${renderQuestionText(q.text)}</div><div class="type-answer-options">${q.choices.map((choice, index) => `<button class="type-answer-option ${studyTypeSelected === index + 1 ? "is-selected" : ""} ${studyTypeRevealed && accepted.includes(index + 1) ? "is-answer" : ""} ${studyTypeRevealed && studyTypeSelected === index + 1 && !accepted.includes(index + 1) ? "is-incorrect" : ""}" data-concept-answer="${index + 1}"><b>${LETTERS[index]}</b><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><button class="button button-primary type-check-answer" data-concept-check ${studyTypeRevealed || !studyTypeSelected ? "disabled" : ""}>정답 확인</button>${feedback}<p class="type-source-explanation">${escapeHTML(q.explanation || "정답표 기준 정답입니다.")}</p></div></details>` : `<span class="type-card-note">연결된 기출문제를 찾을 수 없습니다.</span>`}<button class="type-flip-action back-flip-action" data-concept-flip>앞면으로 돌아가기 ↻</button></div>
     </div>
     <div class="flashcard-controls study-type-controls"><button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 유형</button><button class="button button-quiet" id="type-shuffle">순서 섞기 ↻</button><button class="button button-primary" id="type-next" ${studyTypeIndex === available.length - 1 ? "disabled" : ""}>다음 유형 →</button></div>`;
 }
@@ -779,12 +783,12 @@ function bindStudyTypes() {
   });
 }
 function relatedConceptCards(question) {
-  const searchable = `${question.text} ${question.explanation || ""} ${question.choices.join(" ")}`.replace(/\s+/g, " ");
-  const ranked = studyTypes.filter(card => card.subject === question.subject).map(card => ({
-    card,
-    score: (card.sourceId === question.id ? 100 : 0) + card.relatedTerms.filter(term => searchable.includes(term)).length,
-  })).filter(item => item.score > 0).sort((a, b) => b.score - a.score);
-  return ranked.slice(0, 2).map(item => item.card);
+  return sourceConceptCards(question);
+}
+function sourceConceptCards(question) {
+  const linked = studyTypes.filter(card => card.subject === question.subject && card.sourceId === question.id);
+  const authored = linked.filter(card => !card.id.startsWith("gap-"));
+  return (authored.length ? authored : linked).slice(0, 2);
 }
 function openConceptCard(id) {
   const index = studyTypes.findIndex(card => card.id === id);

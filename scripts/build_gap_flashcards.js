@@ -34,10 +34,16 @@ function topicFor(question) {
 }
 function explanationParts(question, correct) {
   const body = question.explanation.trim().replace(/^(?:정답은\s*[^.。]*[.。]|[①②③④⑤][.。])\s*/, '');
-  const sentences = body.match(/[^.!?。]+[.!?。]?/g)?.map(value => value.trim()).filter(Boolean) || [];
-  const keyFact = sentences.shift() || body;
-  const concept = sentences.join(' ').trim() || body;
+  const sentences = (body.match(/[^.!?。]+[.!?。]?/g)?.map(value => value.trim()).filter(Boolean) || [])
+    .filter(value => !/^(?:정답\s*포인트\s*[:：]\s*)?[①②③④⑤](?:\s*가\s*옳다|\s*이\s*옳다|\s*이다)?\.?$/.test(value));
+  const keyFact = sentences.shift() || '';
+  const concept = sentences.join(' ').trim() || keyFact || '정답 보기보다 해설의 개념 설명을 확인하세요.';
   return { concept, keyFact: sentences.length ? keyFact : `정답 포인트: ${correct}` };
+}
+function isAnswerKeyMemo(text) {
+  const value = String(text || '').trim();
+  return /^(?:정답\s*포인트\s*[:：]\s*)?[①②③④⑤]/.test(value)
+    || /^(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ)(?:\s*[·ㆍ,및]\s*(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ))*(?:만\s*옳다|모두\s*옳다|가\s*옳다)\.?$/.test(value);
 }
 function relatedTermsFor(question, title) {
   const text = question.text;
@@ -75,8 +81,8 @@ const additions = candidates.filter(question => (Array.isArray(question.answer) 
     relatedTerms: relatedTermsFor(question, title),
     bookQuestionNumber: question.number,
     prompt: question.text,
-    answer: correct,
-    memorize: [parts.keyFact]
+    answer: parts.concept || title,
+    memorize: isAnswerKeyMemo(parts.keyFact) || parts.keyFact === parts.concept ? [] : [parts.keyFact]
   };
 });
 
