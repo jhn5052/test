@@ -665,9 +665,15 @@ function renderMistakeCards(mistakes) {
       : `<p>Q-Net 공개 원본에는 정답표만 포함되어 있어, 이 문항의 풀이 해설은 아직 등록되지 않았습니다.</p>`;
     const conceptReview = relatedCards.length
       ? `<section class="mistake-concept-review"><div class="mistake-concept-heading"><span>먼저 개념 정리</span><b>${escapeHTML(relatedCards[0].subject)}</b></div><h3>${escapeHTML(relatedCards[0].title)}</h3>${renderConceptSummary(relatedCards[0])}${relatedCards.length > 1 ? `<details class="mistake-extra-concept"><summary>추가 관련 개념: ${escapeHTML(relatedCards[1].title)}</summary>${renderConceptSummary(relatedCards[1])}</details>` : ""}</section>`
-      : `<section class="mistake-concept-review is-unmapped"><div class="mistake-concept-heading"><span>개념 복습</span></div><p>이 문제에 직접 연결된 개념 정리는 아직 없습니다. 과목 개념을 확인한 뒤 다시 풀어보세요.</p><button class="related-concept-button" data-open-subject="${escapeHTML(q.subject)}">${escapeHTML(q.subject)} 개념 보기 <span>개념 카드 →</span></button></section>`;
-    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div>${renderQuestionIssueButton(q)}${retrying ? "" : `<div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div><div class="explanation"><b>풀이 해설</b>${explanation}</div>`}${conceptReview}${retry}<button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
+      : `<section class="mistake-concept-review is-unmapped"><div class="mistake-concept-heading"><span>문항에 직접 연결된 개념 · 풀이</span><b>${escapeHTML(q.subject)}</b></div><h3>이 문항의 핵심 개념</h3>${hasDetailedExplanation ? `<p class="mistake-concept-answer">${escapeHTML(stripAnswerPreamble(q.explanation))}</p>` : `<p>이 문항에 직접 연결된 해설이 아직 없어, 다른 문항의 개념 카드를 대신 보여주지 않습니다.</p>`}<button class="related-concept-button" data-open-subject="${escapeHTML(q.subject)}">${escapeHTML(q.subject)} 개념 카드 보기 <span>개념 카드 →</span></button></section>`;
+    const explanationBlock = relatedCards.length
+      ? `<div class="explanation"><b>풀이 해설</b>${explanation}</div>`
+      : "";
+    return `<article class="panel mistake-card" data-subject="${escapeHTML(q.subject)}" data-year="${q.year}"><div class="mistake-head"><span class="tag">${q.year}년 기출</span><span class="tag">${escapeHTML(q.subject)}</span><span class="tag tag-wrong">${m.chosen ? "오답" : "미응답"}</span><span class="mistake-date">${fmtDate(m.attemptedAt)}</span></div><div class="mistake-question"><b>${q.number}.</b> ${renderQuestionText(q.text)}</div>${renderQuestionIssueButton(q)}${retrying ? "" : `<div class="answer-compare"><span>내가 고른 답 <b class="wrong-answer">${m.chosen ? `${LETTERS[m.chosen - 1]} ${renderChoiceText(q.choices[m.chosen - 1])}` : "미응답"}</b></span><span>정답 <b>${escapeHTML(answerLabel(q))}</b></span></div>${explanationBlock}`}${conceptReview}${retry}<button class="button button-outline flashcard-toggle" data-flashcard="${escapeHTML(q.id)}">${inDeck ? "암기카드에서 빼기" : "암기카드에 담기"}</button></article>`;
   }).join("");
+}
+function stripAnswerPreamble(text) {
+  return String(text || "").replace(/^\s*(?:(?:정답\s*(?:은|:)?\s*)?[①②③④⑤](?:\s*(?:번|이다))?\s*[.。:：]?\s*)/, "");
 }
 function renderConceptSummary(card) {
   const concise = card.id.startsWith("gap-");
@@ -786,9 +792,16 @@ function relatedConceptCards(question) {
   return sourceConceptCards(question);
 }
 function sourceConceptCards(question) {
-  const linked = studyTypes.filter(card => card.subject === question.subject && card.sourceId === question.id);
-  const authored = linked.filter(card => !card.id.startsWith("gap-"));
-  return (authored.length ? authored : linked).slice(0, 2);
+  // Wrong-note links must be traceable to this exact question and explanation.
+  // Hand-authored cards can summarize a broad topic and have historically carried
+  // an incorrect sourceId, so they remain in the study deck but are not attached
+  // automatically to a mistake.
+  return studyTypes.filter(card =>
+    card.id.startsWith("gap-") &&
+    card.subject === question.subject &&
+    card.sourceId === question.id &&
+    card.prompt === question.text
+  ).slice(0, 1);
 }
 function openConceptCard(id) {
   const index = studyTypes.findIndex(card => card.id === id);
