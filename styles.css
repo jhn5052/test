@@ -303,3 +303,5 @@
 .issue-dialog textarea:focus,.issue-dialog select:focus{outline:2px solid #a9c2aa;outline-offset:1px}
 .issue-dialog .dialog-actions{margin-top:9px;justify-content:flex-end}
 @media(max-width:720px){.data-quality-panel>summary{padding:14px}.data-quality-content{padding:0 14px 15px}.data-quality-top{grid-template-columns:1fr}.coverage-audit-row{grid-template-columns:minmax(95px,1fr) minmax(55px,1.3fr) auto;gap:7px}.issue-audit-item{align-items:flex-start}.question-issue-button{font-size:9px}}
+
+.question-year{padding:4px 7px;border-radius:5px;background:#eef3eb;color:#45664c;font-size:10px;font-weight:700;white-space:nowrap}
