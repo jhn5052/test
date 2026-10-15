@@ -33,17 +33,17 @@ function topicFor(question) {
   return first || `${question.year}년 기출 ${question.number}번`;
 }
 function explanationParts(question, correct) {
-  const body = question.explanation.trim().replace(/^(?:정답은\s*[^.。]*[.。]|[①②③④⑤][.。])\s*/, '');
+  const body = question.explanation.trim().replace(/^(?:정답은\s*[^.。]*[.。]|[①②③④⑤](?:\s*\([^)]*\))?[.。])\s*/, '');
   const sentences = (body.match(/[^.!?。]+[.!?。]?/g)?.map(value => value.trim()).filter(Boolean) || [])
     .filter(value => !/^(?:정답\s*포인트\s*[:：]\s*)?[①②③④⑤](?:\s*가\s*옳다|\s*이\s*옳다|\s*이다)?\.?$/.test(value));
-  const keyFact = sentences.shift() || '';
-  const concept = sentences.join(' ').trim() || keyFact || '정답 보기보다 해설의 개념 설명을 확인하세요.';
-  return { concept, keyFact: sentences.length ? keyFact : `정답 포인트: ${correct}` };
+  const facts = sentences.filter(value => !isAnswerKeyMemo(value));
+  const concept = facts.join(' ').trim() || '해당 개념의 정의와 적용 기준을 확인하세요.';
+  return { concept, keyFact: '' };
 }
 function isAnswerKeyMemo(text) {
   const value = String(text || '').trim();
   return /^(?:정답\s*포인트\s*[:：]\s*)?[①②③④⑤]/.test(value)
-    || /^(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ)(?:\s*[·ㆍ,및]\s*(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ))*(?:만\s*옳다|모두\s*옳다|가\s*옳다)\.?$/.test(value);
+    || /(?:정답\s*(?:은|:)|[①②③④⑤]\s*(?:번\s*)?(?:이|가)?\s*(?:옳다|틀리다|정답)|(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ)(?:\s*[·ㆍ,및]\s*(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ))*\s*(?:(?:모두|만)\s*)?(?:옳다|맞다|틀리다|해당한다|정답))/.test(value);
 }
 function relatedTermsFor(question, title) {
   const text = question.text;
@@ -82,7 +82,7 @@ const additions = candidates.filter(question => (Array.isArray(question.answer) 
     bookQuestionNumber: question.number,
     prompt: question.text,
     answer: parts.concept || title,
-    memorize: isAnswerKeyMemo(parts.keyFact) || parts.keyFact === parts.concept ? [] : [parts.keyFact]
+    memorize: parts.keyFact && !isAnswerKeyMemo(parts.keyFact) ? [parts.keyFact] : []
   };
 });
 

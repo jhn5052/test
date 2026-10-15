@@ -687,11 +687,55 @@ function renderMistakeCards(mistakes) {
 function stripAnswerPreamble(text) {
   return String(text || "").replace(/^\s*(?:(?:정답\s*(?:은|:)?\s*)?[①②③④⑤](?:\s*(?:번|이다))?\s*[.。:：]?\s*)/, "");
 }
+function isAnswerKeyConcept(text) {
+  const value = String(text || "").trim();
+  return /^(?:정답\s*(?:은|:)?\s*)?(?:[ㄱㄴㄷㄹㅁ](?:\s*[·ㆍ,및]\s*[ㄱㄴㄷㄹㅁ])*(?:만\s*옳다|모두\s*옳다|가\s*옳다)?|[①②③④⑤](?:\s*번)?(?:\s*\([^)]*\))?(?:이|가)?\s*(?:옳다|틀리다|정답이다)?|\d+번\s*(?:이|가)?\s*(?:옳다|틀리다|정답이다))\.?$/.test(value)
+    || /^(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ)(?:\s*[·ㆍ,및]\s*(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ))*(?:은|는|이|가)?\s*(?:(?:모두|만)\s*)?(?:옳다|맞다|틀리다|해당한다|정답이다)\.?$/.test(value)
+    || /(?:정답은|정답:|따라서\s*[①②③④⑤]|[①②③④⑤]\s*(?:가|이)\s*(?:옳다|틀리다)|ㄱ[,· ]+ㄴ.*옳다)/.test(value);
+}
+function studyCardKeyConcept(card) {
+  const points = [...(card.concept || []), ...(card.memorize || [])]
+    .map(point => normalizeStudyText(point).trim())
+    .filter(Boolean);
+  const candidate = points.find(point => !isAnswerKeyConcept(point));
+  if (candidate) {
+    return candidate
+      .replace(/^정답(?:은|：|:)\s*[①②③④⑤][.。]?\s*/, "")
+      .replace(/[,，]?\s*(?:따라서\s*)?[①②③④⑤](?:\s*번)?(?:이|가)?\s*(?:정답(?:이다)?|옳다|틀리다)\.?\s*$/, "")
+      .replace(/[,，]?\s*(?:따라서\s*)?(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ)(?:\s*[·ㆍ,및]\s*(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ))*(?:은|는|이|가)?\s*(?:(?:모두|만)\s*)?(?:옳다|맞다|틀리다|해당한다|정답이다)\.?\s*$/, "")
+      .replace(/^따라서\s*/, "")
+      .trim() || candidate;
+  }
+  const cleaned = (points[0] || "")
+    .replace(/^정답(?:은|：|:)\s*[①②③④⑤][.。]?\s*/, "")
+    .replace(/[,，]?\s*(?:따라서\s*)?[①②③④⑤](?:\s*번)?(?:이|가)?\s*(?:정답(?:이다)?|옳다|틀리다)\.?\s*$/, "")
+    .replace(/[,，]?\s*(?:따라서\s*)?(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ)(?:\s*[·ㆍ,및]\s*(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ))*(?:은|는|이|가)?\s*(?:(?:모두|만)\s*)?(?:옳다|맞다|틀리다|해당한다|정답이다)\.?\s*$/, "")
+    .replace(/^따라서\s*/, "")
+    .replace(/\s*(?:고|라고)\s*한\s*$/, "")
+    .trim();
+  if (cleaned && !isAnswerKeyConcept(cleaned)) return cleaned;
+  return `${normalizeStudyText(card.title)}의 핵심 개념과 판단 기준`;
+}
+function studyCardMemorizePoints(card) {
+  return (card.memorize || []).map(point => normalizeStudyText(point)
+    .replace(/^정답(?:은|：|:)\s*[①②③④⑤][.。]?\s*/, "")
+    .replace(/^[①②③④⑤](?:\s*번)?[.。]\s*/, "")
+    .replace(/[,，]?\s*(?:따라서\s*)?[①②③④⑤](?:\s*번)?(?:이|가)?\s*(?:정답(?:이다)?|옳다|틀리다)\.?\s*$/, "")
+    .replace(/[,，]?\s*(?:따라서\s*)?(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ)(?:\s*[·ㆍ,및]\s*(?:ㄱ|ㄴ|ㄷ|ㄹ|ㅁ))*(?:은|는|이|가)?\s*(?:(?:모두|만)\s*)?(?:옳다|맞다|틀리다|해당한다|정답이다)\.?\s*$/, "")
+    .replace(/^따라서\s*/, "")
+    .trim())
+    .filter(point => point && !isAnswerKeyConcept(point));
+}
+function studyCardConceptPoints(card) {
+  const points = card.concept || [];
+  const summaryIndex = points.findIndex(point => normalizeStudyText(point).trim() && !isAnswerKeyConcept(normalizeStudyText(point).trim()));
+  return points.filter((point, index) => index !== summaryIndex && !isAnswerKeyConcept(normalizeStudyText(point).trim()));
+}
 function renderConceptSummary(card) {
-  const concise = card.id.startsWith("gap-");
-  const keyPoint = card.answer || card.concept?.[0] || card.title;
-  const concepts = concise ? (card.concept || []).slice(1) : (card.concept || []);
-  return `<p class="mistake-concept-answer">${escapeHTML(keyPoint)}</p>${card.comparison?.length ? `<div class="mistake-concept-comparison">${card.comparison.map(item => `<div><b>${escapeHTML(item.label)}</b><span>${escapeHTML(item.value).replace(/\n/g,"<br>")}</span></div>`).join("")}</div>` : ""}${concepts.length ? `<div class="mistake-concept-group"><b>개념 이해</b><ul>${concepts.map(item => `<li>${escapeHTML(item).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}${card.memorize?.length ? `<div class="mistake-concept-group"><b>시험에서 외울 것</b><ul>${card.memorize.map(item => `<li>${escapeHTML(item).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}`;
+  const keyPoint = studyCardKeyConcept(card);
+  const concepts = studyCardConceptPoints(card);
+  const memorized = studyCardMemorizePoints(card);
+  return `<p class="mistake-concept-answer">${escapeHTML(keyPoint)}</p>${card.comparison?.length ? `<div class="mistake-concept-comparison">${card.comparison.map(item => `<div><b>${escapeHTML(item.label)}</b><span>${escapeHTML(item.value).replace(/\n/g,"<br>")}</span></div>`).join("")}</div>` : ""}${concepts.length ? `<div class="mistake-concept-group"><b>개념 이해</b><ul>${concepts.map(item => `<li>${escapeHTML(item).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}${memorized.length ? `<div class="mistake-concept-group"><b>시험에서 외울 것</b><ul>${memorized.map(item => `<li>${escapeHTML(item).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}`;
 }
 function bindMistakes() {
   const filter = () => {
@@ -796,7 +840,8 @@ function renderStudyTypes() {
   studyTypeIndex = Math.min(studyTypeIndex, queue.length - 1);
   const card = queue[studyTypeIndex];
   const q = bank.find(item => item.id === card.sourceId);
-  const cardConcepts = card.id.startsWith("gap-") ? (card.concept || []).slice(1) : card.concept;
+  const cardConcepts = studyCardConceptPoints(card);
+  const cardMemorize = studyCardMemorizePoints(card);
   const accepted = q ? (Array.isArray(q.answer) ? q.answer : [q.answer]) : [];
   const feedback = studyTypeRevealed && q ? `<div class="type-answer-feedback ${isCorrect(q, studyTypeSelected) ? "is-correct" : "is-wrong"}"><b>${isCorrect(q, studyTypeSelected) ? "정답이에요" : "다시 확인해 보세요"}</b><span>정답 ${escapeHTML(answerLabel(q))}</span><p>${escapeHTML(q.explanation || "등록된 정답을 확인하세요.")}</p></div>` : "";
   const countLabel = `${studyTypeIndex + 1} / ${queue.length}`;
@@ -811,7 +856,7 @@ function renderStudyTypes() {
     <div class="study-type-toolbar"><label class="eyebrow" for="study-type-subject">과목</label><select class="filter-select" id="study-type-subject"><option value="all" ${studyTypeSubject === "all" ? "selected" : ""}>전체 과목 · ${studyTypes.length}장</option>${subjects.map(subject => `<option value="${escapeHTML(subject)}" ${studyTypeSubject === subject ? "selected" : ""}>${escapeHTML(subject)} · ${studyTypes.filter(item => item.subject === subject).length}장</option>`).join("")}</select><span>${countLabel}${isRecall ? ` · 기억한 카드 ${knownCount}장` : ""}</span></div>
     <div class="type-flashcard ${studyTypeFlipped ? "is-flipped" : ""}" id="study-type-card" role="group" aria-label="${escapeHTML(normalizeStudyText(card.title))} ${isRecall ? "기억 확인" : "개념 카드"}">
       <div class="type-card-face type-card-front"><span class="memory-card-kicker"><span>${escapeHTML(card.subject)}</span><b>${countLabel}</b></span><strong class="memory-card-title">${escapeHTML(normalizeStudyText(card.title))}</strong>${frontPrompt}<small>${isRecall ? "기출 문제와 관계없이 카드에 적힌 개념만으로 연습합니다." : "카드를 눌러 개념과 암기 내용을 확인하세요."}</small></div>
-      <div class="type-card-face type-card-back"><span class="memory-card-kicker"><span>${isRecall ? "기억 확인 · 개념 답안" : "개념 설명 · 시험 암기"}</span><b>${escapeHTML(card.subject)}</b></span>${isRecall && studyRecallInput.trim() ? `<section class="recall-my-answer"><b>내가 적은 답</b><p>${escapeHTML(studyRecallInput)}</p></section>` : ""}<strong class="memory-answer"><span class="memory-answer-label">핵심 정리</span>${escapeHTML(normalizeStudyText(card.answer || card.concept?.[0] || card.title))}</strong>${card.comparison?.length ? `<section class="memory-comparison" aria-label="비교 정리">${card.comparison.map(item => `<div class="memory-comparison-row"><b>${escapeHTML(normalizeStudyText(item.label))}</b><span>${escapeHTML(normalizeStudyText(item.value)).replace(/\n/g,"<br>")}</span></div>`).join("")}</section>` : ""}<section class="memory-facts">${cardConcepts?.length ? `<div class="memory-fact-group"><b>개념 이해</b><ul class="concept-points">${cardConcepts.map(point => `<li>${escapeHTML(normalizeStudyText(point)).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}${card.memorize?.length ? `<div class="memory-fact-group"><b>시험에서 외울 것</b><ul class="concept-points">${card.memorize.map(point => `<li>${escapeHTML(normalizeStudyText(point)).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}</section>${examDetails}${backControl}</div>
+      <div class="type-card-face type-card-back"><span class="memory-card-kicker"><span>${isRecall ? "기억 확인 · 개념 답안" : "개념 설명 · 시험 암기"}</span><b>${escapeHTML(card.subject)}</b></span>${isRecall && studyRecallInput.trim() ? `<section class="recall-my-answer"><b>내가 적은 답</b><p>${escapeHTML(studyRecallInput)}</p></section>` : ""}<strong class="memory-answer"><span class="memory-answer-label">핵심 개념</span>${escapeHTML(studyCardKeyConcept(card))}</strong>${card.comparison?.length ? `<section class="memory-comparison" aria-label="비교 정리">${card.comparison.map(item => `<div class="memory-comparison-row"><b>${escapeHTML(normalizeStudyText(item.label))}</b><span>${escapeHTML(normalizeStudyText(item.value)).replace(/\n/g,"<br>")}</span></div>`).join("")}</section>` : ""}<section class="memory-facts">${cardConcepts?.length ? `<div class="memory-fact-group"><b>개념 이해</b><ul class="concept-points">${cardConcepts.map(point => `<li>${escapeHTML(normalizeStudyText(point)).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}${cardMemorize.length ? `<div class="memory-fact-group"><b>시험에서 외울 것</b><ul class="concept-points">${cardMemorize.map(point => `<li>${escapeHTML(point).replace(/\n/g,"<br>")}</li>`).join("")}</ul></div>` : ""}</section>${examDetails}${backControl}</div>
     </div>
     <div class="flashcard-controls study-type-controls">${isRecall ? `<button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 카드</button><button class="button button-quiet" id="type-shuffle">순서 다시 섞기</button><button class="button button-primary" id="type-next" ${studyTypeIndex === queue.length - 1 ? "disabled" : ""}>건너뛰기 →</button>` : `<button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 유형</button><button class="button button-quiet" id="type-shuffle">순서 섞기 ↻</button><button class="button button-primary" id="type-next" ${studyTypeIndex === available.length - 1 ? "disabled" : ""}>다음 유형 →</button>`}</div>`;
 }
