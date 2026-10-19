@@ -1,5 +1,10 @@
 const STORAGE_KEY = "gyeol-study-v1";
 const SUBJECTS = ["부동산학개론", "민법 및 민사특별법", "공인중개사법령 및 중개실무", "부동산공법", "부동산공시에 관한 법령 및 부동산 관련 세법"];
+const EXAM_STAGES = {
+  first: { label: "1차 실전", subjects: SUBJECTS.slice(0, 2), questions: 80, minutes: 100 },
+  secondFirst: { label: "2차 1교시", subjects: SUBJECTS.slice(2, 4), questions: 80, minutes: 100 },
+  secondSecond: { label: "2차 2교시", subjects: SUBJECTS.slice(4), questions: 40, minutes: 50 }
+};
 const LETTERS = ["①", "②", "③", "④", "⑤"];
 let bank = [];
 let studyTypes = [];
@@ -227,18 +232,23 @@ function radioSubjectScores() {
     if (!latestBySubject.has(subject) && Number(value.total) >= 10) latestBySubject.set(subject, Math.round(value.correct / value.total * 100));
   }));
   const saved = radioProfile().scores;
-  SUBJECTS.slice(0, 2).forEach(subject => {
-    scores[subject] = latestBySubject.has(subject) ? latestBySubject.get(subject) : Number.isFinite(Number(saved[subject])) ? Number(saved[subject]) : null;
+  SUBJECTS.forEach(subject => {
+    const legacy = subject === SUBJECTS[0] ? saved.econ : subject === SUBJECTS[1] ? saved.civil : undefined;
+    const stored = saved[subject] ?? legacy;
+    scores[subject] = latestBySubject.has(subject) ? latestBySubject.get(subject) : Number.isInteger(Number(stored)) && Number(stored) >= 0 && Number(stored) <= 100 ? Number(stored) : null;
   });
   return scores;
 }
 function radioFocus() {
   const scores = radioSubjectScores();
-  const civil = SUBJECTS[1], econ = SUBJECTS[0];
   let subject = null;
   const available = Object.entries(scores).filter(([, score]) => score !== null);
   if (available.length) subject = available.sort((a, b) => a[1] - b[1])[0][0];
-  else subject = radioDateKey().replaceAll("-", "") % 2 ? civil : econ;
+  else {
+    const availableSubjects = SUBJECTS.filter(name => studyTypes.some(card => card.subject === name && !card.id.startsWith("gap-") && (card.concept || []).length));
+    const offset = Number(radioDateKey().replaceAll("-", "")) % Math.max(1, availableSubjects.length);
+    subject = availableSubjects[offset] || SUBJECTS[0];
+  }
   const recentWrongIds = [];
   store.history.slice(0, 4).forEach(attempt => (attempt.results || []).forEach(result => {
     if (result.correct === false && result.questionId) recentWrongIds.push(result.questionId);
@@ -306,7 +316,7 @@ function renderDailyRadio() {
   const hasScores = Object.values(scores).some(score => score !== null);
   const progress = store.radioProgress?.date === episode.key && store.radioProgress.duration === duration ? store.radioProgress : null;
   const report = progress?.completed ? "오늘 청취를 마쳤습니다." : progress?.minutesListened ? `이전에 ${progress.minutesListened}분 들었습니다.` : "아직 오늘의 청취 기록이 없습니다.";
-  const scorePanel = `<form class="radio-score-form" id="radio-score-form"><div><b>최근 모의고사 점수</b><span>앱 응시 기록이 있으면 자동으로 우선 반영됩니다. 직접 입력한 점수는 이 기기에만 저장됩니다.</span></div><label>학개론 <input name="econ" type="number" min="0" max="100" inputmode="numeric" value="${scores[SUBJECTS[0]] ?? ""}" placeholder="점수"></label><label>민법 <input name="civil" type="number" min="0" max="100" inputmode="numeric" value="${scores[SUBJECTS[1]] ?? ""}" placeholder="점수"></label><button class="button button-outline">점수 저장</button></form>`;
+  const scorePanel = `<form class="radio-score-form" id="radio-score-form"><div><b>최근 모의고사 점수</b><span>앱 응시 기록이 있으면 과목별 10문항 이상 기록을 우선 반영합니다. 직접 입력한 점수는 이 기기에만 저장됩니다.</span></div>${SUBJECTS.map((subject, index) => `<label>${escapeHTML(subject)} <input name="subject-${index}" type="number" min="0" max="100" step="1" inputmode="numeric" value="${scores[subject] ?? ""}" placeholder="점수" aria-label="${escapeHTML(subject)} 점수"></label>`).join("")}<button class="button button-outline">점수 저장</button></form>`;
   const sections = episode.sections.map((section, index) => `<article class="radio-section ${section.kind}" data-radio-section="${index}"><div class="radio-section-number">${String(index + 1).padStart(2, "0")}</div><div><h3>${escapeHTML(section.title)}</h3><p>${escapeHTML(section.text)}</p></div></article>`).join("");
   return `${titleBlock("DAILY STUDY RADIO", "오늘의 개념 라디오", "최근 점수와 반복 오답을 바탕으로 오늘 들을 개념을 고르고, 듣고 난 뒤 복습 리포트를 남깁니다.")}
     <section class="radio-hero"><div class="radio-onair"><span class="radio-live-dot"></span> 오늘의 학습 리포트 <time>${episode.key}</time></div><div class="radio-main"><div><p class="eyebrow">오늘 먼저 다룰 과목</p><h2>${escapeHTML(episode.subject)}</h2><p>${hasScores ? `${escapeHTML(episode.subject)} 점수를 먼저 보강하도록 구성했습니다.` : "점수를 입력하거나 시험을 응시하면 약한 과목부터 자동으로 골라요."}</p></div><div class="radio-dial" aria-hidden="true"><span>ON</span><b>♫</b></div></div><div class="radio-duration" role="group" aria-label="라디오 길이 선택">${[10, 12, 15].map(value => `<button data-radio-duration="${value}" class="${duration === value ? "selected" : ""}" aria-pressed="${duration === value}">${value}<small>분</small></button>`).join("")}<span>예상 ${episode.minutes}분 · 속도에 따라 달라질 수 있어요</span></div><div class="radio-controls"><button class="button button-primary" id="radio-play" ${episode.cards.length ? "" : "disabled"}>▶ 듣기 시작</button><button class="button button-outline" id="radio-pause" disabled>일시정지</button><button class="button button-quiet" id="radio-stop" disabled>끝내기</button><div class="radio-progress-wrap"><div class="radio-progress"><i id="radio-progress-bar" style="width:${progress?.completed ? 100 : 0}%"></i></div><span id="radio-progress-label">${report}</span></div></div><p class="radio-voice-note" id="radio-voice-note">기기의 한국어 음성으로 읽습니다. 이어폰을 연결하면 화면을 보지 않고 들을 수 있어요.</p></section>
@@ -384,7 +394,7 @@ function bindDailyRadio() {
   }));
   document.querySelector("#radio-score-form")?.addEventListener("submit", event => {
     event.preventDefault(); const form = new FormData(event.currentTarget); const scores = radioProfile().scores;
-    [[SUBJECTS[0], form.get("econ")], [SUBJECTS[1], form.get("civil")]].forEach(([subject, value]) => { const score = value === "" ? null : Number(value); if (score === null) delete scores[subject]; else if (Number.isInteger(score) && score >= 0 && score <= 100) scores[subject] = score; });
+    SUBJECTS.forEach((subject, index) => { const value = form.get(`subject-${index}`); const score = value === "" ? null : Number(value); if (score === null) delete scores[subject]; else if (Number.isInteger(score) && score >= 0 && score <= 100) scores[subject] = score; });
     persist(); render(); toast("점수를 이 기기에 저장했어요.");
   });
   document.querySelector("#radio-play")?.addEventListener("click", beginRadioPlayback);
@@ -415,7 +425,7 @@ function renderDashboard() {
       <article class="stat-card"><span class="stat-label">다시 볼 오답</span><span class="stat-glyph">↺</span><strong>${store.mistakes.length}<em>문항</em></strong></article>
     </section>
     ${renderLearningInsights(attempts, subjects)}
-    <section class="radio-dashboard-card"><div class="radio-dashboard-mark">♫</div><div><span class="eyebrow">DAILY STUDY RADIO</span><h2>오늘의 개념을 귀로 복습하세요</h2><p>점수가 낮은 과목과 반복 오답 개념을 골라 10·12·15분 학습 리포트로 읽어드립니다.</p></div><button class="button button-primary" data-action="open-radio">오늘의 라디오 듣기 <span>→</span></button></section>
+    <section class="radio-dashboard-card"><div class="radio-dashboard-mark">♫</div><div><span class="eyebrow">DAILY STUDY RADIO</span><h2>오늘의 개념을 귀로 복습하세요</h2><p>1·2차 전 과목의 최근 점수와 반복 오답 개념을 반영해 10·12·15분 학습 리포트를 구성합니다.</p></div><button class="button button-primary" data-action="open-radio">오늘의 라디오 듣기 <span>→</span></button></section>
     <section class="content-grid">
       <article class="panel"><div class="panel-head"><div><h2>회차별 점수</h2><p>시험을 마칠 때마다 성적이 쌓입니다</p></div><span class="eyebrow">SCORE / 100</span></div>${chart}</article>
       <article class="panel"><div class="panel-head"><div><h2>과목별 정답률</h2><p>지금까지 푼 문제 기준</p></div></div>${renderSubjectStats(subjects)}</article>
@@ -423,7 +433,7 @@ function renderDashboard() {
     ${renderDataQualityPanel()}
     <section class="section-row">
       <article class="panel recent-panel"><div class="panel-head"><div><h2>${showAllHistory ? "전체 시험 기록" : "최근 시험"}</h2><p>${showAllHistory ? `총 ${attempts.length}회 응시` : "가장 최근에 제출한 기록"}</p></div>${attempts.length ? `<button class="panel-link" data-action="show-history">${showAllHistory ? "최근 5회만 보기" : `전체 기록 ${attempts.length}회`}</button>` : ""}</div>
-       ${recent.length ? `<div class="recent-list">${recent.map((item, index) => `<button class="recent-item" data-result="${index}"><span><span class="recent-name">${item.year === 2026 ? "2026년 예상문제" : `${yearLabel(item.year)} 기출`} · ${item.scope === "all" ? "전과목 혼합" : escapeHTML(item.subject)}</span><span class="recent-meta">${fmtDate(item.completedAt)} · ${item.correct}/${item.total} 정답</span></span><span class="recent-score ${item.score >= 60 ? "score-good" : "score-low"}">${item.score}<small>점</small></span><span class="result-date">›</span></button>`).join("")}</div>` : `<div class="no-records">아직 시험 기록이 없어요. 첫 시험을 시작해 보세요.</div>`}</article>
+       ${recent.length ? `<div class="recent-list">${recent.map((item, index) => `<button class="recent-item" data-result="${index}"><span><span class="recent-name">${item.year === 2026 ? "2026년 예상문제" : `${yearLabel(item.year)} 기출`} · ${item.stage && EXAM_STAGES[item.stage] ? `${EXAM_STAGES[item.stage].label} 실전` : item.scope === "all" ? "전과목 혼합" : escapeHTML(item.subject)}</span><span class="recent-meta">${fmtDate(item.completedAt)} · ${item.correct}/${item.total} 정답</span></span><span class="recent-score ${item.score >= 60 ? "score-good" : "score-low"}">${item.score}<small>점</small></span><span class="result-date">›</span></button>`).join("")}</div>` : `<div class="no-records">아직 시험 기록이 없어요. 첫 시험을 시작해 보세요.</div>`}</article>
       <article class="panel quick-card"><div><div class="eyebrow">${years.includes(2026) ? "기출 2020—2025 · 예상 2026" : years.length ? `기출 ${Math.min(...years)} — ${Math.max(...years)}` : "기출 데이터"}</div><h3>오늘의 공부를 시작할까요?</h3><p>원하는 시간만큼 집중해 실전 감각을 쌓아보세요.<br>과목을 골라 가볍게 풀어도 좋아요.</p></div><button class="button" data-action="start-exam">시험 설정하기 <span>→</span></button></article>
     </section>`;
 }
@@ -539,13 +549,20 @@ function renderDataQualityPanel() {
     const count = items.filter(question => linked.has(question.id)).length;
     return { subject, count, total: items.length, percent: items.length ? Math.round(count / items.length * 100) : 0 };
   });
+  const stageCoverage = Object.entries(EXAM_STAGES).map(([key, stage]) => {
+    const availableYears = [...new Set(bank.filter(question => question.year >= 2020 && question.year <= 2025).map(question => question.year))].filter(year => {
+      const rows = bank.filter(question => question.year === year && stage.subjects.includes(question.subject));
+      return rows.length === stage.questions && stage.subjects.every(subject => rows.filter(question => question.subject === subject).length === 40);
+    });
+    return { key, label: stage.label, years: availableYears };
+  });
   const keyStatus = answerKeys && Object.keys(answerKeys).length
     ? `${matched.toLocaleString()} / ${official.length.toLocaleString()} 문항 일치`
     : "정답표를 불러오지 못했어요";
   const keyNote = !Object.keys(answerKeys).length
     ? "새로고침 후 다시 확인해 주세요."
     : `${mismatches ? `불일치 ${mismatches}문항${mismatchIds.length ? ` (${mismatchIds.join(", ")}${mismatches > mismatchIds.length ? ", …" : ""})` : ""} · ` : "불일치 없음 · "}${missing ? `정답표 연결 누락 ${missing}문항` : "기출 정답표 연결 완료"} · 2026 예상문제 ${bank.filter(question => question.year === 2026).length}문항은 공식 정답표 대조 대상이 아닙니다.`;
-  return `<details class="panel data-quality-panel"><summary><span><b>문항·개념 자료 점검</b><small>정답표 대조, 개념 카드 연결, 오류 신고 확인</small></span><span class="data-quality-summary"><b class="${mismatches || missing ? "has-data-issue" : ""}">${escapeHTML(keyStatus)}</b><i>${openIssues.length ? `확인 요청 ${openIssues.length}건` : "열어 보기"}</i></span></summary><div class="data-quality-content"><div class="data-quality-top"><div class="audit-stat"><small>2020–2025 정답표 대조</small><b>${escapeHTML(keyStatus)}</b><span>${escapeHTML(keyNote)}</span></div><div class="audit-stat"><small>개념 카드 연결</small><b>${linked.size.toLocaleString()} / ${bank.length.toLocaleString()}문항</b><span>카드에 연결된 기출 수입니다. 전체 시험 범위의 개념 커버리지를 의미하지는 않습니다.</span></div></div><div class="coverage-audit"><b>과목별 카드 연결 현황</b>${coverage.map(item => `<div class="coverage-audit-row"><span>${escapeHTML(item.subject)}</span><div class="coverage-audit-track"><i style="width:${item.percent}%"></i></div><strong>${item.count}/${item.total}</strong></div>`).join("")}</div><div class="issue-audit"><div class="issue-audit-head"><b>오류 신고 · 확인 요청</b><span>${openIssues.length}건 대기 · ${(store.questionIssues || []).filter(issue => issue.status === "resolved").length}건 확인 완료</span></div>${openIssues.length ? openIssues.slice(0, 8).map(issue => { const question = bank.find(item => item.id === issue.questionId); return `<article class="issue-audit-item"><div><b>${question ? `${question.year}년 ${escapeHTML(question.subject)} ${question.number}번` : escapeHTML(issue.questionId)}</b><small>${escapeHTML(issue.category || "문항 오류")} · ${escapeHTML(issue.description || "상세 내용 없음")}</small></div><button class="button button-quiet" data-issue-done="${escapeHTML(issue.id)}">확인 완료</button></article>`; }).join("") : `<p class="issue-audit-empty">아직 신고된 문항이 없습니다. 문제에서 오류를 발견하면 해당 문항의 신고 버튼을 눌러 기록하세요.</p>`}</div></div></details>`;
+  return `<details class="panel data-quality-panel"><summary><span><b>문항·개념 자료 점검</b><small>정답표 대조, 실전 회차 구성, 개념 카드 연결, 오류 신고 확인</small></span><span class="data-quality-summary"><b class="${mismatches || missing ? "has-data-issue" : ""}">${escapeHTML(keyStatus)}</b><i>${openIssues.length ? `확인 요청 ${openIssues.length}건` : "열어 보기"}</i></span></summary><div class="data-quality-content"><div class="data-quality-top"><div class="audit-stat"><small>2020–2025 정답표 대조</small><b>${escapeHTML(keyStatus)}</b><span>${escapeHTML(keyNote)}</span></div><div class="audit-stat"><small>개념 카드 연결</small><b>${linked.size.toLocaleString()} / ${bank.length.toLocaleString()}문항</b><span>카드에 연결된 기출 수입니다. 전체 시험 범위의 개념 커버리지를 의미하지는 않습니다.</span></div></div><div class="coverage-audit"><b>실전 시험 회차 구성</b>${stageCoverage.map(item => `<div class="coverage-audit-row"><span>${escapeHTML(item.label)}</span><div class="coverage-audit-track"><i style="width:${Math.round(item.years.length / 6 * 100)}%"></i></div><strong>${item.years.length}/6회</strong></div>`).join("")}<small class="audit-footnote">과목마다 40문항이 모두 있을 때만 해당 회차를 실전 모드로 엽니다.</small></div><div class="coverage-audit"><b>과목별 카드 연결 현황</b>${coverage.map(item => `<div class="coverage-audit-row"><span>${escapeHTML(item.subject)}</span><div class="coverage-audit-track"><i style="width:${item.percent}%"></i></div><strong>${item.count}/${item.total}</strong></div>`).join("")}</div><div class="issue-audit"><div class="issue-audit-head"><b>오류 신고 · 확인 요청</b><span>${openIssues.length}건 대기 · ${(store.questionIssues || []).filter(issue => issue.status === "resolved").length}건 확인 완료</span></div>${openIssues.length ? openIssues.slice(0, 8).map(issue => { const question = bank.find(item => item.id === issue.questionId); return `<article class="issue-audit-item"><div><b>${question ? `${question.year}년 ${escapeHTML(question.subject)} ${question.number}번` : escapeHTML(issue.questionId)}</b><small>${escapeHTML(issue.category || "문항 오류")} · ${escapeHTML(issue.description || "상세 내용 없음")}</small></div><button class="button button-quiet" data-issue-done="${escapeHTML(issue.id)}">확인 완료</button></article>`; }).join("") : `<p class="issue-audit-empty">아직 신고된 문항이 없습니다. 문제에서 오류를 발견하면 해당 문항의 신고 버튼을 눌러 기록하세요.</p>`}</div></div></details>`;
 }
 function renderQuestionIssueButton(question) {
   const pending = (store.questionIssues || []).some(issue => issue.questionId === question.id && issue.status !== "resolved");
@@ -606,17 +623,18 @@ function renderPassReadiness(stats) {
 }
 function renderSetup() {
   const years = [...new Set(bank.map(q => q.year))].sort((a, b) => b - a);
-  return `${titleBlock("PRACTICE MODE", "기출·예상문제를 골라요", "실제 기출을 풀거나 2026년 예상문제로 연습할 수 있어요.")}
-    <div class="exam-layout"><section class="panel setup-card"><h2>시험 구성</h2><p>시험 시간은 10·20·30·40분 중 선택할 수 있어요.</p>
+  return `${titleBlock("PRACTICE MODE", "기출·예상문제를 골라요", "과목 연습 또는 실제 회차 구성에 맞춘 1·2차 실전 시험을 선택하세요.")}
+    <div class="exam-layout"><section class="panel setup-card"><h2>시험 구성</h2><p>실전 모드는 해당 회차의 모든 문항이 등록된 경우에만 시작됩니다.</p>
+      <label class="form-label" for="exam-mode">풀이 방식</label><select class="year-select" id="exam-mode"><option value="practice" selected>과목 연습</option><option value="first">1차 실전 · 80문항 · 100분</option><option value="secondFirst">2차 1교시 실전 · 80문항 · 100분</option><option value="secondSecond">2차 2교시 실전 · 40문항 · 50분</option></select>
       <label class="form-label" for="exam-year">문제 연도</label><select class="year-select" id="exam-year"><option value="all" selected>2020~2026년 전체</option>${years.map(y => `<option value="${y}">${y === 2026 ? "2026년 예상문제 (100문항)" : `${y}년 제${y - 1989}회`}</option>`).join("")}</select>
       <span class="form-label">풀이 범위</span><div class="segmented" id="scope-switch"><button class="segment selected" data-scope="all">전과목 혼합</button><button class="segment" data-scope="subject">단일 과목</button></div>
       <div id="subject-picker" hidden><span class="form-label">과목 선택</span><div class="subject-options">${SUBJECTS.map((s, i) => `<label class="subject-option ${i === 0 ? "selected" : ""}"><input type="radio" name="subject" value="${escapeHTML(s)}" ${i === 0 ? "checked" : ""}><span>${escapeHTML(s)}</span></label>`).join("")}</div></div>
-      <label class="form-label" for="question-count">출제 문항 수</label><select class="year-select" id="question-count"><option value="10">10문제</option><option value="20">20문제</option><option value="30">30문제</option><option value="40" selected>40문제</option></select>
-      <label class="form-label" for="exam-duration">시험 시간</label><select class="year-select" id="exam-duration"><option value="10">10분</option><option value="20">20분</option><option value="30">30분</option><option value="40" selected>40분</option></select>
+      <label class="form-label" for="question-count">출제 문항 수</label><select class="year-select" id="question-count"><option value="10">10문제</option><option value="20">20문제</option><option value="30">30문제</option><option value="40" selected>40문제</option><option value="80">80문제</option><option value="120">120문제</option></select>
+      <label class="form-label" for="exam-duration">시험 시간</label><select class="year-select" id="exam-duration"><option value="10">10분</option><option value="20">20분</option><option value="30">30분</option><option value="40" selected>40분</option><option value="50">50분</option><option value="100">100분</option></select>
       <div class="setup-summary"><div class="summary-text">문제은행 <b id="question-total">—</b></div><div class="summary-text">이번 시험 <b id="question-benchmark">—</b></div><div class="summary-text">제한 시간 <b id="duration-summary">40</b>분</div></div>
       <p class="coverage-note" id="coverage-note" role="status"></p>
       <button class="button button-primary setup-submit" id="begin-exam">문제 셔플 후 시험 시작 <span>↗</span></button>
-    </section><aside class="exam-side"><article class="exam-tip"><div class="eyebrow">A LITTLE GUIDE</div><h3>아는 만큼, 차근차근</h3><p>문제는 무작위 순서로 나옵니다. 답을 고르면 자동 저장되고, 이전 문제로 돌아가 답을 바꿀 수 있어요.</p><div class="tip-stat"><div><b>${bank.length.toLocaleString()}</b><span>등록 문항</span></div><div><b>10·20·30·40</b><span>분 선택</span></div><div><b>2020—25 · 26</b><span>기출·예상</span></div></div></article><p class="source-note">응시 중에는 언제든 일시정지하거나 제출할 수 있어요. 시간이 끝나면 답안이 자동으로 제출됩니다.</p></aside></div>`;
+    </section><aside class="exam-side"><article class="exam-tip"><div class="eyebrow">A LITTLE GUIDE</div><h3>아는 만큼, 차근차근</h3><p>문제는 무작위 순서로 나옵니다. 답을 고르면 자동 저장되고, 이전 문제로 돌아가 답을 바꿀 수 있어요.</p><div class="tip-stat"><div><b>${bank.length.toLocaleString()}</b><span>등록 문항</span></div><div><b>80 / 40</b><span>실전 교시 문항</span></div><div><b>2020—25 · 26</b><span>기출·예상</span></div></div></article><p class="source-note">응시 중에는 언제든 일시정지하거나 제출할 수 있어요. 시간이 끝나면 답안이 자동으로 제출됩니다.</p></aside></div>`;
 }
 function bindSetup() {
   const scope = document.querySelector("#scope-switch");
@@ -629,6 +647,7 @@ function bindSetup() {
     document.querySelectorAll(".subject-option").forEach(item => item.classList.toggle("selected", item.contains(input) && input.checked)); updateQuestionTotal();
   }));
   document.querySelector("#exam-year").addEventListener("change", updateQuestionTotal);
+  document.querySelector("#exam-mode").addEventListener("change", updateQuestionTotal);
   document.querySelector("#question-count").addEventListener("change", updateQuestionTotal);
   document.querySelector("#exam-duration").addEventListener("change", event => { document.querySelector("#duration-summary").textContent = event.target.value; });
   document.querySelector("#begin-exam").addEventListener("click", beginExam);
@@ -636,35 +655,59 @@ function bindSetup() {
 }
 function selectedQuestions() {
   const yearValue = document.querySelector("#exam-year")?.value || "all";
-  const year = yearValue === "all" ? null : Number(yearValue);
+  const mode = document.querySelector("#exam-mode")?.value || "practice";
+  const stage = EXAM_STAGES[mode] || null;
+  const selectedYear = yearValue === "all" ? null : Number(yearValue);
+  const year = stage ? (selectedYear && selectedYear <= 2025 ? selectedYear : 2025) : selectedYear;
   const scope = document.querySelector("[data-scope].selected")?.dataset.scope || "all";
   const subject = document.querySelector("input[name=subject]:checked")?.value || SUBJECTS[0];
-  const list = bank.filter(q => (year === null || q.year === year) && (scope === "all" || q.subject === subject));
-  return { year, scope, subject, list };
+  const list = bank.filter(q => (year === null || q.year === year) && (!stage || stage.subjects.includes(q.subject)) && (stage || scope !== "subject" || q.subject === subject));
+  return { year, scope: stage ? "all" : scope, subject, stage: mode, list };
 }
 function updateQuestionTotal() {
   const total = document.querySelector("#question-total"); if (!total) return;
-  const { year, scope, list } = selectedQuestions();
+  const { year, scope, stage, list } = selectedQuestions();
+  const stageInfo = EXAM_STAGES[stage];
+  const yearSelect = document.querySelector("#exam-year");
+  if (stageInfo && (yearSelect.value === "all" || Number(yearSelect.value) === 2026)) yearSelect.value = "2025";
+  const subjectPicker = document.querySelector("#subject-picker");
+  if (subjectPicker) subjectPicker.hidden = Boolean(stageInfo) || scope !== "subject";
+  const scopeSwitch = document.querySelector("#scope-switch");
+  if (scopeSwitch) scopeSwitch.hidden = Boolean(stageInfo);
+  const countSelect = document.querySelector("#question-count");
+  const durationSelect = document.querySelector("#exam-duration");
+  document.querySelectorAll("#question-count option").forEach(option => { option.hidden = stageInfo ? Number(option.value) !== stageInfo.questions : [80, 120].includes(Number(option.value)); });
+  document.querySelectorAll("#exam-duration option").forEach(option => { option.hidden = stageInfo ? Number(option.value) !== stageInfo.minutes : [50, 100].includes(Number(option.value)); });
+  if (stageInfo) { countSelect.value = String(stageInfo.questions); durationSelect.value = String(stageInfo.minutes); }
+  else {
+    if (![10, 20, 30, 40].includes(Number(countSelect.value))) countSelect.value = "40";
+    if (![10, 20, 30, 40, 50].includes(Number(durationSelect.value))) durationSelect.value = "40";
+  }
   const count = list.length;
   total.textContent = `${count}문항`;
-  const requestedCount = Number(document.querySelector("#question-count")?.value || 40);
+  const requestedCount = stageInfo?.questions || Number(countSelect?.value || 40);
   const examCount = Math.min(count, requestedCount);
   document.querySelector("#question-benchmark").textContent = `${examCount}문항`;
   const note = document.querySelector("#coverage-note");
-  note.textContent = count ? `선택한 범위에서 무작위로 ${examCount}문항을 출제합니다.${examCount < requestedCount ? ` 선택한 범위의 문항이 ${count}개라 ${count}문항으로 조정했습니다.` : ""}` : "선택한 범위에 문제가 없습니다.";
-  note.classList.remove("coverage-incomplete");
+  const subjectCounts = stageInfo ? Object.fromEntries(stageInfo.subjects.map(name => [name, list.filter(question => question.subject === name).length])) : {};
+  const completeStage = !stageInfo || (count === requestedCount && stageInfo.subjects.every(name => subjectCounts[name] === 40));
+  note.textContent = !count ? "선택한 범위에 문제가 없습니다." : stageInfo && !completeStage ? `${year}년 ${stageInfo.label} 문항 구성이 불완전합니다. 과목별 ${stageInfo.subjects.map(name => `${name} ${subjectCounts[name] || 0}/40`).join(" · ")} · 실전 시험은 시작할 수 없습니다.` : stageInfo ? `${year}년 ${stageInfo.label} 구성 확인 완료 · ${count}문항 · ${stageInfo.minutes}분` : `선택한 범위에서 무작위로 ${examCount}문항을 출제합니다.${examCount < requestedCount ? ` 선택한 범위의 문항이 ${count}개라 ${count}문항으로 조정했습니다.` : ""}`;
+  note.classList.toggle("coverage-incomplete", !completeStage);
+  document.querySelector("#begin-exam").disabled = !count || !completeStage;
 }
 function beginExam() {
-  const { year, scope, subject, list } = selectedQuestions();
-  const requestedCount = Number(document.querySelector("#question-count")?.value || 40);
+  const { year, scope, subject, stage, list } = selectedQuestions();
+  const stageInfo = EXAM_STAGES[stage];
+  const requestedCount = stageInfo?.questions || Number(document.querySelector("#question-count")?.value || 40);
   const durationMs = Number(document.querySelector("#exam-duration")?.value || 40) * 60 * 1000;
   if (!list.length) { toast("선택한 조건에 등록된 문제가 없어요."); return; }
+  if (stageInfo && (list.length !== requestedCount || stageInfo.subjects.some(name => list.filter(question => question.subject === name).length !== 40))) { toast(`${year}년 ${stageInfo.label} 과목별 문항 구성이 완전하지 않아 실전 모드를 시작할 수 없어요.`); return; }
   const shuffled = [...list];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, questions: shuffled.slice(0, Math.min(list.length, requestedCount)).map(q => q.id), answers: {}, index: 0, paused: false, durationMs, remaining: durationMs, endsAt: Date.now() + durationMs, startedAt: new Date().toISOString() };
+  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, stage, questions: shuffled.slice(0, Math.min(list.length, requestedCount)).map(q => q.id), answers: {}, index: 0, paused: false, durationMs, remaining: durationMs, endsAt: Date.now() + durationMs, startedAt: new Date().toISOString() };
   persist(); setView("exam");
 }
 function currentQuestions() { return quiz.questions.map(id => bank.find(q => q.id === id)).filter(Boolean); }
@@ -677,7 +720,7 @@ function renderQuiz() {
   const elapsed = remainingMs();
   const answered = Object.keys(quiz.answers).length;
   const answeredPercent = Math.round(answered / questions.length * 100);
-  return `<div class="exam-topline"><div class="exam-topline-copy"><div class="exam-kicker">${quiz.year === 2026 ? "2026년 예상문제" : `${yearLabel(quiz.year)} 기출`} · ${quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-counter"><b>${quiz.index + 1}</b><span>/ ${questions.length}번</span><small>${answered}개 답변</small></div><div class="exam-progress-track" role="progressbar" aria-label="답변 진행률" aria-valuenow="${answered}" aria-valuemin="0" aria-valuemax="${questions.length}"><i style="width:${answeredPercent}%"></i></div></div><div class="exam-utilities"><button type="button" class="calculator-open-button" id="open-calculator" aria-expanded="false" aria-controls="calculator-panel">▦ <span>계산기 열기</span></button><button class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="pause-exam" aria-label="${quiz.paused ? "시험 재개" : "시험 일시정지"}" title="눌러서 ${quiz.paused ? "시험 재개" : "일시정지"}"><span id="timer-value">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</span><small>${quiz.paused ? "재개 ▶" : "일시정지 Ⅱ"}</small></button></div></div>
+  return `<div class="exam-topline"><div class="exam-topline-copy"><div class="exam-kicker">${quiz.year === 2026 ? "2026년 예상문제" : `${yearLabel(quiz.year)} 기출`} · ${quiz.stage && EXAM_STAGES[quiz.stage] ? `${EXAM_STAGES[quiz.stage].label} 실전` : quiz.scope === "all" ? "전과목 혼합" : escapeHTML(quiz.subject)}</div><div class="exam-counter"><b>${quiz.index + 1}</b><span>/ ${questions.length}번</span><small>${answered}개 답변</small></div><div class="exam-progress-track" role="progressbar" aria-label="답변 진행률" aria-valuenow="${answered}" aria-valuemin="0" aria-valuemax="${questions.length}"><i style="width:${answeredPercent}%"></i></div></div><div class="exam-utilities"><button type="button" class="calculator-open-button" id="open-calculator" aria-expanded="false" aria-controls="calculator-panel">▦ <span>계산기 열기</span></button><button class="timer ${quiz.paused ? "paused" : elapsed < 300000 ? "warning" : ""}" id="pause-exam" aria-label="${quiz.paused ? "시험 재개" : "시험 일시정지"}" title="눌러서 ${quiz.paused ? "시험 재개" : "일시정지"}"><span id="timer-value">${quiz.paused ? "일시정지" : fmtDuration(elapsed)}</span><small>${quiz.paused ? "재개 ▶" : "일시정지 Ⅱ"}</small></button></div></div>
    <section class="calculator-panel" id="calculator-panel" aria-label="계산기" hidden><div class="calculator-panel-head"><div><span class="eyebrow">시험 중 도구</span><h2>계산기</h2></div><button type="button" class="calculator-close" id="close-calculator" aria-label="계산기 닫기">×</button></div><div class="calculator-screen" aria-live="polite"><div id="calculator-expression" class="calculator-expression">계산 결과</div><output id="calculator-display" class="calculator-display">0</output></div><div class="calculator-keys">${[["clear","AC"],["backspace","⌫"],["percent","%"],["operator","÷"],["digit","7"],["digit","8"],["digit","9"],["operator","×"],["digit","4"],["digit","5"],["digit","6"],["operator","−"],["digit","1"],["digit","2"],["digit","3"],["operator","+"],["sign","+/−"],["digit","0"],["decimal","."],["equals","="]].map(([action,label])=>`<button type="button" class="calculator-key ${action === "operator" ? "is-operator" : ""} ${action === "equals" ? "is-equals" : ""}" data-calc="${action}" data-value="${label}">${label}</button>`).join("")}</div></section>
    <div class="question-layout"><article class="panel question-card"><div class="question-meta"><span class="question-number">Q ${String(quiz.index + 1).padStart(2, "0")}</span><span class="question-year">${q.year}년 기출</span><span>${escapeHTML(q.subject)}</span><span>·</span><span>${q.number}번</span>${renderQuestionIssueButton(q)}</div><div class="question-text">${renderQuestionText(q.text)}</div><div class="option-list">${q.choices.map((choice, i) => `<button class="answer-option ${Number(quiz.answers[q.id]) === i + 1 ? "chosen" : ""}" data-answer="${i + 1}" aria-pressed="${Number(quiz.answers[q.id]) === i + 1}"><span class="option-mark">${LETTERS[i]}</span><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><div class="question-controls"><button class="button button-outline" id="previous-question" ${quiz.index === 0 ? "disabled" : ""}>← 이전</button><button class="button button-outline" id="next-question" ${quiz.index === questions.length - 1 ? "disabled" : ""}>다음 →</button></div></article>
    <aside class="exam-rail"><section class="rail-card" id="question-map"><div class="rail-head"><span>답안 현황</span><small>${answered} / ${questions.length}</small></div><div class="question-grid">${questions.map((item, i) => `<button class="question-dot ${i === quiz.index ? "current" : ""} ${quiz.answers[item.id] ? "answered" : ""}" data-goto="${i}" aria-label="${i + 1}번 문제${quiz.answers[item.id] ? " 답변 완료" : " 미응답"}">${i + 1}</button>`).join("")}</div><div class="rail-legend"><span><i class="legend-dot current"></i>현재</span><span><i class="legend-dot"></i>답변 완료</span></div><div class="progress-info"><span>답변한 문제</span><span>${answeredPercent}%</span></div></section>
@@ -822,7 +865,7 @@ function submitExam(reason) {
     subject.total++;
     if (isCorrect(q, quiz.answers[q.id])) { subject.correct++; correct++; }
   });
-  const result = { id: quiz.id, year: quiz.year, scope: quiz.scope, subject: quiz.subject, total: questions.length, correct, score: Math.round(correct / questions.length * 100), subjects: subjectScores, completedAt: new Date().toISOString(), duration: Math.max(0, quizDurationMs() - remainingMs()), durationLimit: quizDurationMs(), timedOut: reason === "timeout", results: questions.map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, correct: isCorrect(q, quiz.answers[q.id]) })) };
+  const result = { id: quiz.id, year: quiz.year, scope: quiz.scope, subject: quiz.subject, stage: quiz.stage || null, total: questions.length, correct, score: Math.round(correct / questions.length * 100), subjects: subjectScores, completedAt: new Date().toISOString(), duration: Math.max(0, quizDurationMs() - remainingMs()), durationLimit: quizDurationMs(), timedOut: reason === "timeout", results: questions.map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, correct: isCorrect(q, quiz.answers[q.id]) })) };
   const mistakes = questions.filter(q => !isCorrect(q, quiz.answers[q.id])).map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, attemptedAt: result.completedAt, attemptId: result.id }));
   store.flashcards = [...new Set([...(store.flashcards || []), ...mistakes.map(m => m.questionId)])];
   const resolvedIds = new Set(questions.filter(q => isCorrect(q, quiz.answers[q.id])).map(q => q.id));
@@ -834,7 +877,7 @@ function submitExam(reason) {
 }
 function renderResult(attempt) {
   const subjects = Object.entries(attempt.subjects || {});
-  const label = attempt.scope === "all" ? "전과목 혼합" : attempt.subject;
+  const label = attempt.stage && EXAM_STAGES[attempt.stage] ? `${EXAM_STAGES[attempt.stage].label} 실전` : attempt.scope === "all" ? "전과목 혼합" : attempt.subject;
   return `${titleBlock("EXAM RESULT", "수고했어요, 시험을 마쳤어요", `${yearLabel(attempt.year)} 기출 · ${escapeHTML(label)} · ${fmtDate(attempt.completedAt)}`)}
     <section class="result-hero"><div><div class="eyebrow">YOUR SCORE</div><h2>${attempt.correct}문제를 맞혔어요</h2><p>${attempt.timedOut ? "제한 시간이 끝나 답안이 자동 제출됐습니다." : "틀린 문제는 오답노트에 자동으로 모아두었어요."}</p></div><div class="result-score">${attempt.score}<small> 점</small></div></section>
     <section class="result-grid"><article class="panel"><div class="panel-head"><div><h2>과목별 결과</h2><p>정답 수와 정답률을 확인해 보세요</p></div></div><div class="result-subjects">${subjects.map(([name, s]) => `<div class="result-subject"><span>${escapeHTML(name)}</span><span>${s.correct}/${s.total} · ${Math.round(s.correct / s.total * 100)}%</span><div class="progress-track"><i style="width:${Math.round(s.correct / s.total * 100)}%"></i></div></div>`).join("")}</div></article>
