@@ -304,4 +304,66 @@
 .issue-dialog .dialog-actions{margin-top:9px;justify-content:flex-end}
 @media(max-width:720px){.data-quality-panel>summary{padding:14px}.data-quality-content{padding:0 14px 15px}.data-quality-top{grid-template-columns:1fr}.coverage-audit-row{grid-template-columns:minmax(95px,1fr) minmax(55px,1.3fr) auto;gap:7px}.issue-audit-item{align-items:flex-start}.question-issue-button{font-size:9px}}
 
+/* Daily study radio */
+.radio-dashboard-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;margin:0 0 24px;padding:20px 22px;border:1px solid #dce5da;border-radius:12px;background:linear-gradient(110deg,#f1f6ef,#fbf7ed)}
+.radio-dashboard-mark{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:#254d3b;color:#f5e8c9;font-size:23px}
+.radio-dashboard-card h2{margin:6px 0;font-size:17px;color:#294635}
+.radio-dashboard-card p{margin:0;color:#748176;font-size:12px;line-height:1.6}
+.radio-dashboard-card .button{white-space:nowrap}
+.radio-hero{position:relative;overflow:hidden;margin:0 0 18px;padding:26px 28px 22px;border:1px solid #314e3b;border-radius:14px;background:radial-gradient(circle at 90% 8%,rgba(207,180,111,.22),transparent 32%),linear-gradient(130deg,#203d30,#142b22);color:#f8f7ed;box-shadow:0 12px 28px rgba(34,61,46,.13)}
+.radio-onair{display:flex;align-items:center;gap:8px;color:#d4dece;font-size:11px;font-weight:700;letter-spacing:.04em}
+.radio-onair time{margin-left:auto;color:#bdc9bd;font:11px "DM Mono",monospace}
+.radio-live-dot{width:8px;height:8px;border-radius:50%;background:#dfb958;box-shadow:0 0 0 4px rgba(223,185,88,.15)}
+.radio-main{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:22px 0 18px}
+.radio-main .eyebrow{color:#d9c78f;margin:0 0 7px}
+.radio-main h2{margin:0;color:#fff9e8;font-size:clamp(23px,3vw,32px);letter-spacing:-.04em}
+.radio-main p:last-child{margin:8px 0 0;color:#c5d0c5;font-size:12px;line-height:1.6}
+.radio-dial{display:grid;place-items:center;position:relative;flex:0 0 88px;width:88px;height:88px;border:1px solid rgba(232,220,180,.42);border-radius:50%;background:rgba(255,255,255,.055);color:#efdcaa}
+.radio-dial:before,.radio-dial:after{content:"";position:absolute;inset:8px;border:1px dashed rgba(232,220,180,.28);border-radius:50%}
+.radio-dial:after{inset:17px;border-style:solid;opacity:.4}
+.radio-dial span{position:absolute;top:17px;font:9px "DM Mono",monospace;letter-spacing:.12em}
+.radio-dial b{font-size:28px;font-weight:500}
+.radio-duration{display:flex;align-items:center;gap:8px;padding:12px 0;border-top:1px solid rgba(233,237,222,.16)}
+.radio-duration button{min-width:57px;padding:8px 11px;border:1px solid rgba(238,239,225,.23);border-radius:8px;background:rgba(255,255,255,.04);color:#e8ecdf;font:700 13px Pretendard,sans-serif}
+.radio-duration button.selected{border-color:#d8bd73;background:#dfc987;color:#273c2f}
+.radio-duration button small{margin-left:3px;font-size:9px}
+.radio-duration>span{margin-left:auto;color:#bac7b8;font-size:10px}
+.radio-controls{display:flex;align-items:center;gap:9px;margin-top:4px}
+.radio-controls .button{min-height:39px}
+.radio-controls .button-primary{background:#dfc987;border-color:#dfc987;color:#253b2e}
+.radio-controls .button-primary:hover{background:#ead9a7}
+.radio-controls .button-outline{border-color:rgba(238,239,225,.3);color:#f2f2e8}
+.radio-controls .button-quiet{color:#d4ded1}
+.radio-progress-wrap{display:grid;gap:6px;min-width:120px;flex:1;margin-left:8px}
+.radio-progress{height:5px;overflow:hidden;border-radius:9px;background:rgba(255,255,255,.18)}
+.radio-progress i{display:block;height:100%;border-radius:inherit;background:#e2c977;transition:width .5s ease}
+.radio-progress-wrap span{color:#c1cbbd;font-size:10px;text-align:right}
+.radio-voice-note{margin:13px 0 0;color:#bbc7ba;font-size:10px;line-height:1.6}
+.radio-score-form{display:flex;align-items:end;gap:10px;margin:0 0 20px;padding:15px 17px;border:1px solid #e6e9e2;border-radius:10px;background:#fbfcf9}
+.radio-score-form>div{display:grid;gap:5px;flex:1;min-width:180px}
+.radio-score-form>div b{font-size:12px;color:#425849}
+.radio-score-form>div span{color:#859087;font-size:10px;line-height:1.55}
+.radio-score-form label{display:grid;gap:5px;color:#68766b;font-size:10px}
+.radio-score-form input{width:76px;height:34px;padding:0 9px;border:1px solid #dfe4dc;border-radius:6px;background:#fff;color:#304637;font:600 13px Pretendard,sans-serif}
+.radio-score-form .button{min-height:34px;padding:8px 11px;font-size:10px;white-space:nowrap}
+.radio-report{overflow:hidden;border:1px solid #e5e8e1;border-radius:12px;background:#fff}
+.radio-report-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 22px;border-bottom:1px solid #edf0eb;background:#fafbf8}
+.radio-report-heading .eyebrow{margin:0;color:#859187}
+.radio-report-heading h2{margin:5px 0 0;color:#304638;font-size:18px}
+.radio-report-heading>span{padding:7px 10px;border-radius:20px;background:#edf3eb;color:#56715a;font-size:10px;font-weight:700}
+.radio-script{padding:0 22px}
+.radio-section{display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;padding:18px 0;border-bottom:1px solid #f0f1ed;transition:background .2s ease}
+.radio-section:last-child{border-bottom:0}
+.radio-section.is-speaking{margin:0 -12px;padding:18px 12px;border-radius:8px;background:#f3f7f1}
+.radio-section-number{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f3f0e6;color:#94763d;font:11px "DM Mono",monospace}
+.radio-section h3{margin:3px 0 8px;color:#344c3b;font-size:14px}
+.radio-section p{margin:0;color:#526056;font-size:12px;line-height:1.9;white-space:pre-line}
+.radio-section.recall{background:linear-gradient(90deg,#fffaf0,transparent);}
+.radio-section.recall h3{color:#8a6c32}
+.radio-section.intro p,.radio-section.outro p{color:#6d796f}
+.radio-report-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 22px;border-top:1px solid #edf0eb;background:#fafbf8}
+.radio-report-foot>span{color:#7a867b;font-size:10px;line-height:1.6}
+.radio-report-foot .button{white-space:nowrap}
+@media(max-width:720px){.radio-dashboard-card{grid-template-columns:auto minmax(0,1fr);padding:16px}.radio-dashboard-mark{width:40px;height:40px}.radio-dashboard-card h2{font-size:15px}.radio-dashboard-card p{font-size:11px}.radio-dashboard-card .button{grid-column:1/-1;justify-self:start}.radio-hero{padding:20px 17px}.radio-dial{flex-basis:70px;width:70px;height:70px}.radio-duration{flex-wrap:wrap}.radio-duration>span{flex-basis:100%;margin:5px 0 0}.radio-controls{flex-wrap:wrap}.radio-progress-wrap{flex-basis:100%;margin:8px 0 0}.radio-score-form{align-items:stretch;flex-wrap:wrap}.radio-score-form>div{flex-basis:100%}.radio-score-form label{flex:1}.radio-score-form .button{align-self:end}.radio-report-heading{padding:17px}.radio-script{padding:0 17px}.radio-section{grid-template-columns:28px minmax(0,1fr);gap:9px}.radio-section-number{width:25px;height:25px;font-size:10px}.radio-section p{font-size:11px;line-height:1.8}.radio-report-foot{align-items:flex-start;flex-direction:column;padding:14px 17px}}
+
 .question-year{padding:4px 7px;border-radius:5px;background:#eef3eb;color:#45664c;font-size:10px;font-weight:700;white-space:nowrap}

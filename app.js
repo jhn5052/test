@@ -27,6 +27,7 @@ let mistakeRetrySelected = null;
 let mistakeRetryFeedback = "";
 let calculatorState = { display: "0", expression: "", stored: null, operator: null, waitingForOperand: false };
 let issueQuestionId = null;
+let radioPlayback = { utterances: [], index: 0, playing: false, paused: false, startedAt: null, elapsedBeforePause: 0, timer: null };
 
 function readStore() {
   const defaults = { history: [], mistakes: [], flashcards: [], questionIssues: [], recallProgress: {}, active: null };
@@ -190,7 +191,7 @@ function setView(next) {
   if (next === "flashcards") { next = "study-types"; studyTypeMode = "saved"; }
   view = next;
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === next));
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과" })[next] || "학습실";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", radio: "오늘의 라디오" })[next] || "학습실";
   render();
 }
 function render() {
@@ -202,14 +203,198 @@ function render() {
   else if (view === "mistakes") { root.innerHTML = renderMistakes(); bindMistakes(); }
   else if (view === "flashcards") { root.innerHTML = renderFlashcards(); bindFlashcards(); }
   else if (view === "study-types") { root.innerHTML = renderStudyTypes(); bindStudyTypes(); if (studyTypeMode === "saved") bindFlashcards(); }
+  else if (view === "radio") { root.innerHTML = renderDailyRadio(); bindDailyRadio(); }
   else if (view === "result" && store.history[0]) { root.innerHTML = renderResult(store.history[0]); bindResult(); }
   else { view = "dashboard"; root.innerHTML = renderDashboard(); bindDashboard(); }
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과" })[view] || "시험 응시";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", radio: "오늘의 라디오" })[view] || "시험 응시";
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === (view === "taking" ? "exam" : view)));
   updateCounts();
 }
 function titleBlock(kicker, title, sub, action = "") {
   return `<div class="page-heading"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`;
+}
+function radioDateKey(date = new Date()) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
+function radioProfile() {
+  if (!store.radioProfile || typeof store.radioProfile !== "object") store.radioProfile = { scores: {} };
+  if (!store.radioProfile.scores || typeof store.radioProfile.scores !== "object") store.radioProfile.scores = {};
+  return store.radioProfile;
+}
+function radioSubjectScores() {
+  const scores = {};
+  const recent = store.history.map(normalizeAttempt).filter(Boolean);
+  const latestBySubject = new Map();
+  recent.forEach(attempt => Object.entries(attempt.subjects || {}).forEach(([subject, value]) => {
+    if (!latestBySubject.has(subject) && Number(value.total) >= 10) latestBySubject.set(subject, Math.round(value.correct / value.total * 100));
+  }));
+  const saved = radioProfile().scores;
+  SUBJECTS.slice(0, 2).forEach(subject => {
+    scores[subject] = latestBySubject.has(subject) ? latestBySubject.get(subject) : Number.isFinite(Number(saved[subject])) ? Number(saved[subject]) : null;
+  });
+  return scores;
+}
+function radioFocus() {
+  const scores = radioSubjectScores();
+  const civil = SUBJECTS[1], econ = SUBJECTS[0];
+  let subject = null;
+  const available = Object.entries(scores).filter(([, score]) => score !== null);
+  if (available.length) subject = available.sort((a, b) => a[1] - b[1])[0][0];
+  else subject = radioDateKey().replaceAll("-", "") % 2 ? civil : econ;
+  const recentWrongIds = [];
+  store.history.slice(0, 4).forEach(attempt => (attempt.results || []).forEach(result => {
+    if (result.correct === false && result.questionId) recentWrongIds.push(result.questionId);
+  }));
+  store.mistakes.forEach(mistake => { if (mistake.questionId) recentWrongIds.push(mistake.questionId); });
+  const counts = new Map();
+  recentWrongIds.forEach(id => counts.set(id, (counts.get(id) || 0) + 1));
+  const cards = studyTypes.filter(card => card.subject === subject && !card.id.startsWith("gap-") && (card.concept || []).length);
+  const ranked = cards.map((card, index) => ({ card, index, priority: counts.get(card.sourceId) || 0 }))
+    .sort((a, b) => b.priority - a.priority || a.index - b.index);
+  if (!ranked.length) return { subject, scores, cards: [] };
+  const priority = ranked.filter(item => item.priority > 0);
+  const regular = ranked.filter(item => item.priority === 0);
+  const dateOffset = Number(radioDateKey().replaceAll("-", "")) % Math.max(1, regular.length);
+  const rotatedRegular = regular.length ? regular.slice(dateOffset).concat(regular.slice(0, dateOffset)) : [];
+  const ordered = [...priority, ...rotatedRegular];
+  const selected = ordered.slice(0, Math.min(8, ordered.length)).map(item => item.card);
+  return { subject, scores, cards: selected };
+}
+function radioNarration(card) {
+  const concepts = (card.concept || []).map(normalizeStudyText).filter(Boolean);
+  const memorize = (card.memorize || []).map(normalizeStudyText).filter(point => point && !isAnswerKeyConcept(point));
+  return [
+    `오늘의 개념은 ${normalizeStudyText(card.title)}입니다.`,
+    ...concepts.map((text, index) => `${index === 0 ? "먼저 개념을 잡겠습니다." : "이어지는 구분을 보겠습니다."} ${text}`),
+    memorize.length ? `시험 직전 암기 포인트입니다. ${memorize.join(". ")}` : "이 개념을 정의와 구분 기준으로 나누어 기억합니다."
+  ].join(" ");
+}
+function buildRadioEpisode(duration) {
+  const focus = radioFocus();
+  const targetChars = duration * 255;
+  const sections = [];
+  const intro = `오늘의 학습 라디오입니다. 오늘은 ${focus.subject}에서 점수를 지키는 개념을 차분히 정리합니다. 먼저 뜻을 이해하고, 서로 헷갈리는 구분을 듣고, 마지막에는 시험에서 외울 표현을 다시 확인하겠습니다. 지금은 답을 맞히는 시간이 아니라 개념을 내 말로 설명할 수 있는지 확인하는 시간입니다.`;
+  sections.push({ title: "오늘의 방향", text: intro, kind: "intro" });
+  let total = intro.length;
+  for (const card of focus.cards) {
+    if (total > targetChars * 0.78) break;
+    const text = radioNarration(card);
+    sections.push({ title: card.title, text, kind: "concept", cardId: card.id });
+    total += text.length;
+  }
+  const recaps = sections.filter(section => section.kind === "concept").map(section => {
+    const card = studyTypes.find(item => item.id === section.cardId);
+    const points = (card?.memorize || []).map(normalizeStudyText).filter(point => point && !isAnswerKeyConcept(point)).slice(0, 3);
+    return `잠시 멈추고 ${normalizeStudyText(card?.title || section.title)}의 핵심을 떠올려 보세요. ${points.join(". ")}`;
+  });
+  let recapIndex = 0;
+  while (total < targetChars - 280 && recaps.length) {
+    const text = `${recaps[recapIndex % recaps.length]} 한 번 더 정리합니다. 들은 내용을 소리 내어 설명해 보세요.`;
+    sections.push({ title: `기억 확인 ${recapIndex + 1}`, text, kind: "recall" });
+    total += text.length;
+    recapIndex++;
+  }
+  sections.push({ title: "마무리 리포트", text: `오늘은 ${focus.subject}의 개념과 시험 암기 포인트를 정리했습니다. 오늘 들은 카드 중 바로 설명하기 어려웠던 제목을 기록해 두고, 암기카드에서 개념을 다시 확인한 뒤 관련 문제를 풀어 보세요. 반복해서 틀리는 내용은 다음 라디오의 우선 주제로 올라옵니다.`, kind: "outro" });
+  const minutes = Math.max(1, Math.round(sections.reduce((sum, item) => sum + item.text.length, 0) / 255));
+  return { ...focus, duration, sections, minutes, key: radioDateKey() };
+}
+function radioSafeSpeechText(text) {
+  return String(text || "").replace(/[•·]/g, ", ").replace(/[=]/g, "은").replace(/[→]/g, "에서").replace(/\s+/g, " ").trim();
+}
+function renderDailyRadio() {
+  const duration = [10, 12, 15].includes(Number(store.radioDuration)) ? Number(store.radioDuration) : 10;
+  const episode = buildRadioEpisode(duration);
+  const scores = episode.scores;
+  const hasScores = Object.values(scores).some(score => score !== null);
+  const progress = store.radioProgress?.date === episode.key && store.radioProgress.duration === duration ? store.radioProgress : null;
+  const report = progress?.completed ? "오늘 청취를 마쳤습니다." : progress?.minutesListened ? `이전에 ${progress.minutesListened}분 들었습니다.` : "아직 오늘의 청취 기록이 없습니다.";
+  const scorePanel = `<form class="radio-score-form" id="radio-score-form"><div><b>최근 모의고사 점수</b><span>앱 응시 기록이 있으면 자동으로 우선 반영됩니다. 직접 입력한 점수는 이 기기에만 저장됩니다.</span></div><label>학개론 <input name="econ" type="number" min="0" max="100" inputmode="numeric" value="${scores[SUBJECTS[0]] ?? ""}" placeholder="점수"></label><label>민법 <input name="civil" type="number" min="0" max="100" inputmode="numeric" value="${scores[SUBJECTS[1]] ?? ""}" placeholder="점수"></label><button class="button button-outline">점수 저장</button></form>`;
+  const sections = episode.sections.map((section, index) => `<article class="radio-section ${section.kind}" data-radio-section="${index}"><div class="radio-section-number">${String(index + 1).padStart(2, "0")}</div><div><h3>${escapeHTML(section.title)}</h3><p>${escapeHTML(section.text)}</p></div></article>`).join("");
+  return `${titleBlock("DAILY STUDY RADIO", "오늘의 개념 라디오", "최근 점수와 반복 오답을 바탕으로 오늘 들을 개념을 고르고, 듣고 난 뒤 복습 리포트를 남깁니다.")}
+    <section class="radio-hero"><div class="radio-onair"><span class="radio-live-dot"></span> 오늘의 학습 리포트 <time>${episode.key}</time></div><div class="radio-main"><div><p class="eyebrow">오늘 먼저 다룰 과목</p><h2>${escapeHTML(episode.subject)}</h2><p>${hasScores ? `${escapeHTML(episode.subject)} 점수를 먼저 보강하도록 구성했습니다.` : "점수를 입력하거나 시험을 응시하면 약한 과목부터 자동으로 골라요."}</p></div><div class="radio-dial" aria-hidden="true"><span>ON</span><b>♫</b></div></div><div class="radio-duration" role="group" aria-label="라디오 길이 선택">${[10, 12, 15].map(value => `<button data-radio-duration="${value}" class="${duration === value ? "selected" : ""}" aria-pressed="${duration === value}">${value}<small>분</small></button>`).join("")}<span>예상 ${episode.minutes}분 · 속도에 따라 달라질 수 있어요</span></div><div class="radio-controls"><button class="button button-primary" id="radio-play" ${episode.cards.length ? "" : "disabled"}>▶ 듣기 시작</button><button class="button button-outline" id="radio-pause" disabled>일시정지</button><button class="button button-quiet" id="radio-stop" disabled>끝내기</button><div class="radio-progress-wrap"><div class="radio-progress"><i id="radio-progress-bar" style="width:${progress?.completed ? 100 : 0}%"></i></div><span id="radio-progress-label">${report}</span></div></div><p class="radio-voice-note" id="radio-voice-note">기기의 한국어 음성으로 읽습니다. 이어폰을 연결하면 화면을 보지 않고 들을 수 있어요.</p></section>
+    ${scorePanel}<section class="radio-report"><div class="radio-report-heading"><div><span class="eyebrow">LISTENING REPORT</span><h2>오늘 들을 내용</h2></div><span>${episode.sections.filter(section => section.kind === "concept").length}개 핵심 개념</span></div><div class="radio-script">${sections}</div><div class="radio-report-foot"><span>듣고 나서: 바로 떠오르지 않은 개념은 암기카드에서 다시 확인하세요.</span><button class="button button-outline" data-radio-cards>관련 암기카드 보기 →</button></div></section>`;
+}
+function radioChunks(text, limit = 260) {
+  const sentences = radioSafeSpeechText(text).match(/[^.!?。！？]+[.!?。！？]?/g) || [text];
+  const chunks = []; let current = "";
+  sentences.forEach(sentence => {
+    if ((current + sentence).length > limit && current) { chunks.push(current.trim()); current = ""; }
+    if (sentence.length > limit) {
+      for (let i = 0; i < sentence.length; i += limit) chunks.push(sentence.slice(i, i + limit));
+    } else current += sentence;
+  });
+  if (current.trim()) chunks.push(current.trim());
+  return chunks;
+}
+function stopRadioPlayback(markComplete = false) {
+  if (radioPlayback.timer) clearInterval(radioPlayback.timer);
+  radioPlayback.timer = null;
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  radioPlayback.playing = false; radioPlayback.paused = false;
+  const progress = store.radioProgress || (store.radioProgress = {});
+  if (radioPlayback.startedAt) {
+    const elapsed = radioPlayback.elapsedBeforePause + (Date.now() - radioPlayback.startedAt);
+    progress.date = radioDateKey(); progress.duration = Number(store.radioDuration) || 10;
+    progress.minutesListened = Math.min(progress.duration, Math.floor(elapsed / 60000));
+    progress.completed = Boolean(markComplete);
+    persist();
+  }
+  radioPlayback.startedAt = null; radioPlayback.elapsedBeforePause = 0;
+  document.querySelector("#radio-play")?.removeAttribute("disabled");
+  document.querySelector("#radio-pause")?.setAttribute("disabled", "");
+  document.querySelector("#radio-stop")?.setAttribute("disabled", "");
+  document.querySelector("#radio-pause")?.replaceChildren(document.createTextNode("일시정지"));
+  if (markComplete) {
+    document.querySelector("#radio-progress-bar")?.style.setProperty("width", "100%");
+    const label = document.querySelector("#radio-progress-label"); if (label) label.textContent = "오늘 청취를 마쳤습니다.";
+    const note = document.querySelector("#radio-voice-note"); if (note) note.textContent = "청취 완료. 기억나지 않은 개념은 관련 암기카드에서 다시 확인하세요.";
+  }
+}
+function playRadioChunk() {
+  if (!radioPlayback.playing || radioPlayback.index >= radioPlayback.utterances.length) { stopRadioPlayback(true); return; }
+  const utterance = new SpeechSynthesisUtterance(radioPlayback.utterances[radioPlayback.index]);
+  const voices = speechSynthesis.getVoices();
+  utterance.lang = "ko-KR"; utterance.rate = 0.94; utterance.pitch = 1;
+  utterance.voice = voices.find(voice => voice.lang?.toLowerCase().startsWith("ko")) || null;
+  const sections = [...document.querySelectorAll("[data-radio-section]")];
+  let globalIndex = radioPlayback.index, sectionIndex = 0;
+  for (; sectionIndex < radioPlayback.sectionEnds.length; sectionIndex++) if (globalIndex < radioPlayback.sectionEnds[sectionIndex]) break;
+  sections.forEach((section, index) => section.classList.toggle("is-speaking", index === sectionIndex));
+  utterance.onend = () => { radioPlayback.index++; playRadioChunk(); };
+  utterance.onerror = event => { if (event.error !== "canceled" && event.error !== "interrupted") { stopRadioPlayback(false); const note = document.querySelector("#radio-voice-note"); if (note) note.textContent = "음성 재생을 시작하지 못했어요. 기기의 음성 읽기 설정을 확인하고 다시 시도해 주세요."; } };
+  speechSynthesis.speak(utterance);
+}
+function beginRadioPlayback() {
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") { toast("이 브라우저는 음성 읽기를 지원하지 않아요. 아래 대본을 읽어 주세요."); return; }
+  const episode = buildRadioEpisode(Number(store.radioDuration) || 10);
+  radioPlayback.utterances = []; radioPlayback.sectionEnds = [];
+  episode.sections.forEach(section => { radioPlayback.utterances.push(...radioChunks(section.text)); radioPlayback.sectionEnds.push(radioPlayback.utterances.length); });
+  radioPlayback.index = 0; radioPlayback.playing = true; radioPlayback.paused = false; radioPlayback.startedAt = Date.now(); radioPlayback.elapsedBeforePause = 0;
+  document.querySelector("#radio-play")?.setAttribute("disabled", ""); document.querySelector("#radio-pause")?.removeAttribute("disabled"); document.querySelector("#radio-stop")?.removeAttribute("disabled");
+  const note = document.querySelector("#radio-voice-note"); if (note) note.textContent = "재생 중 · 현재 듣는 개념이 아래에서 강조됩니다.";
+  const label = document.querySelector("#radio-progress-label"); if (label) label.textContent = "재생 중 · 오늘의 대본";
+  radioPlayback.timer = setInterval(() => {
+    const elapsed = radioPlayback.elapsedBeforePause + (radioPlayback.paused ? 0 : Date.now() - radioPlayback.startedAt);
+    const pct = Math.min(99, Math.round(elapsed / (episode.duration * 60000) * 100));
+    document.querySelector("#radio-progress-bar")?.style.setProperty("width", `${pct}%`);
+  }, 1000);
+  playRadioChunk();
+}
+function bindDailyRadio() {
+  document.querySelectorAll("[data-radio-duration]").forEach(button => button.addEventListener("click", () => {
+    stopRadioPlayback(false); store.radioDuration = Number(button.dataset.radioDuration); persist(); render();
+  }));
+  document.querySelector("#radio-score-form")?.addEventListener("submit", event => {
+    event.preventDefault(); const form = new FormData(event.currentTarget); const scores = radioProfile().scores;
+    [[SUBJECTS[0], form.get("econ")], [SUBJECTS[1], form.get("civil")]].forEach(([subject, value]) => { const score = value === "" ? null : Number(value); if (score === null) delete scores[subject]; else if (Number.isInteger(score) && score >= 0 && score <= 100) scores[subject] = score; });
+    persist(); render(); toast("점수를 이 기기에 저장했어요.");
+  });
+  document.querySelector("#radio-play")?.addEventListener("click", beginRadioPlayback);
+  document.querySelector("#radio-pause")?.addEventListener("click", event => {
+    if (!radioPlayback.playing) return;
+    if (!radioPlayback.paused) { radioPlayback.elapsedBeforePause += Date.now() - radioPlayback.startedAt; radioPlayback.paused = true; speechSynthesis.pause(); event.currentTarget.textContent = "계속 듣기"; }
+    else { radioPlayback.startedAt = Date.now(); radioPlayback.paused = false; speechSynthesis.resume(); event.currentTarget.textContent = "일시정지"; }
+  });
+  document.querySelector("#radio-stop")?.addEventListener("click", () => stopRadioPlayback(false));
+  document.querySelector("[data-radio-cards]")?.addEventListener("click", () => { stopRadioPlayback(false); openSubjectConcepts(radioFocus().subject); });
 }
 function renderDashboard() {
   const attempts = store.history.map(normalizeAttempt).filter(Boolean);
@@ -230,6 +415,7 @@ function renderDashboard() {
       <article class="stat-card"><span class="stat-label">다시 볼 오답</span><span class="stat-glyph">↺</span><strong>${store.mistakes.length}<em>문항</em></strong></article>
     </section>
     ${renderLearningInsights(attempts, subjects)}
+    <section class="radio-dashboard-card"><div class="radio-dashboard-mark">♫</div><div><span class="eyebrow">DAILY STUDY RADIO</span><h2>오늘의 개념을 귀로 복습하세요</h2><p>점수가 낮은 과목과 반복 오답 개념을 골라 10·12·15분 학습 리포트로 읽어드립니다.</p></div><button class="button button-primary" data-action="open-radio">오늘의 라디오 듣기 <span>→</span></button></section>
     <section class="content-grid">
       <article class="panel"><div class="panel-head"><div><h2>회차별 점수</h2><p>시험을 마칠 때마다 성적이 쌓입니다</p></div><span class="eyebrow">SCORE / 100</span></div>${chart}</article>
       <article class="panel"><div class="panel-head"><div><h2>과목별 정답률</h2><p>지금까지 푼 문제 기준</p></div></div>${renderSubjectStats(subjects)}</article>
@@ -925,6 +1111,7 @@ function openSubjectConcepts(subject) {
 }
 function bindDashboard() {
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
+  document.querySelector("[data-action=open-radio]")?.addEventListener("click", () => setView("radio"));
   document.querySelectorAll("[data-result]").forEach(button => button.addEventListener("click", () => { view = "result"; renderResultView(Number(button.dataset.result)); }));
   document.querySelectorAll("[data-open-concept]").forEach(button => button.addEventListener("click", () => openConceptCard(button.dataset.openConcept)));
   document.querySelector("[data-action=show-history]")?.addEventListener("click", () => { showAllHistory = !showAllHistory; render(); });
