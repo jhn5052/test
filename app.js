@@ -8,6 +8,7 @@ const EXAM_STAGES = {
 const LETTERS = ["①", "②", "③", "④", "⑤"];
 let bank = [];
 let studyTypes = [];
+let coreSummary = null;
 let answerKeys = {};
 let store = readStore();
 let view = "dashboard";
@@ -196,7 +197,7 @@ function setView(next) {
   if (next === "flashcards") { next = "study-types"; studyTypeMode = "saved"; }
   view = next;
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === next));
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", radio: "오늘의 라디오" })[next] || "학습실";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", radio: "오늘의 라디오", summary: "필수 암기" })[next] || "학습실";
   render();
 }
 function render() {
@@ -209,9 +210,10 @@ function render() {
   else if (view === "flashcards") { root.innerHTML = renderFlashcards(); bindFlashcards(); }
   else if (view === "study-types") { root.innerHTML = renderStudyTypes(); bindStudyTypes(); if (studyTypeMode === "saved") bindFlashcards(); }
   else if (view === "radio") { root.innerHTML = renderDailyRadio(); bindDailyRadio(); }
+  else if (view === "summary") { root.innerHTML = renderCoreSummary(); bindCoreSummary(); }
   else if (view === "result" && store.history[0]) { root.innerHTML = renderResult(store.history[0]); bindResult(); }
   else { view = "dashboard"; root.innerHTML = renderDashboard(); bindDashboard(); }
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", radio: "오늘의 라디오" })[view] || "시험 응시";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", radio: "오늘의 라디오", summary: "필수 암기" })[view] || "시험 응시";
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === (view === "taking" ? "exam" : view)));
   updateCounts();
 }
@@ -405,6 +407,54 @@ function bindDailyRadio() {
   });
   document.querySelector("#radio-stop")?.addEventListener("click", () => stopRadioPlayback(false));
   document.querySelector("[data-radio-cards]")?.addEventListener("click", () => { stopRadioPlayback(false); openSubjectConcepts(radioFocus().subject); });
+}
+function summaryInline(text) {
+  return escapeHTML(text).replace(/`([^`]+)`/g, '<code class="summary-code">$1</code>').replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+function summaryParts(text) {
+  return String(text || "").split(" / ").map(part => `<span class="summary-part">${summaryInline(part)}</span>`).join("");
+}
+function summaryDday(examDate) {
+  const [year, month, day] = String(examDate || "").split("-").map(Number);
+  if (!year || !month || !day) return "";
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.round((new Date(year, month - 1, day) - today) / 86400000);
+  return days > 0 ? `D-${days}` : days === 0 ? "D-day" : "시험 종료";
+}
+function renderSummaryBlock(block) {
+  if (block.type === "table") return `<div class="summary-table-wrap"><table class="summary-table"><thead><tr>${block.head.map(cell => `<th scope="col">${summaryInline(cell)}</th>`).join("")}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map((cell, index) => index === 0 ? `<th scope="row">${summaryInline(cell)}</th>` : `<td>${summaryParts(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<ul class="summary-list">${(block.items || []).map(item => `<li>${summaryParts(item)}</li>`).join("")}</ul>`;
+}
+function renderCoreSummary() {
+  const heading = titleBlock("CORE SUMMARY", "과목별 필수 암기", "시험 전에 외울 숫자·기한·암기코드를 과목별로 모았습니다.");
+  if (!coreSummary?.subjects?.length) return `${heading}<div class="flashcard-empty"><h2>요약을 불러오지 못했어요</h2><p>페이지를 새로고침한 뒤 다시 확인해 주세요.</p></div>`;
+  const subjects = coreSummary.subjects;
+  const index = Math.max(0, subjects.findIndex(item => item.id === store.summarySubject));
+  const subject = subjects[index];
+  const next = subjects[(index + 1) % subjects.length];
+  const corrections = (coreSummary.corrections || []).filter(item => item.subject === subject.id);
+  const cardCount = studyTypes.filter(card => card.subject === subject.appSubject).length;
+  const dday = summaryDday(coreSummary.examDate);
+  const hero = `<section class="summary-hero"><div class="summary-dday"><span class="eyebrow">EXAM ${escapeHTML(coreSummary.examDate || "")}</span><strong>${escapeHTML(dday)}</strong></div><div class="summary-plan"><p class="summary-pass">${summaryInline(coreSummary.passRule || "")}</p><ul>${(coreSummary.strategy || []).map(item => `<li>${summaryInline(item)}</li>`).join("")}</ul>${coreSummary.order?.length ? `<ol class="summary-order" aria-label="추천 암기 순서">${coreSummary.order.map(item => `<li>${escapeHTML(item)}</li>`).join("")}</ol>` : ""}</div></section>`;
+  const tabs = `<div class="summary-tabs" role="tablist" aria-label="과목 선택">${subjects.map(item => `<button role="tab" aria-selected="${item.id === subject.id}" class="${item.id === subject.id ? "selected" : ""}" data-summary-subject="${escapeHTML(item.id)}"><span>${escapeHTML(item.short)}</span><small>${escapeHTML(item.stage)}</small></button>`).join("")}</div>`;
+  const sections = subject.sections.map(section => `<section class="summary-section"><h3>${summaryInline(section.title)}${section.note ? ` <small>${summaryInline(section.note)}</small>` : ""}</h3>${section.blocks.map(renderSummaryBlock).join("")}</section>`).join("");
+  const correctionList = corrections.length
+    ? `<details class="summary-corrections"><summary>현행 조문과 대조해 고친 곳 ${corrections.length}건</summary><ul>${corrections.map(item => `<li><b class="summary-kind ${item.kind === "보완" ? "is-addition" : ""}">${escapeHTML(item.kind || "정정")}</b>${item.kind === "보완" ? "" : `<span class="summary-before">${summaryInline(item.before)}</span>`}<span class="summary-after">${summaryInline(item.after)}</span><small>${summaryInline(item.basis)}</small></li>`).join("")}</ul></details>`
+    : "";
+  return `${heading}${hero}${tabs}
+    <section class="summary-subject" role="tabpanel" aria-label="${escapeHTML(subject.name)}">
+      <div class="summary-subject-head"><div><span class="eyebrow">${escapeHTML(subject.stage)}</span><h2>${escapeHTML(subject.name)}</h2>${subject.goal ? `<p class="summary-goal">${summaryInline(subject.goal)}</p>` : ""}${subject.intro ? `<p>${summaryInline(subject.intro)}</p>` : ""}</div>${cardCount ? `<button class="button button-outline" data-summary-cards="${escapeHTML(subject.appSubject)}">관련 암기카드 ${cardCount}장 →</button>` : ""}</div>
+      ${sections}${correctionList}
+      <div class="summary-foot"><span>${summaryInline(coreSummary.basis || "")} 기준일 ${escapeHTML(coreSummary.checkedAt || "")}.</span>${next.id !== subject.id ? `<button class="button button-primary" data-summary-subject="${escapeHTML(next.id)}">다음 과목: ${escapeHTML(next.short)} →</button>` : ""}</div>
+    </section>`;
+}
+function bindCoreSummary() {
+  document.querySelectorAll("[data-summary-subject]").forEach(button => button.addEventListener("click", () => {
+    store.summarySubject = button.dataset.summarySubject; persist(); render();
+    const tabs = document.querySelector(".summary-tabs");
+    if (tabs && tabs.getBoundingClientRect().top < 70) tabs.scrollIntoView({ block: "start" });
+  }));
+  document.querySelector("[data-summary-cards]")?.addEventListener("click", event => openSubjectConcepts(event.currentTarget.dataset.summaryCards));
 }
 function renderDashboard() {
   const attempts = store.history.map(normalizeAttempt).filter(Boolean);
@@ -1206,6 +1256,11 @@ async function loadBank() {
     if (!response.ok) throw new Error("정답표 데이터를 찾을 수 없습니다.");
     answerKeys = (await response.json()).answerKeys || {};
   } catch (error) { answerKeys = {}; console.warn(error); }
+  try {
+    const response = await fetch("./data/core-summary.json");
+    if (!response.ok) throw new Error("필수 암기 요약을 찾을 수 없습니다.");
+    coreSummary = await response.json();
+  } catch (error) { coreSummary = null; console.warn(error); }
   if (quiz && !quiz.questions.every(id => bank.some(q => q.id === id))) { quiz = null; store.active = null; persist(); }
   render();
 }

@@ -369,3 +369,73 @@
 @media(max-width:720px){.radio-dashboard-card{grid-template-columns:auto minmax(0,1fr);padding:16px}.radio-dashboard-mark{width:40px;height:40px}.radio-dashboard-card h2{font-size:15px}.radio-dashboard-card p{font-size:11px}.radio-dashboard-card .button{grid-column:1/-1;justify-self:start}.radio-hero{padding:20px 17px}.radio-dial{flex-basis:70px;width:70px;height:70px}.radio-duration{flex-wrap:wrap}.radio-duration>span{flex-basis:100%;margin:5px 0 0}.radio-controls{flex-wrap:wrap}.radio-progress-wrap{flex-basis:100%;margin:8px 0 0}.radio-score-form{align-items:stretch;flex-wrap:wrap}.radio-score-form>div{flex-basis:100%}.radio-score-form label{flex:1}.radio-score-form .button{align-self:end}.radio-report-heading{padding:17px}.radio-script{padding:0 17px}.radio-section{grid-template-columns:28px minmax(0,1fr);gap:9px}.radio-section-number{width:25px;height:25px;font-size:10px}.radio-section p{font-size:11px;line-height:1.8}.radio-report-foot{align-items:flex-start;flex-direction:column;padding:14px 17px}}
 
 .question-year{padding:4px 7px;border-radius:5px;background:#eef3eb;color:#45664c;font-size:10px;font-weight:700;white-space:nowrap}
+
+/* Core summary: per-subject must-memorize page */
+.summary-hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:center;margin:0 0 18px;padding:22px 26px;border:1px solid #314e3b;border-radius:14px;background:radial-gradient(circle at 92% 10%,rgba(207,180,111,.2),transparent 34%),linear-gradient(130deg,#203d30,#142b22);color:#f3f2e8}
+.summary-dday{display:flex;flex-direction:column;gap:6px;padding-right:26px;border-right:1px solid #ffffff22}
+.summary-dday .eyebrow{color:#b9c6b5}
+.summary-dday strong{font:700 44px/1 "Gowun Batang",serif;letter-spacing:-.04em;color:#e6cf8f;white-space:nowrap}
+.summary-plan{display:grid;gap:10px;min-width:0}
+.summary-pass{margin:0;color:#fff;font-size:13px;font-weight:700;line-height:1.6}
+.summary-plan ul{display:grid;gap:5px;margin:0;padding-left:18px;color:#d6ddd3;font-size:12px;line-height:1.7}
+.summary-order{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 0;padding:0;list-style:none;counter-reset:summary-order}
+.summary-order li{counter-increment:summary-order;padding:5px 10px;border:1px solid #ffffff1f;border-radius:20px;background:#ffffff14;color:#f1ecd9;font-size:11px}
+.summary-order li::before{content:counter(summary-order) ". ";color:#dfc27d;font:500 10px "DM Mono",monospace}
+.summary-tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:0 0 18px;padding:5px;border:1px solid #d7d0c0;border-radius:14px;background:#e9e4d8;scroll-margin-top:80px}
+.summary-tabs [role=tab]{min-height:54px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;padding:7px 4px;border:1px solid transparent;border-radius:10px;background:transparent;color:#425149;font-size:14px;font-weight:700}
+.summary-tabs [role=tab] small{color:#6f7d72;font-size:10px;font-weight:600}
+.summary-tabs [role=tab].selected{border-color:#c7b889;background:#fffdf7;color:#183a2c;box-shadow:0 3px 10px #26372b12}
+.summary-tabs [role=tab]:focus-visible,.summary-foot .button:focus-visible,.summary-subject-head .button:focus-visible{outline:3px solid #c39539;outline-offset:2px}
+.summary-subject{overflow:hidden;border:1px solid #e5e8e1;border-radius:12px;background:#fff}
+.summary-subject-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:22px 24px;border-bottom:1px solid #edf0eb;background:#fafbf8}
+.summary-subject-head .eyebrow{color:#859187}
+.summary-subject-head h2{margin:6px 0 4px;color:#203a2c;font:700 22px "Gowun Batang",serif;letter-spacing:-.04em}
+.summary-subject-head p{margin:4px 0 0;color:#58675d;font-size:13px;line-height:1.7}
+.summary-subject-head .summary-goal{color:#8a6c32;font-weight:700}
+.summary-subject-head .button{flex:0 0 auto;white-space:nowrap}
+.summary-section{padding:20px 24px;border-bottom:1px solid #f0f1ed}
+.summary-section h3{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0 0 12px;color:#294938;font-size:16px}
+.summary-section h3 small{color:#8a6c32;font-size:11px;font-weight:600}
+.summary-list{display:grid;gap:9px;margin:0;padding-left:20px;color:#26352c;font-size:14px;line-height:1.75}
+.summary-list li::marker{color:#c49c58}
+.summary-list+.summary-table-wrap,.summary-table-wrap+.summary-list{margin-top:14px}
+.summary-part{display:block}
+.summary-list strong,.summary-table strong{color:#9a4a2f}
+.summary-code{padding:1px 6px;border-radius:5px;background:#f3ecd9;color:#6b4f1d;font-family:inherit;font-size:.95em;font-weight:700;letter-spacing:.03em}
+.summary-table-wrap{overflow-x:auto;border:1px solid #e3e8e0;border-radius:10px}
+.summary-table{width:100%;border-collapse:collapse;color:#26352c;font-size:13px;line-height:1.65}
+.summary-table th,.summary-table td{padding:10px 12px;border-bottom:1px solid #edf0eb;text-align:left;vertical-align:top}
+.summary-table thead th{background:#f3f6f1;color:#40594a;font-size:12px;white-space:nowrap}
+.summary-table tbody th{background:#fafbf8;color:#294938;font-weight:700;white-space:nowrap}
+.summary-table tr:last-child>*{border-bottom:0}
+.summary-corrections{padding:16px 24px;border-bottom:1px solid #f0f1ed;background:#fffaf0}
+.summary-corrections summary{color:#8a6c32;font-size:13px;font-weight:700;cursor:pointer}
+.summary-corrections ul{display:grid;gap:10px;margin:12px 0 0;padding:0;list-style:none}
+.summary-corrections li{display:grid;gap:4px;padding:10px 12px;border:1px solid #eee3c8;border-radius:9px;background:#fff;font-size:12px;line-height:1.6}
+.summary-kind{justify-self:start;padding:2px 7px;border-radius:5px;background:#f6e1d7;color:#8f3f27;font-size:10px}
+.summary-kind.is-addition{background:#e4efe2;color:#3f6a46}
+.summary-before{color:#8b8f88;text-decoration:line-through}
+.summary-after{color:#1f3a2b;font-weight:700}
+.summary-corrections small{color:#6f7d72}
+.summary-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 24px;background:#fafbf8}
+.summary-foot>span{color:#6f7b71;font-size:11px;line-height:1.6}
+.summary-foot .button{white-space:nowrap}
+@media (min-width:721px) and (max-width:1200px){.primary-nav{gap:3px}.nav-item{gap:5px;padding:0 8px;font-size:12px}}
+@media (min-width:721px) and (max-width:900px){.brand{padding-right:12px}.brand>span:last-child{display:none}}
+@media(max-width:720px){
+  .primary-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .nav-item{font-size:10px;line-height:1.15;text-align:center;white-space:normal;word-break:keep-all}
+  .summary-hero{grid-template-columns:1fr;gap:14px;padding:18px}
+  .summary-dday{flex-direction:row;align-items:baseline;justify-content:space-between;padding:0 0 12px;border-right:0;border-bottom:1px solid #ffffff22}
+  .summary-dday strong{font-size:34px}
+  .summary-tabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px}
+  .summary-tabs [role=tab]{min-height:50px;font-size:13px}
+  .summary-subject-head{flex-direction:column;padding:18px 16px}
+  .summary-subject-head .button{align-self:stretch}
+  .summary-section{padding:17px 16px}
+  .summary-list{padding-left:18px}
+  .summary-table{font-size:12.5px}
+  .summary-table th,.summary-table td{padding:9px 10px}
+  .summary-corrections{padding:14px 16px}
+  .summary-foot{flex-direction:column;align-items:stretch;padding:14px 16px}
+}
