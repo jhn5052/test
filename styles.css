@@ -464,3 +464,5 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .exam-topline{top:calc(56px + env(safe-area-inset-top))}
 }
 @media(max-width:359px){.topbar{padding-right:max(12px,env(safe-area-inset-right));padding-left:max(12px,env(safe-area-inset-left))}}
+/* Long formulas in choices and explanations (e.g. 800×0.90+1,000×0.85…) have no spaces; let them wrap on narrow screens. */
+.mistake-card,.answer-option,.mistake-retry-choice,.type-answer-option,.type-source,.type-answer-feedback,.flashcard{overflow-wrap:anywhere}
