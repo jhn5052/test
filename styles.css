@@ -324,11 +324,9 @@
 .radio-dial:after{inset:17px;border-style:solid;opacity:.4}
 .radio-dial span{position:absolute;top:17px;font:9px "DM Mono",monospace;letter-spacing:.12em}
 .radio-dial b{font-size:28px;font-weight:500}
-.radio-subjects{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px 0;border-top:1px solid rgba(233,237,222,.16)}
-.radio-subjects>span{margin-right:4px;color:#bac7b8;font-size:10px}
-.radio-subjects button{padding:8px 11px;border:1px solid rgba(238,239,225,.23);border-radius:999px;background:rgba(255,255,255,.04);color:#e8ecdf;font:700 12px Pretendard,sans-serif;cursor:pointer}
-.radio-subjects button.selected{border-color:#d8bd73;background:#dfc987;color:#273c2f}
-.radio-subjects button small{margin-left:4px;font-size:9px;opacity:.75}
+.radio-order{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0;padding:0;list-style:none;counter-reset:radio-order}
+.radio-order li{counter-increment:radio-order;padding:5px 10px;border:1px solid rgba(238,239,225,.23);border-radius:999px;background:rgba(255,255,255,.04);color:#e8ecdf;font-size:12px;font-weight:700}
+.radio-order li:before{content:counter(radio-order) " ";color:#d9c78f;font:10px "DM Mono",monospace}
 .radio-duration{display:flex;align-items:center;gap:8px;padding:12px 0;border-top:1px solid rgba(233,237,222,.16)}
 .radio-duration button{min-width:57px;padding:8px 11px;border:1px solid rgba(238,239,225,.23);border-radius:8px;background:rgba(255,255,255,.04);color:#e8ecdf;font:700 13px Pretendard,sans-serif}
 .radio-duration button.selected{border-color:#d8bd73;background:#dfc987;color:#273c2f}
@@ -336,10 +334,11 @@
 .radio-duration>span{margin-left:auto;color:#bac7b8;font-size:10px}
 .radio-controls{display:flex;align-items:center;gap:9px;margin-top:4px}
 .radio-controls .button{min-height:39px}
+.radio-controls .button:disabled{opacity:.45;cursor:not-allowed}
 .radio-controls .button-primary{background:#dfc987;border-color:#dfc987;color:#253b2e}
 .radio-controls .button-primary:hover{background:#ead9a7}
-.radio-controls .button-outline{border-color:rgba(238,239,225,.3);color:#f2f2e8}
-.radio-controls .button-quiet{color:#d4ded1}
+.radio-controls .button-outline{border-color:rgba(238,239,225,.3);background:rgba(255,255,255,.06);color:#f2f2e8}
+.radio-controls .button-quiet{background:transparent;color:#d4ded1}
 .radio-progress-wrap{display:grid;gap:6px;min-width:120px;flex:1;margin-left:8px}
 .radio-progress{height:5px;overflow:hidden;border-radius:9px;background:rgba(255,255,255,.18)}
 .radio-progress i{display:block;height:100%;border-radius:inherit;background:#e2c977;transition:width .5s ease}
@@ -359,14 +358,15 @@
 .radio-report-heading h2{margin:5px 0 0;color:#304638;font-size:18px}
 .radio-report-heading>span{padding:7px 10px;border-radius:20px;background:#edf3eb;color:#56715a;font-size:10px;font-weight:700}
 .radio-script{padding:0 22px}
+.radio-subject-divider{display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 0;border-bottom:1px solid #e6ebe3;color:#7a867b;font-size:11px;font-weight:700}
+.radio-subject-divider span{padding:3px 9px;border-radius:999px;background:#e9f0e6;color:#36563f;font-size:11px}
+.radio-subject-divider.is-speaking span{background:#dfc987;color:#273c2f}
 .radio-section{display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;padding:18px 0;border-bottom:1px solid #f0f1ed;transition:background .2s ease}
 .radio-section:last-child{border-bottom:0}
 .radio-section.is-speaking{margin:0 -12px;padding:18px 12px;border-radius:8px;background:#f3f7f1}
 .radio-section-number{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f3f0e6;color:#94763d;font:11px "DM Mono",monospace}
 .radio-section h3{margin:3px 0 8px;color:#344c3b;font-size:14px}
 .radio-section p{margin:0;color:#526056;font-size:12px;line-height:1.9;white-space:pre-line}
-.radio-section.recall{background:linear-gradient(90deg,#fffaf0,transparent);}
-.radio-section.recall h3{color:#8a6c32}
 .radio-section.intro p,.radio-section.outro p{color:#6d796f}
 .radio-report-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 22px;border-top:1px solid #edf0eb;background:#fafbf8}
 .radio-report-foot>span{color:#7a867b;font-size:10px;line-height:1.6}
