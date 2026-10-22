@@ -324,6 +324,11 @@
 .radio-dial:after{inset:17px;border-style:solid;opacity:.4}
 .radio-dial span{position:absolute;top:17px;font:9px "DM Mono",monospace;letter-spacing:.12em}
 .radio-dial b{font-size:28px;font-weight:500}
+.radio-subjects{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px 0;border-top:1px solid rgba(233,237,222,.16)}
+.radio-subjects>span{margin-right:4px;color:#bac7b8;font-size:10px}
+.radio-subjects button{padding:8px 11px;border:1px solid rgba(238,239,225,.23);border-radius:999px;background:rgba(255,255,255,.04);color:#e8ecdf;font:700 12px Pretendard,sans-serif;cursor:pointer}
+.radio-subjects button.selected{border-color:#d8bd73;background:#dfc987;color:#273c2f}
+.radio-subjects button small{margin-left:4px;font-size:9px;opacity:.75}
 .radio-duration{display:flex;align-items:center;gap:8px;padding:12px 0;border-top:1px solid rgba(233,237,222,.16)}
 .radio-duration button{min-width:57px;padding:8px 11px;border:1px solid rgba(238,239,225,.23);border-radius:8px;background:rgba(255,255,255,.04);color:#e8ecdf;font:700 13px Pretendard,sans-serif}
 .radio-duration button.selected{border-color:#d8bd73;background:#dfc987;color:#273c2f}

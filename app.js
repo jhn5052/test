@@ -241,34 +241,53 @@ function radioSubjectScores() {
   });
   return scores;
 }
+const RADIO_SHORT = { "부동산학개론": "학개론", "민법 및 민사특별법": "민법", "공인중개사법령 및 중개실무": "중개사법", "부동산공법": "공법", "부동산공시에 관한 법령 및 부동산 관련 세법": "공시·세법" };
+function radioDayNumber(date = new Date()) { return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000); }
+// Seeded shuffle so the same day always builds the same episode, and the next day a different one.
+function radioShuffle(items, seed) {
+  let state = seed >>> 0;
+  const random = () => { state = (state + 0x6D2B79F5) >>> 0; let t = Math.imul(state ^ (state >>> 15), state | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; }
+  return result;
+}
+function radioCards(subject) { return studyTypes.filter(card => card.subject === subject && !card.id.startsWith("gap-") && (card.concept || []).length); }
+function radioSubjects() { return SUBJECTS.filter(name => radioCards(name).length); }
+// Every cycle of N days plays each of the N subjects once, in a new random order; the weakest subject opens each cycle.
+function radioCycleOrder(subjects, cycle, weakest) {
+  const order = radioShuffle(subjects, cycle * 7919 + 17);
+  if (weakest) { order.splice(order.indexOf(weakest), 1); order.unshift(weakest); }
+  return order;
+}
+function radioDailySubject(scores) {
+  const subjects = radioSubjects();
+  if (!subjects.length) return SUBJECTS[0];
+  const scored = Object.entries(scores).filter(([name, score]) => score !== null && subjects.includes(name));
+  const weakest = scored.length ? scored.sort((a, b) => a[1] - b[1])[0][0] : null;
+  const day = radioDayNumber(), cycle = Math.floor(day / subjects.length);
+  const order = radioCycleOrder(subjects, cycle, weakest);
+  if (order.length > 1 && order[0] === radioCycleOrder(subjects, cycle - 1, weakest).at(-1)) [order[0], order[1]] = [order[1], order[0]];
+  return order[day % subjects.length];
+}
 function radioFocus() {
   const scores = radioSubjectScores();
-  let subject = null;
-  const available = Object.entries(scores).filter(([, score]) => score !== null);
-  if (available.length) subject = available.sort((a, b) => a[1] - b[1])[0][0];
-  else {
-    const availableSubjects = SUBJECTS.filter(name => studyTypes.some(card => card.subject === name && !card.id.startsWith("gap-") && (card.concept || []).length));
-    const offset = Number(radioDateKey().replaceAll("-", "")) % Math.max(1, availableSubjects.length);
-    subject = availableSubjects[offset] || SUBJECTS[0];
-  }
+  const dailySubject = radioDailySubject(scores);
+  const pick = store.radioPick;
+  const picked = pick?.date === radioDateKey() && radioSubjects().includes(pick.subject) ? pick.subject : null;
+  const subject = picked || dailySubject;
   const recentWrongIds = [];
   store.history.slice(0, 4).forEach(attempt => (attempt.results || []).forEach(result => {
     if (result.correct === false && result.questionId) recentWrongIds.push(result.questionId);
   }));
   store.mistakes.forEach(mistake => { if (mistake.questionId) recentWrongIds.push(mistake.questionId); });
-  const counts = new Map();
-  recentWrongIds.forEach(id => counts.set(id, (counts.get(id) || 0) + 1));
-  const cards = studyTypes.filter(card => card.subject === subject && !card.id.startsWith("gap-") && (card.concept || []).length);
-  const ranked = cards.map((card, index) => ({ card, index, priority: counts.get(card.sourceId) || 0 }))
-    .sort((a, b) => b.priority - a.priority || a.index - b.index);
-  if (!ranked.length) return { subject, scores, cards: [] };
-  const priority = ranked.filter(item => item.priority > 0);
-  const regular = ranked.filter(item => item.priority === 0);
-  const dateOffset = Number(radioDateKey().replaceAll("-", "")) % Math.max(1, regular.length);
-  const rotatedRegular = regular.length ? regular.slice(dateOffset).concat(regular.slice(0, dateOffset)) : [];
-  const ordered = [...priority, ...rotatedRegular];
-  const selected = ordered.slice(0, Math.min(8, ordered.length)).map(item => item.card);
-  return { subject, scores, cards: selected };
+  const wrong = new Set(recentWrongIds);
+  const cards = radioCards(subject);
+  if (!cards.length) return { subject, dailySubject, picked: Boolean(picked), scores, cards: [] };
+  const seed = radioDayNumber() * 31 + SUBJECTS.indexOf(subject) + 1;
+  const priority = radioShuffle(cards.filter(card => wrong.has(card.sourceId)), seed);
+  const regular = radioShuffle(cards.filter(card => !wrong.has(card.sourceId)), seed + 7);
+  const ordered = [...priority.slice(0, 3), ...regular, ...priority.slice(3)];
+  return { subject, dailySubject, picked: Boolean(picked), scores, cards: ordered.slice(0, 8) };
 }
 function radioNarration(card) {
   const concepts = (card.concept || []).map(normalizeStudyText).filter(Boolean);
@@ -316,12 +335,13 @@ function renderDailyRadio() {
   const episode = buildRadioEpisode(duration);
   const scores = episode.scores;
   const hasScores = Object.values(scores).some(score => score !== null);
-  const progress = store.radioProgress?.date === episode.key && store.radioProgress.duration === duration ? store.radioProgress : null;
+  const subjectCount = radioSubjects().length;
+  const progress = store.radioProgress?.date === episode.key && store.radioProgress.duration === duration && (store.radioProgress.subject ?? episode.dailySubject) === episode.subject ? store.radioProgress : null;
   const report = progress?.completed ? "오늘 청취를 마쳤습니다." : progress?.minutesListened ? `이전에 ${progress.minutesListened}분 들었습니다.` : "아직 오늘의 청취 기록이 없습니다.";
-  const scorePanel = `<form class="radio-score-form" id="radio-score-form"><div><b>최근 모의고사 점수</b><span>앱 응시 기록이 있으면 과목별 10문항 이상 기록을 우선 반영합니다. 직접 입력한 점수는 이 기기에만 저장됩니다.</span></div>${SUBJECTS.map((subject, index) => `<label>${escapeHTML(subject)} <input name="subject-${index}" type="number" min="0" max="100" step="1" inputmode="numeric" value="${scores[subject] ?? ""}" placeholder="점수" aria-label="${escapeHTML(subject)} 점수"></label>`).join("")}<button class="button button-outline">점수 저장</button></form>`;
+  const scorePanel = `<form class="radio-score-form" id="radio-score-form"><div><b>최근 모의고사 점수</b><span>점수가 가장 낮은 과목이 과목 순환의 첫날에 나옵니다. 앱 응시 기록이 있으면 과목별 10문항 이상 기록을 우선 반영하고, 직접 입력한 점수는 이 기기에만 저장됩니다.</span></div>${SUBJECTS.map((subject, index) => `<label>${escapeHTML(subject)} <input name="subject-${index}" type="number" min="0" max="100" step="1" inputmode="numeric" value="${scores[subject] ?? ""}" placeholder="점수" aria-label="${escapeHTML(subject)} 점수"></label>`).join("")}<button class="button button-outline">점수 저장</button></form>`;
   const sections = episode.sections.map((section, index) => `<article class="radio-section ${section.kind}" data-radio-section="${index}"><div class="radio-section-number">${String(index + 1).padStart(2, "0")}</div><div><h3>${escapeHTML(section.title)}</h3><p>${escapeHTML(section.text)}</p></div></article>`).join("");
-  return `${titleBlock("DAILY STUDY RADIO", "오늘의 개념 라디오", "최근 점수와 반복 오답을 바탕으로 오늘 들을 개념을 고르고, 듣고 난 뒤 복습 리포트를 남깁니다.")}
-    <section class="radio-hero"><div class="radio-onair"><span class="radio-live-dot"></span> 오늘의 학습 리포트 <time>${episode.key}</time></div><div class="radio-main"><div><p class="eyebrow">오늘 먼저 다룰 과목</p><h2>${escapeHTML(episode.subject)}</h2><p>${hasScores ? `${escapeHTML(episode.subject)} 점수를 먼저 보강하도록 구성했습니다.` : "점수를 입력하거나 시험을 응시하면 약한 과목부터 자동으로 골라요."}</p></div><div class="radio-dial" aria-hidden="true"><span>ON</span><b>♫</b></div></div><div class="radio-duration" role="group" aria-label="라디오 길이 선택">${[10, 12, 15].map(value => `<button data-radio-duration="${value}" class="${duration === value ? "selected" : ""}" aria-pressed="${duration === value}">${value}<small>분</small></button>`).join("")}<span>예상 ${episode.minutes}분 · 속도에 따라 달라질 수 있어요</span></div><div class="radio-controls"><button class="button button-primary" id="radio-play" ${episode.cards.length ? "" : "disabled"}>▶ 듣기 시작</button><button class="button button-outline" id="radio-pause" disabled>일시정지</button><button class="button button-quiet" id="radio-stop" disabled>끝내기</button><div class="radio-progress-wrap"><div class="radio-progress"><i id="radio-progress-bar" style="width:${progress?.completed ? 100 : 0}%"></i></div><span id="radio-progress-label">${report}</span></div></div><p class="radio-voice-note" id="radio-voice-note">기기의 한국어 음성으로 읽습니다. 이어폰을 연결하면 화면을 보지 않고 들을 수 있어요.</p></section>
+  return `${titleBlock("DAILY STUDY RADIO", "오늘의 개념 라디오", "과목과 개념이 매일 바뀝니다. 최근 틀린 개념을 먼저 넣고, 듣고 난 뒤 복습 리포트를 남깁니다.")}
+    <section class="radio-hero"><div class="radio-onair"><span class="radio-live-dot"></span> 오늘의 학습 리포트 <time>${episode.key}</time></div><div class="radio-main"><div><p class="eyebrow">${episode.picked ? "직접 고른 과목" : "오늘의 과목"}</p><h2>${escapeHTML(episode.subject)}</h2><p>${episode.picked ? "내일은 다시 그날의 과목으로 돌아갑니다." : `과목은 매일 바뀌고, ${subjectCount}일이면 전 과목을 한 번씩 듣습니다.${hasScores ? " 점수가 가장 낮은 과목이 순환의 첫날에 나옵니다." : ""}`}</p></div><div class="radio-dial" aria-hidden="true"><span>ON</span><b>♫</b></div></div><div class="radio-subjects" role="group" aria-label="들을 과목 선택"><span>다른 과목 듣기</span>${radioSubjects().map(name => `<button data-radio-subject="${escapeHTML(name)}" class="${name === episode.subject ? "selected" : ""}" aria-pressed="${name === episode.subject}">${escapeHTML(RADIO_SHORT[name] || name)}${name === episode.dailySubject ? "<small>오늘</small>" : ""}</button>`).join("")}</div><div class="radio-duration" role="group" aria-label="라디오 길이 선택">${[10, 12, 15].map(value => `<button data-radio-duration="${value}" class="${duration === value ? "selected" : ""}" aria-pressed="${duration === value}">${value}<small>분</small></button>`).join("")}<span>예상 ${episode.minutes}분 · 속도에 따라 달라질 수 있어요</span></div><div class="radio-controls"><button class="button button-primary" id="radio-play" ${episode.cards.length ? "" : "disabled"}>▶ 듣기 시작</button><button class="button button-outline" id="radio-pause" disabled>일시정지</button><button class="button button-quiet" id="radio-stop" disabled>끝내기</button><div class="radio-progress-wrap"><div class="radio-progress"><i id="radio-progress-bar" style="width:${progress?.completed ? 100 : 0}%"></i></div><span id="radio-progress-label">${report}</span></div></div><p class="radio-voice-note" id="radio-voice-note">기기의 한국어 음성으로 읽습니다. 이어폰을 연결하면 화면을 보지 않고 들을 수 있어요.</p></section>
     ${scorePanel}<section class="radio-report"><div class="radio-report-heading"><div><span class="eyebrow">LISTENING REPORT</span><h2>오늘 들을 내용</h2></div><span>${episode.sections.filter(section => section.kind === "concept").length}개 핵심 개념</span></div><div class="radio-script">${sections}</div><div class="radio-report-foot"><span>듣고 나서: 바로 떠오르지 않은 개념은 암기카드에서 다시 확인하세요.</span><button class="button button-outline" data-radio-cards>관련 암기카드 보기 →</button></div></section>`;
 }
 function radioChunks(text, limit = 260) {
@@ -344,7 +364,7 @@ function stopRadioPlayback(markComplete = false) {
   const progress = store.radioProgress || (store.radioProgress = {});
   if (radioPlayback.startedAt) {
     const elapsed = radioPlayback.elapsedBeforePause + (Date.now() - radioPlayback.startedAt);
-    progress.date = radioDateKey(); progress.duration = Number(store.radioDuration) || 10;
+    progress.date = radioDateKey(); progress.duration = Number(store.radioDuration) || 10; progress.subject = radioPlayback.subject;
     progress.minutesListened = Math.min(progress.duration, Math.floor(elapsed / 60000));
     progress.completed = Boolean(markComplete);
     persist();
@@ -377,7 +397,7 @@ function playRadioChunk() {
 function beginRadioPlayback() {
   if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") { toast("이 브라우저는 음성 읽기를 지원하지 않아요. 아래 대본을 읽어 주세요."); return; }
   const episode = buildRadioEpisode(Number(store.radioDuration) || 10);
-  radioPlayback.utterances = []; radioPlayback.sectionEnds = [];
+  radioPlayback.utterances = []; radioPlayback.sectionEnds = []; radioPlayback.subject = episode.subject;
   episode.sections.forEach(section => { radioPlayback.utterances.push(...radioChunks(section.text)); radioPlayback.sectionEnds.push(radioPlayback.utterances.length); });
   radioPlayback.index = 0; radioPlayback.playing = true; radioPlayback.paused = false; radioPlayback.startedAt = Date.now(); radioPlayback.elapsedBeforePause = 0;
   document.querySelector("#radio-play")?.setAttribute("disabled", ""); document.querySelector("#radio-pause")?.removeAttribute("disabled"); document.querySelector("#radio-stop")?.removeAttribute("disabled");
@@ -393,6 +413,10 @@ function beginRadioPlayback() {
 function bindDailyRadio() {
   document.querySelectorAll("[data-radio-duration]").forEach(button => button.addEventListener("click", () => {
     stopRadioPlayback(false); store.radioDuration = Number(button.dataset.radioDuration); persist(); render();
+  }));
+  document.querySelectorAll("[data-radio-subject]").forEach(button => button.addEventListener("click", () => {
+    stopRadioPlayback(false); const subject = button.dataset.radioSubject;
+    store.radioPick = subject === radioFocus().dailySubject ? null : { date: radioDateKey(), subject }; persist(); render();
   }));
   document.querySelector("#radio-score-form")?.addEventListener("submit", event => {
     event.preventDefault(); const form = new FormData(event.currentTarget); const scores = radioProfile().scores;
@@ -471,7 +495,7 @@ function renderDashboard() {
       <article class="stat-card"><span class="stat-label">다시 볼 오답</span><span class="stat-glyph">↺</span><strong>${store.mistakes.length}<em>문항</em></strong></article>
     </section>
     ${renderLearningInsights(attempts, subjects)}
-    <section class="radio-dashboard-card"><div class="radio-dashboard-mark">♫</div><div><span class="eyebrow">DAILY STUDY RADIO</span><h2>오늘의 개념을 귀로 복습하세요</h2><p>1·2차 전 과목의 최근 점수와 반복 오답 개념을 반영해 10·12·15분 학습 리포트를 구성합니다.</p></div><button class="button button-primary" data-action="open-radio">오늘의 라디오 듣기 <span>→</span></button></section>
+    <section class="radio-dashboard-card"><div class="radio-dashboard-mark">♫</div><div><span class="eyebrow">DAILY STUDY RADIO</span><h2>오늘의 개념을 귀로 복습하세요</h2><p>과목과 개념을 매일 바꿔 10·12·15분 학습 리포트로 들려줍니다. 최근 틀린 개념이 먼저 나옵니다.</p></div><button class="button button-primary" data-action="open-radio">오늘의 라디오 듣기 <span>→</span></button></section>
     <section class="content-grid">
       <article class="panel"><div class="panel-head"><div><h2>회차별 점수</h2><p>시험을 마칠 때마다 성적이 쌓입니다</p></div><span class="eyebrow">SCORE / 100</span></div>${chart}</article>
       <article class="panel"><div class="panel-head"><div><h2>과목별 정답률</h2><p>지금까지 푼 문제 기준</p></div></div>${renderSubjectStats(subjects)}</article>
