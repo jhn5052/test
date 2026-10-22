@@ -432,20 +432,16 @@ function renderCoreSummary() {
   const index = Math.max(0, subjects.findIndex(item => item.id === store.summarySubject));
   const subject = subjects[index];
   const next = subjects[(index + 1) % subjects.length];
-  const corrections = (coreSummary.corrections || []).filter(item => item.subject === subject.id);
   const cardCount = studyTypes.filter(card => card.subject === subject.appSubject).length;
   const dday = summaryDday(coreSummary.examDate);
   const hero = `<section class="summary-hero"><div class="summary-dday"><span class="eyebrow">EXAM ${escapeHTML(coreSummary.examDate || "")}</span><strong>${escapeHTML(dday)}</strong></div><div class="summary-plan"><p class="summary-pass">${summaryInline(coreSummary.passRule || "")}</p><ul>${(coreSummary.strategy || []).map(item => `<li>${summaryInline(item)}</li>`).join("")}</ul>${coreSummary.order?.length ? `<ol class="summary-order" aria-label="추천 암기 순서">${coreSummary.order.map(item => `<li>${escapeHTML(item)}</li>`).join("")}</ol>` : ""}</div></section>`;
   const tabs = `<div class="summary-tabs" role="tablist" aria-label="과목 선택">${subjects.map(item => `<button role="tab" aria-selected="${item.id === subject.id}" class="${item.id === subject.id ? "selected" : ""}" data-summary-subject="${escapeHTML(item.id)}"><span>${escapeHTML(item.short)}</span><small>${escapeHTML(item.stage)}</small></button>`).join("")}</div>`;
   const sections = subject.sections.map(section => `<section class="summary-section"><h3>${summaryInline(section.title)}${section.note ? ` <small>${summaryInline(section.note)}</small>` : ""}</h3>${section.blocks.map(renderSummaryBlock).join("")}</section>`).join("");
-  const correctionList = corrections.length
-    ? `<details class="summary-corrections"><summary>현행 조문과 대조해 고친 곳 ${corrections.length}건</summary><ul>${corrections.map(item => `<li><b class="summary-kind ${item.kind === "보완" ? "is-addition" : ""}">${escapeHTML(item.kind || "정정")}</b>${item.kind === "보완" ? "" : `<span class="summary-before">${summaryInline(item.before)}</span>`}<span class="summary-after">${summaryInline(item.after)}</span><small>${summaryInline(item.basis)}</small></li>`).join("")}</ul></details>`
-    : "";
   return `${heading}${hero}${tabs}
     <section class="summary-subject" role="tabpanel" aria-label="${escapeHTML(subject.name)}">
       <div class="summary-subject-head"><div><span class="eyebrow">${escapeHTML(subject.stage)}</span><h2>${escapeHTML(subject.name)}</h2>${subject.goal ? `<p class="summary-goal">${summaryInline(subject.goal)}</p>` : ""}${subject.intro ? `<p>${summaryInline(subject.intro)}</p>` : ""}</div>${cardCount ? `<button class="button button-outline" data-summary-cards="${escapeHTML(subject.appSubject)}">관련 암기카드 ${cardCount}장 →</button>` : ""}</div>
-      ${sections}${correctionList}
-      <div class="summary-foot"><span>${summaryInline(coreSummary.basis || "")} 기준일 ${escapeHTML(coreSummary.checkedAt || "")}.</span>${next.id !== subject.id ? `<button class="button button-primary" data-summary-subject="${escapeHTML(next.id)}">다음 과목: ${escapeHTML(next.short)} →</button>` : ""}</div>
+      ${sections}
+      <div class="summary-foot"><span>${summaryInline(coreSummary.basis || "")}</span>${next.id !== subject.id ? `<button class="button button-primary" data-summary-subject="${escapeHTML(next.id)}">다음 과목: ${escapeHTML(next.short)} →</button>` : ""}</div>
     </section>`;
 }
 function bindCoreSummary() {
