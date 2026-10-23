@@ -33,13 +33,14 @@ let mistakeRetrySelected = null;
 let mistakeRetryFeedback = "";
 let calculatorState = { display: "0", expression: "", stored: null, operator: null, waitingForOperand: false };
 let issueQuestionId = null;
-let radioData = null;
-const radioPlayer = { audio: null, episode: null, url: null, loadedUrl: null, building: null, offsets: [], seconds: 0, sectionIndex: -1, resumeAt: 0, error: null };
+let summaryAudio = null;
+const summaryPlayer = { audio: null, subjectId: null, tracks: new Map(), failed: null, partIndex: -1, resumeAt: 0 };
 
 function readStore() {
   const defaults = { history: [], mistakes: [], flashcards: [], questionIssues: [], recallProgress: {}, active: null };
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    ["radioProfile", "radioProgress", "radioDuration"].forEach(key => delete saved[key]);
     return { ...defaults, ...saved, history: Array.isArray(saved.history) ? saved.history.map(normalizeAttempt).filter(Boolean) : [], mistakes: Array.isArray(saved.mistakes) ? saved.mistakes : [], flashcards: Array.isArray(saved.flashcards) ? saved.flashcards : [], questionIssues: Array.isArray(saved.questionIssues) ? saved.questionIssues : [], recallProgress: saved.recallProgress && typeof saved.recallProgress === "object" ? saved.recallProgress : {} };
   } catch { return defaults; }
 }
@@ -198,7 +199,7 @@ function setView(next) {
   if (next === "flashcards") { next = "study-types"; studyTypeMode = "saved"; }
   view = next;
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === next));
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", radio: "오늘의 라디오", summary: "필수 암기" })[next] || "학습실";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", summary: "필수 암기" })[next] || "학습실";
   render();
 }
 function render() {
@@ -210,252 +211,153 @@ function render() {
   else if (view === "mistakes") { root.innerHTML = renderMistakes(); bindMistakes(); }
   else if (view === "flashcards") { root.innerHTML = renderFlashcards(); bindFlashcards(); }
   else if (view === "study-types") { root.innerHTML = renderStudyTypes(); bindStudyTypes(); if (studyTypeMode === "saved") bindFlashcards(); }
-  else if (view === "radio") { root.innerHTML = renderDailyRadio(); bindDailyRadio(); }
   else if (view === "summary") { root.innerHTML = renderCoreSummary(); bindCoreSummary(); }
   else if (view === "result" && store.history[0]) { root.innerHTML = renderResult(store.history[0]); bindResult(); }
   else { view = "dashboard"; root.innerHTML = renderDashboard(); bindDashboard(); }
-  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", radio: "오늘의 라디오", summary: "필수 암기" })[view] || "시험 응시";
+  document.querySelector("#page-name").textContent = ({ dashboard: "대시보드", exam: "시험 응시", mistakes: "오답노트", flashcards: "암기카드", "study-types": "암기카드", result: "시험 결과", summary: "필수 암기" })[view] || "시험 응시";
   document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.view === (view === "taking" ? "exam" : view)));
   updateCounts();
 }
 function titleBlock(kicker, title, sub, action = "") {
   return `<div class="page-heading"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`;
 }
-function radioDateKey(date = new Date()) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
-function radioProfile() {
-  if (!store.radioProfile || typeof store.radioProfile !== "object") store.radioProfile = { scores: {} };
-  if (!store.radioProfile.scores || typeof store.radioProfile.scores !== "object") store.radioProfile.scores = {};
-  return store.radioProfile;
+function summaryTime(seconds) { const value = Math.max(0, Math.round(seconds || 0)); return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`; }
+function summaryTrack(id) { return summaryAudio?.subjects?.find(track => track.id === id) || null; }
+function summaryPartAt(track, time) { let index = 0; (track?.parts || []).forEach((part, i) => { if (time >= part.start - 0.05) index = i; }); return index; }
+function nextSummarySubject(id) {
+  const subjects = (coreSummary?.subjects || []).filter(subject => summaryTrack(subject.id));
+  const index = subjects.findIndex(subject => subject.id === id);
+  return index >= 0 ? subjects[index + 1] || null : null;
 }
-function radioSubjectScores() {
-  const scores = {};
-  const recent = store.history.map(normalizeAttempt).filter(Boolean);
-  const latestBySubject = new Map();
-  recent.forEach(attempt => Object.entries(attempt.subjects || {}).forEach(([subject, value]) => {
-    if (!latestBySubject.has(subject) && Number(value.total) >= 10) latestBySubject.set(subject, Math.round(value.correct / value.total * 100));
-  }));
-  const saved = radioProfile().scores;
-  SUBJECTS.forEach(subject => {
-    const legacy = subject === SUBJECTS[0] ? saved.econ : subject === SUBJECTS[1] ? saved.civil : undefined;
-    const stored = saved[subject] ?? legacy;
-    scores[subject] = latestBySubject.has(subject) ? latestBySubject.get(subject) : Number.isInteger(Number(stored)) && Number(stored) >= 0 && Number(stored) <= 100 ? Number(stored) : null;
-  });
-  return scores;
-}
-const RADIO_SHORT = { "부동산학개론": "학개론", "민법 및 민사특별법": "민법", "공인중개사법령 및 중개실무": "중개사법", "부동산공법": "공법", "부동산공시에 관한 법령 및 부동산 관련 세법": "공시·세법" };
-const RADIO_GAP = 0.7;
-function radioDayNumber(date = new Date()) { return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000); }
-// Seeded shuffle so the same day always builds the same episode, and the next day a different one.
-function radioShuffle(items, seed) {
-  let state = seed >>> 0;
-  const random = () => { state = (state + 0x6D2B79F5) >>> 0; let t = Math.imul(state ^ (state >>> 15), state | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; }
-  return result;
-}
-function radioClip(id) { return radioData?.clips?.find(clip => clip.id === id) || null; }
-function radioConceptClips(subject) { return (radioData?.clips || []).filter(clip => clip.kind === "concept" && clip.subject === subject); }
-function radioWrongIds() {
-  const ids = new Set();
-  store.history.slice(0, 4).forEach(attempt => (attempt.results || []).forEach(result => { if (result.correct === false && result.questionId) ids.add(result.questionId); }));
-  store.mistakes.forEach(mistake => { if (mistake.questionId) ids.add(mistake.questionId); });
-  return ids;
-}
-// Every episode covers all subjects: the weakest scored subject goes first, the rest in a new order each day.
-function buildRadioEpisode(duration) {
-  const scores = radioSubjectScores();
-  const day = radioDayNumber();
-  const subjects = SUBJECTS.filter(subject => radioConceptClips(subject).length && radioClip(`subject-${SUBJECTS.indexOf(subject) + 1}`));
-  const order = radioShuffle(subjects, day * 7919 + 17);
-  const weakest = subjects.filter(subject => scores[subject] !== null).sort((a, b) => scores[a] - scores[b])[0] || null;
-  if (weakest) { order.splice(order.indexOf(weakest), 1); order.unshift(weakest); }
-  const intro = radioClip("intro"), outro = radioClip("outro");
-  const empty = { key: radioDateKey(), duration, order: [], weakest, scores, sections: [], seconds: 0, signature: "" };
-  if (!intro || !outro || !order.length) return empty;
-  const wrong = radioWrongIds();
-  const sourceOf = new Map(studyTypes.map(card => [card.id, card.sourceId]));
-  const queues = order.map(subject => {
-    const clips = radioConceptClips(subject), seed = day * 31 + SUBJECTS.indexOf(subject) + 1;
-    const missed = radioShuffle(clips.filter(clip => wrong.has(sourceOf.get(clip.id))), seed);
-    const regular = radioShuffle(clips.filter(clip => !wrong.has(sourceOf.get(clip.id))), seed + 7);
-    return [...missed.slice(0, 2), ...regular, ...missed.slice(2)];
-  });
-  const headers = order.map(subject => radioClip(`subject-${SUBJECTS.indexOf(subject) + 1}`));
-  const target = duration * 60;
-  let total = [intro, outro, ...headers].reduce((sum, clip) => sum + clip.seconds + RADIO_GAP, 0);
-  const picked = order.map(() => []);
-  const take = (index, position) => { const [clip] = queues[index].splice(position, 1); picked[index].push(clip); total += clip.seconds + RADIO_GAP; };
-  queues.forEach((queue, index) => { if (queue.length) take(index, 0); });
-  for (let added = true; added;) {
-    added = false;
-    queues.forEach((queue, index) => {
-      const position = queue.findIndex(clip => total + clip.seconds + RADIO_GAP <= target + 15);
-      if (position >= 0) { take(index, position); added = true; }
-    });
+// Download the whole subject before playing: a blob URL seeks the same way online and offline, and the service worker keeps a copy.
+function loadSummaryTrack(id) {
+  const track = summaryTrack(id);
+  if (!track) return Promise.reject(new Error(`${id} 음성이 없습니다.`));
+  let entry = summaryPlayer.tracks.get(id);
+  if (!entry) {
+    entry = { url: null };
+    entry.promise = fetch(track.file).then(response => { if (!response.ok) throw new Error(`${track.file} ${response.status}`); return response.blob(); })
+      .then(blob => { entry.url = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: "audio/mp4" })); return entry.url; })
+      .catch(error => { summaryPlayer.tracks.delete(id); throw error; });
+    summaryPlayer.tracks.set(id, entry);
   }
-  const sections = [intro, ...order.flatMap((subject, index) => [headers[index], ...picked[index]]), outro];
-  return { ...empty, order, sections, seconds: total, signature: `${radioDateKey()}|${duration}|${sections.map(section => section.id).join(",")}` };
+  return entry.promise;
 }
-function radioTime(seconds) { const value = Math.max(0, Math.round(seconds || 0)); return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`; }
-// Decode the clips and join them into one WAV file, so the phone plays a single track like music, even with the screen locked.
-async function buildRadioAudio(episode) {
-  const OfflineContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-  if (!OfflineContext) throw new Error("이 브라우저는 오디오 합치기를 지원하지 않아요.");
-  let rate = 22050, context;
-  try { context = new OfflineContext(1, 1, rate); } catch { rate = 44100; context = new OfflineContext(1, 1, rate); }
-  const downloads = episode.sections.map(section => fetch(section.file).then(response => { if (!response.ok) throw new Error(`${section.file} ${response.status}`); return response.arrayBuffer(); }));
-  const gap = Math.round(RADIO_GAP * rate), chunks = [], offsets = [];
-  let samples = 0;
-  for (const download of downloads) {
-    const buffer = await new Promise(async (resolve, reject) => { try { context.decodeAudioData(await download, resolve, reject); } catch (error) { reject(error); } });
-    const data = buffer.getChannelData(0), pcm = new Int16Array(data.length + gap);
-    for (let i = 0; i < data.length; i++) { const value = Math.max(-1, Math.min(1, data[i])); pcm[i] = value < 0 ? value * 0x8000 : value * 0x7fff; }
-    offsets.push(samples / rate); chunks.push(pcm); samples += pcm.length;
-  }
-  const header = new DataView(new ArrayBuffer(44));
-  const text = (offset, value) => [...value].forEach((char, index) => header.setUint8(offset + index, char.charCodeAt(0)));
-  text(0, "RIFF"); header.setUint32(4, 36 + samples * 2, true); text(8, "WAVE"); text(12, "fmt ");
-  header.setUint32(16, 16, true); header.setUint16(20, 1, true); header.setUint16(22, 1, true); header.setUint32(24, rate, true);
-  header.setUint32(28, rate * 2, true); header.setUint16(32, 2, true); header.setUint16(34, 16, true); text(36, "data"); header.setUint32(40, samples * 2, true);
-  return { url: URL.createObjectURL(new Blob([header, ...chunks], { type: "audio/wav" })), offsets, seconds: samples / rate };
+function prepareSummaryTrack(id) {
+  if (summaryPlayer.failed === id) summaryPlayer.failed = null;
+  loadSummaryTrack(id).then(syncSummaryControls, error => { console.warn(error); summaryPlayer.failed = id; syncSummaryControls(); });
+  syncSummaryControls();
 }
-function radioActive() { const audio = radioPlayer.audio; return Boolean(audio && radioPlayer.loadedUrl && audio.currentTime > 0 && !audio.ended); }
-function radioSectionAt(time) { let index = 0; radioPlayer.offsets.forEach((offset, i) => { if (time >= offset) index = i; }); return index; }
-function radioSavedProgress(episode) { const progress = store.radioProgress; return progress?.signature && progress.signature === episode.signature ? progress : null; }
-function saveRadioProgress(completed = false) {
-  const audio = radioPlayer.audio, episode = radioPlayer.episode;
-  if (!audio || !episode || !radioPlayer.loadedUrl) return;
-  store.radioProgress = { signature: episode.signature, date: episode.key, position: completed ? 0 : Math.floor(audio.currentTime), completed: completed || Boolean(radioSavedProgress(episode)?.completed) };
+function summaryListening(id) { const audio = summaryPlayer.audio; return Boolean(audio && summaryPlayer.subjectId === id && audio.currentSrc); }
+function saveSummaryProgress() {
+  const audio = summaryPlayer.audio;
+  if (!audio || !summaryPlayer.subjectId || !audio.currentSrc) return;
+  store.summaryListen = { subjectId: summaryPlayer.subjectId, position: audio.ended ? 0 : Math.floor(audio.currentTime) };
   persist();
 }
-function prepareRadioAudio(episode) {
-  if (radioPlayer.episode?.signature === episode.signature && (radioPlayer.url || radioPlayer.building)) return;
-  if (radioPlayer.url && radioPlayer.url !== radioPlayer.loadedUrl) URL.revokeObjectURL(radioPlayer.url);
-  Object.assign(radioPlayer, { episode, url: null, offsets: [], seconds: 0, error: null });
-  if (!episode.sections.length) return;
-  radioPlayer.building = buildRadioAudio(episode).then(result => {
-    if (radioPlayer.episode !== episode) { URL.revokeObjectURL(result.url); return; }
-    Object.assign(radioPlayer, result, { building: null });
-    syncRadioControls();
-  }).catch(error => {
-    console.warn(error);
-    if (radioPlayer.episode === episode) Object.assign(radioPlayer, { building: null, error: "오디오를 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요." });
-    syncRadioControls();
-  });
-}
-function radioMediaSession(section) {
+function summaryMediaSession() {
   if (!("mediaSession" in navigator) || typeof MediaMetadata === "undefined") return;
-  navigator.mediaSession.metadata = new MediaMetadata({ title: section?.title || "오늘의 개념 라디오", artist: section?.subject || "오늘의 개념 라디오", album: `공인중개사 기출연습 · ${radioPlayer.episode?.key || ""}` });
-  const audio = radioPlayer.audio;
+  const audio = summaryPlayer.audio, track = summaryTrack(summaryPlayer.subjectId);
+  const subject = coreSummary?.subjects?.find(item => item.id === summaryPlayer.subjectId);
+  navigator.mediaSession.metadata = new MediaMetadata({ title: track?.parts[summaryPartAt(track, audio?.currentTime || 0)]?.title || "과목별 필수 암기", artist: `${subject?.short || ""} 필수 암기`, album: "공인중개사 기출연습" });
   if (audio && Number.isFinite(audio.duration) && navigator.mediaSession.setPositionState) {
     try { navigator.mediaSession.setPositionState({ duration: audio.duration, playbackRate: audio.playbackRate, position: Math.min(audio.currentTime, audio.duration) }); } catch {}
   }
 }
-function radioAudioElement() {
-  if (radioPlayer.audio) return radioPlayer.audio;
+// When a subject ends, go straight on to the next one so it keeps playing like an album with the screen locked.
+function continueSummary() {
+  const finished = summaryPlayer.subjectId, next = nextSummarySubject(finished);
+  store.summaryListen = { subjectId: finished, position: 0 };
+  if (!next || !summaryPlayer.tracks.get(next.id)?.url) { persist(); summaryPlayer.partIndex = -1; syncSummaryControls(); return false; }
+  const following = store.summarySubject === finished;
+  if (following) store.summarySubject = next.id;
+  persist();
+  playSummarySubject(next.id, 0);
+  if (following && view === "summary") render();
+  return true;
+}
+function summaryAudioElement() {
+  if (summaryPlayer.audio) return summaryPlayer.audio;
   const audio = new Audio();
   audio.preload = "auto";
   let lastSaved = 0;
   audio.addEventListener("timeupdate", () => {
-    const index = radioSectionAt(audio.currentTime);
-    if (index !== radioPlayer.sectionIndex) { radioPlayer.sectionIndex = index; radioMediaSession(radioPlayer.episode?.sections[index]); }
-    if (Math.abs(audio.currentTime - lastSaved) >= 10) { lastSaved = audio.currentTime; saveRadioProgress(); }
-    syncRadioControls();
+    const index = summaryPartAt(summaryTrack(summaryPlayer.subjectId), audio.currentTime);
+    if (index !== summaryPlayer.partIndex) { summaryPlayer.partIndex = index; summaryMediaSession(); }
+    if (Math.abs(audio.currentTime - lastSaved) >= 10) { lastSaved = audio.currentTime; saveSummaryProgress(); }
+    syncSummaryControls();
   });
   audio.addEventListener("loadedmetadata", () => {
-    if (radioPlayer.resumeAt) { audio.currentTime = Math.min(radioPlayer.resumeAt, Math.max(0, audio.duration - 1)); radioPlayer.resumeAt = 0; }
-    radioMediaSession(radioPlayer.episode?.sections[radioSectionAt(audio.currentTime)]);
+    if (summaryPlayer.resumeAt) { audio.currentTime = Math.min(summaryPlayer.resumeAt, Math.max(0, audio.duration - 1)); summaryPlayer.resumeAt = 0; }
+    summaryMediaSession();
   });
-  ["play", "pause"].forEach(type => audio.addEventListener(type, () => { saveRadioProgress(); syncRadioControls(); }));
-  audio.addEventListener("ended", () => { saveRadioProgress(true); radioPlayer.sectionIndex = -1; syncRadioControls(); });
+  audio.addEventListener("play", () => {
+    const next = nextSummarySubject(summaryPlayer.subjectId);
+    if (next) loadSummaryTrack(next.id).catch(error => console.warn(error));
+  });
+  ["play", "pause"].forEach(type => audio.addEventListener(type, () => { saveSummaryProgress(); syncSummaryControls(); }));
+  audio.addEventListener("ended", continueSummary);
   if ("mediaSession" in navigator) {
-    const jumpSection = step => { const target = radioPlayer.offsets[Math.max(0, Math.min(radioPlayer.offsets.length - 1, radioSectionAt(audio.currentTime) + step))]; if (target !== undefined) audio.currentTime = target; };
+    const jumpPart = step => {
+      const parts = summaryTrack(summaryPlayer.subjectId)?.parts || [], index = summaryPartAt({ parts }, audio.currentTime) + step;
+      if (index >= parts.length) { if (summaryPlayer.tracks.get(nextSummarySubject(summaryPlayer.subjectId)?.id)?.url) continueSummary(); return; }
+      audio.currentTime = parts[Math.max(0, index)]?.start || 0;
+    };
     const handlers = {
       play: () => audio.play(), pause: () => audio.pause(),
       seekbackward: details => { audio.currentTime = Math.max(0, audio.currentTime - (details?.seekOffset || 15)); },
       seekforward: details => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + (details?.seekOffset || 15)); },
       seekto: details => { audio.currentTime = details.seekTime; },
-      previoustrack: () => jumpSection(audio.currentTime - radioPlayer.offsets[radioSectionAt(audio.currentTime)] > 3 ? 0 : -1),
-      nexttrack: () => jumpSection(1),
+      previoustrack: () => { const parts = summaryTrack(summaryPlayer.subjectId)?.parts || []; jumpPart(audio.currentTime - (parts[summaryPartAt({ parts }, audio.currentTime)]?.start || 0) > 3 ? 0 : -1); },
+      nexttrack: () => jumpPart(1),
     };
     Object.entries(handlers).forEach(([action, handler]) => { try { navigator.mediaSession.setActionHandler(action, handler); } catch {} });
   }
-  radioPlayer.audio = audio;
+  summaryPlayer.audio = audio;
   return audio;
 }
-function beginRadioPlayback() {
-  if (!radioPlayer.url) return;
-  const audio = radioAudioElement();
-  if (radioPlayer.loadedUrl !== radioPlayer.url) {
-    if (radioPlayer.loadedUrl) URL.revokeObjectURL(radioPlayer.loadedUrl);
-    const saved = radioSavedProgress(radioPlayer.episode);
-    radioPlayer.resumeAt = saved && !saved.completed ? saved.position : 0;
-    radioPlayer.loadedUrl = radioPlayer.url; radioPlayer.sectionIndex = -1;
-    audio.src = radioPlayer.url;
-  } else if (audio.ended) audio.currentTime = 0;
-  audio.play().catch(error => { console.warn(error); const note = document.querySelector("#radio-voice-note"); if (note) note.textContent = "재생을 시작하지 못했어요. 다시 눌러 주세요."; });
+function playSummarySubject(id, from = null) {
+  const url = summaryPlayer.tracks.get(id)?.url;
+  if (!url) return;
+  const audio = summaryAudioElement();
+  if (summaryPlayer.subjectId !== id || !audio.currentSrc) {
+    if (summaryListening(summaryPlayer.subjectId) && !audio.ended) saveSummaryProgress();
+    const saved = store.summaryListen?.subjectId === id ? store.summaryListen.position : 0;
+    Object.assign(summaryPlayer, { subjectId: id, partIndex: -1, resumeAt: from ?? saved });
+    audio.src = url;
+  } else if (from !== null) audio.currentTime = from;
+  else if (audio.ended) audio.currentTime = 0;
+  audio.play().catch(error => { console.warn(error); toast("재생을 시작하지 못했어요. 다시 눌러 주세요."); });
 }
-function stopRadioPlayback() {
-  const audio = radioPlayer.audio;
-  if (!audio || !radioPlayer.loadedUrl) return;
+function stopSummaryPlayback() {
+  const audio = summaryPlayer.audio;
+  if (!audio || !audio.currentSrc) return;
   audio.pause(); audio.currentTime = 0;
-  store.radioProgress = { ...(store.radioProgress || {}), position: 0 }; persist();
-  radioPlayer.sectionIndex = -1; syncRadioControls();
+  store.summaryListen = { subjectId: summaryPlayer.subjectId, position: 0 }; persist();
+  summaryPlayer.partIndex = -1; syncSummaryControls();
 }
-function syncRadioControls() {
-  const play = document.querySelector("#radio-play");
-  if (!play) return;
-  const audio = radioPlayer.audio, loaded = Boolean(audio && radioPlayer.loadedUrl && radioPlayer.loadedUrl === radioPlayer.url);
-  const playing = loaded && !audio.paused && !audio.ended, started = loaded && audio.currentTime > 0 && !audio.ended;
-  const saved = radioPlayer.episode ? radioSavedProgress(radioPlayer.episode) : null;
-  const total = loaded && Number.isFinite(audio.duration) ? audio.duration : radioPlayer.seconds || radioPlayer.episode?.seconds || 0;
-  const position = loaded ? audio.currentTime : saved && !saved.completed ? saved.position : 0;
-  play.disabled = !radioPlayer.url || playing || started;
-  play.textContent = radioPlayer.building ? "준비 중…" : radioPlayer.error ? "불러오기 실패" : playing ? "♫ 재생 중" : started ? "일시정지됨" : !loaded && position > 0 ? `▶ ${radioTime(position)}부터 이어 듣기` : "▶ 듣기 시작";
-  const pause = document.querySelector("#radio-pause");
-  if (pause) { pause.disabled = !started; pause.textContent = started && audio.paused ? "계속 듣기" : "일시정지"; }
-  const stop = document.querySelector("#radio-stop"); if (stop) stop.disabled = !started;
-  const bar = document.querySelector("#radio-progress-bar"); if (bar) bar.style.width = `${saved?.completed && !started ? 100 : total ? Math.min(100, position / total * 100) : 0}%`;
-  const label = document.querySelector("#radio-progress-label");
-  if (label) label.textContent = radioPlayer.error || (started ? `${playing ? "재생 중" : "일시정지"} · ${radioTime(position)} / ${radioTime(total)}` : saved?.completed ? "오늘 청취를 마쳤습니다. 다시 들어도 좋아요." : position > 0 ? `${radioTime(position)}까지 들었습니다.` : radioPlayer.building ? "오늘의 오디오를 준비하고 있어요." : "아직 오늘의 청취 기록이 없습니다.");
-  const current = started || playing ? radioSectionAt(audio.currentTime) : -1;
-  document.querySelectorAll("[data-radio-section]").forEach((section, index) => section.classList.toggle("is-speaking", index === current));
-}
-function renderDailyRadio() {
-  const duration = [10, 12, 15].includes(Number(store.radioDuration)) ? Number(store.radioDuration) : 10;
-  const episode = radioActive() ? radioPlayer.episode : buildRadioEpisode(duration);
-  const scores = episode.scores;
-  const conceptCount = episode.sections.filter(section => section.kind === "concept").length;
-  const scorePanel = `<form class="radio-score-form" id="radio-score-form"><div><b>최근 모의고사 점수</b><span>점수가 가장 낮은 과목을 맨 앞에 두고, 시간이 남으면 그 과목 개념을 먼저 하나 더 넣습니다. 앱 응시 기록이 있으면 과목별 10문항 이상 기록을 우선 반영하고, 직접 입력한 점수는 이 기기에만 저장됩니다.</span></div>${SUBJECTS.map((subject, index) => `<label>${escapeHTML(subject)} <input name="subject-${index}" type="number" min="0" max="100" step="1" inputmode="numeric" value="${scores[subject] ?? ""}" placeholder="점수" aria-label="${escapeHTML(subject)} 점수"></label>`).join("")}<button class="button button-outline">점수 저장</button></form>`;
-  let number = 0;
-  const sections = episode.sections.map((section, index) => section.kind === "subject"
-    ? `<div class="radio-subject-divider" data-radio-section="${index}"><span>${escapeHTML(RADIO_SHORT[section.subject] || section.subject)}</span>${escapeHTML(section.subject)}</div>`
-    : `<article class="radio-section ${section.kind}" data-radio-section="${index}"><div class="radio-section-number">${String(++number).padStart(2, "0")}</div><div><h3>${escapeHTML(section.title)}</h3><p>${escapeHTML(section.text)}</p></div></article>`).join("");
-  const unavailable = !episode.sections.length;
-  const order = episode.order.map(subject => `<li>${escapeHTML(RADIO_SHORT[subject] || subject)}</li>`).join("");
-  return `${titleBlock("DAILY STUDY RADIO", "오늘의 개념 라디오", "매일 다섯 과목에서 다른 개념을 골라 한 번에 들려줍니다. 녹음된 음성이라 화면이 꺼져도 음악처럼 계속 나옵니다.")}
-    <section class="radio-hero"><div class="radio-onair"><span class="radio-live-dot"></span> 오늘의 학습 리포트 <time>${episode.key}</time></div><div class="radio-main"><div><p class="eyebrow">오늘의 순서</p><h2>${unavailable ? "라디오를 준비하지 못했어요" : `전 과목 ${conceptCount}개 개념`}</h2>${order ? `<ol class="radio-order" aria-label="과목 순서">${order}</ol>` : ""}<p>${unavailable ? "페이지를 새로고침한 뒤 다시 확인해 주세요." : episode.weakest ? `점수가 가장 낮은 ${escapeHTML(RADIO_SHORT[episode.weakest] || episode.weakest)}부터 시작합니다. 개념은 매일 바뀝니다.` : "과목 순서와 개념은 매일 바뀝니다."}</p></div><div class="radio-dial" aria-hidden="true"><span>ON</span><b>♫</b></div></div><div class="radio-duration" role="group" aria-label="라디오 길이 선택">${[10, 12, 15].map(value => `<button data-radio-duration="${value}" class="${episode.duration === value ? "selected" : ""}" aria-pressed="${episode.duration === value}">${value}<small>분</small></button>`).join("")}<span>${unavailable ? "" : `총 ${radioTime(episode.seconds)}`}</span></div><div class="radio-controls"><button class="button button-primary" id="radio-play" disabled>▶ 듣기 시작</button><button class="button button-outline" id="radio-pause" disabled>일시정지</button><button class="button button-quiet" id="radio-stop" disabled>끝내기</button><div class="radio-progress-wrap"><div class="radio-progress"><i id="radio-progress-bar" style="width:0%"></i></div><span id="radio-progress-label"></span></div></div><p class="radio-voice-note" id="radio-voice-note">화면을 끄거나 다른 앱으로 가도 계속 재생되고, 잠금화면에서 일시정지·앞뒤 개념으로 넘기기를 할 수 있어요.</p></section>
-    ${scorePanel}<section class="radio-report"><div class="radio-report-heading"><div><span class="eyebrow">LISTENING REPORT</span><h2>오늘 들을 내용</h2></div><span>${conceptCount}개 핵심 개념</span></div><div class="radio-script">${sections}</div><div class="radio-report-foot"><span>듣고 나서: 바로 떠오르지 않은 개념은 암기카드에서 다시 확인하세요.</span><button class="button button-outline" data-radio-cards>관련 암기카드 보기 →</button></div></section>`;
-}
-function bindDailyRadio() {
-  const episode = radioActive() ? radioPlayer.episode : buildRadioEpisode([10, 12, 15].includes(Number(store.radioDuration)) ? Number(store.radioDuration) : 10);
-  if (!radioActive()) prepareRadioAudio(episode);
-  syncRadioControls();
-  document.querySelectorAll("[data-radio-duration]").forEach(button => button.addEventListener("click", () => {
-    stopRadioPlayback(); store.radioDuration = Number(button.dataset.radioDuration); persist(); render();
-  }));
-  document.querySelector("#radio-score-form")?.addEventListener("submit", event => {
-    event.preventDefault(); const form = new FormData(event.currentTarget); const scores = radioProfile().scores;
-    SUBJECTS.forEach((subject, index) => { const value = form.get(`subject-${index}`); const score = value === "" ? null : Number(value); if (score === null) delete scores[subject]; else if (Number.isInteger(score) && score >= 0 && score <= 100) scores[subject] = score; });
-    persist(); render(); toast("점수를 이 기기에 저장했어요.");
-  });
-  document.querySelector("#radio-play")?.addEventListener("click", beginRadioPlayback);
-  document.querySelector("#radio-pause")?.addEventListener("click", () => { const audio = radioPlayer.audio; if (!audio) return; if (audio.paused) audio.play(); else audio.pause(); });
-  document.querySelector("#radio-stop")?.addEventListener("click", stopRadioPlayback);
-  document.querySelector("[data-radio-cards]")?.addEventListener("click", () => {
-    const current = radioActive() ? radioPlayer.episode.sections[radioSectionAt(radioPlayer.audio.currentTime)] : null;
-    openSubjectConcepts(current?.subject || episode.order[0] || SUBJECTS[0]);
-  });
+function syncSummaryControls() {
+  const panel = document.querySelector("[data-summary-listen]");
+  if (!panel) return;
+  const id = panel.dataset.summaryListen, track = summaryTrack(id), entry = summaryPlayer.tracks.get(id), audio = summaryPlayer.audio;
+  const current = summaryListening(id), playing = current && !audio.paused && !audio.ended, started = current && audio.currentTime > 0 && !audio.ended;
+  const saved = store.summaryListen?.subjectId === id ? store.summaryListen.position || 0 : 0;
+  const position = started ? audio.currentTime : saved;
+  const total = current && Number.isFinite(audio.duration) ? audio.duration : track?.seconds || 0;
+  const failed = summaryPlayer.failed === id, ready = Boolean(entry?.url);
+  const play = panel.querySelector("[data-summary-play]");
+  play.disabled = !ready && !failed;
+  play.textContent = failed ? "↻ 다시 불러오기" : !ready ? "준비 중…" : playing ? "❚❚ 일시정지" : started ? "▶ 계속 듣기" : position > 0 ? `▶ ${summaryTime(position)}부터 이어 듣기` : "▶ 이 과목 듣기";
+  play.setAttribute("aria-pressed", String(playing));
+  panel.querySelector("[data-summary-stop]").disabled = !started;
+  panel.querySelector("[data-summary-bar]").style.width = `${total ? Math.min(100, position / total * 100) : 0}%`;
+  const other = !current && summaryPlayer.audio && !summaryPlayer.audio.paused ? coreSummary?.subjects?.find(item => item.id === summaryPlayer.subjectId) : null;
+  panel.querySelector("[data-summary-label]").textContent = failed ? "음성을 불러오지 못했어요. 연결을 확인해 주세요."
+    : started ? `${playing ? "읽는 중" : "일시정지"} · ${summaryTime(position)} / ${summaryTime(total)}`
+    : `전체 ${summaryTime(total)}${other ? ` · 지금 ${other.short}을 듣는 중` : ""}`;
+  document.querySelectorAll("[data-summary-from]").forEach(button => { button.disabled = !ready; });
+  const speaking = started || playing ? summaryPartAt(track, audio.currentTime) : -1;
+  document.querySelectorAll("[data-summary-part]").forEach(part => part.classList.toggle("is-speaking", Number(part.dataset.summaryPart) === speaking));
 }
 function summaryInline(text) {
   return escapeHTML(text).replace(/`([^`]+)`/g, '<code class="summary-code">$1</code>').replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
@@ -485,11 +387,13 @@ function renderCoreSummary() {
   const dday = summaryDday(coreSummary.examDate);
   const hero = `<section class="summary-hero"><div class="summary-dday"><span class="eyebrow">EXAM ${escapeHTML(coreSummary.examDate || "")}</span><strong>${escapeHTML(dday)}</strong></div><div class="summary-plan"><p class="summary-pass">${summaryInline(coreSummary.passRule || "")}</p><ul>${(coreSummary.strategy || []).map(item => `<li>${summaryInline(item)}</li>`).join("")}</ul>${coreSummary.order?.length ? `<ol class="summary-order" aria-label="추천 암기 순서">${coreSummary.order.map(item => `<li>${escapeHTML(item)}</li>`).join("")}</ol>` : ""}</div></section>`;
   const tabs = `<div class="summary-tabs" role="tablist" aria-label="과목 선택">${subjects.map(item => `<button role="tab" aria-selected="${item.id === subject.id}" class="${item.id === subject.id ? "selected" : ""}" data-summary-subject="${escapeHTML(item.id)}"><span>${escapeHTML(item.short)}</span><small>${escapeHTML(item.stage)}</small></button>`).join("")}</div>`;
-  const sections = subject.sections.map(section => `<section class="summary-section"><h3>${summaryInline(section.title)}${section.note ? ` <small>${summaryInline(section.note)}</small>` : ""}</h3>${section.blocks.map(renderSummaryBlock).join("")}</section>`).join("");
+  const track = summaryTrack(subject.id);
+  const listen = track ? `<div class="summary-listen" data-summary-listen="${escapeHTML(subject.id)}"><div class="summary-listen-controls"><button class="button button-primary" data-summary-play disabled>준비 중…</button><button class="button button-quiet" data-summary-stop disabled>처음으로</button><div class="summary-listen-progress"><div class="summary-listen-bar"><i data-summary-bar style="width:0%"></i></div><span data-summary-label>전체 ${summaryTime(track.seconds)}</span></div></div><p>화면을 끄거나 다른 앱으로 가도 계속 읽어 주고, 이 과목이 끝나면 다음 과목으로 이어집니다. 각 항목의 ▶를 누르면 거기부터 듣습니다.</p></div>` : "";
+  const sections = subject.sections.map((section, index) => `<section class="summary-section" data-summary-part="${index + 1}"><h3>${track ? `<button class="summary-from" data-summary-from="${index + 1}" aria-label="${escapeHTML(section.title.replace(/\*\*/g, ""))}부터 듣기" disabled>▶</button>` : ""}<span>${summaryInline(section.title)}${section.note ? ` <small>${summaryInline(section.note)}</small>` : ""}</span></h3>${section.blocks.map(renderSummaryBlock).join("")}</section>`).join("");
   return `${heading}${hero}${tabs}
     <section class="summary-subject" role="tabpanel" aria-label="${escapeHTML(subject.name)}">
-      <div class="summary-subject-head"><div><span class="eyebrow">${escapeHTML(subject.stage)}</span><h2>${escapeHTML(subject.name)}</h2>${subject.goal ? `<p class="summary-goal">${summaryInline(subject.goal)}</p>` : ""}${subject.intro ? `<p>${summaryInline(subject.intro)}</p>` : ""}</div>${cardCount ? `<button class="button button-outline" data-summary-cards="${escapeHTML(subject.appSubject)}">관련 암기카드 ${cardCount}장 →</button>` : ""}</div>
-      ${sections}
+      <div class="summary-subject-head" data-summary-part="0"><div><span class="eyebrow">${escapeHTML(subject.stage)}</span><h2>${escapeHTML(subject.name)}</h2>${subject.goal ? `<p class="summary-goal">${summaryInline(subject.goal)}</p>` : ""}${subject.intro ? `<p>${summaryInline(subject.intro)}</p>` : ""}</div>${cardCount ? `<button class="button button-outline" data-summary-cards="${escapeHTML(subject.appSubject)}">관련 암기카드 ${cardCount}장 →</button>` : ""}</div>
+      ${listen}${sections}
       <div class="summary-foot"><span>${summaryInline(coreSummary.basis || "")}</span>${next.id !== subject.id ? `<button class="button button-primary" data-summary-subject="${escapeHTML(next.id)}">다음 과목: ${escapeHTML(next.short)} →</button>` : ""}</div>
     </section>`;
 }
@@ -500,6 +404,18 @@ function bindCoreSummary() {
     if (tabs && tabs.getBoundingClientRect().top < 70) tabs.scrollIntoView({ block: "start" });
   }));
   document.querySelector("[data-summary-cards]")?.addEventListener("click", event => openSubjectConcepts(event.currentTarget.dataset.summaryCards));
+  const listen = document.querySelector("[data-summary-listen]");
+  if (!listen) return;
+  const id = listen.dataset.summaryListen;
+  listen.querySelector("[data-summary-play]").addEventListener("click", () => {
+    if (summaryPlayer.failed === id) { prepareSummaryTrack(id); return; }
+    const audio = summaryPlayer.audio;
+    if (summaryListening(id) && !audio.paused && !audio.ended) audio.pause();
+    else playSummarySubject(id);
+  });
+  listen.querySelector("[data-summary-stop]").addEventListener("click", stopSummaryPlayback);
+  document.querySelectorAll("[data-summary-from]").forEach(button => button.addEventListener("click", () => playSummarySubject(id, summaryTrack(id).parts[Number(button.dataset.summaryFrom)]?.start || 0)));
+  prepareSummaryTrack(id);
 }
 function renderDashboard() {
   const attempts = store.history.map(normalizeAttempt).filter(Boolean);
@@ -520,7 +436,6 @@ function renderDashboard() {
       <article class="stat-card"><span class="stat-label">다시 볼 오답</span><span class="stat-glyph">↺</span><strong>${store.mistakes.length}<em>문항</em></strong></article>
     </section>
     ${renderLearningInsights(attempts, subjects)}
-    <section class="radio-dashboard-card"><div class="radio-dashboard-mark">♫</div><div><span class="eyebrow">DAILY STUDY RADIO</span><h2>오늘의 개념을 귀로 복습하세요</h2><p>매일 다섯 과목에서 다른 개념을 골라 10·12·15분 분량으로 들려줍니다. 화면이 꺼져도 계속 재생됩니다.</p></div><button class="button button-primary" data-action="open-radio">오늘의 라디오 듣기 <span>→</span></button></section>
     <section class="content-grid">
       <article class="panel"><div class="panel-head"><div><h2>회차별 점수</h2><p>시험을 마칠 때마다 성적이 쌓입니다</p></div><span class="eyebrow">SCORE / 100</span></div>${chart}</article>
       <article class="panel"><div class="panel-head"><div><h2>과목별 정답률</h2><p>지금까지 푼 문제 기준</p></div></div>${renderSubjectStats(subjects)}</article>
@@ -1249,7 +1164,6 @@ function openSubjectConcepts(subject) {
 }
 function bindDashboard() {
   document.querySelectorAll("[data-action=start-exam]").forEach(button => button.addEventListener("click", () => setView("exam")));
-  document.querySelector("[data-action=open-radio]")?.addEventListener("click", () => setView("radio"));
   document.querySelectorAll("[data-result]").forEach(button => button.addEventListener("click", () => { view = "result"; renderResultView(Number(button.dataset.result)); }));
   document.querySelectorAll("[data-open-concept]").forEach(button => button.addEventListener("click", () => openConceptCard(button.dataset.openConcept)));
   document.querySelector("[data-action=show-history]")?.addEventListener("click", () => { showAllHistory = !showAllHistory; render(); });
@@ -1302,10 +1216,10 @@ async function loadBank() {
     answerKeys = (await response.json()).answerKeys || {};
   } catch (error) { answerKeys = {}; console.warn(error); }
   try {
-    const response = await fetch("./data/radio.json");
-    if (!response.ok) throw new Error("라디오 음성 목록을 찾을 수 없습니다.");
-    radioData = await response.json();
-  } catch (error) { radioData = null; console.warn(error); }
+    const response = await fetch("./data/summary-audio.json");
+    if (!response.ok) throw new Error("필수 암기 음성 목록을 찾을 수 없습니다.");
+    summaryAudio = await response.json();
+  } catch (error) { summaryAudio = null; console.warn(error); }
   try {
     const response = await fetch("./data/core-summary.json");
     if (!response.ok) throw new Error("필수 암기 요약을 찾을 수 없습니다.");

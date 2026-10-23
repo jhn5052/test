@@ -1,0 +1,185 @@
+{
+  "voice": "Yuna (Enhanced)",
+  "subjects": [
+    {
+      "id": "broker",
+      "file": "audio/summary/broker.m4a",
+      "hash": "413c990377bc",
+      "seconds": 391.98,
+      "parts": [
+        {
+          "title": "공인중개사법령 및 중개실무",
+          "start": 0
+        },
+        {
+          "title": "행정처분",
+          "start": 16.17
+        },
+        {
+          "title": "핵심 숫자",
+          "start": 86.45
+        },
+        {
+          "title": "중개보수 (주택)",
+          "start": 174.88
+        },
+        {
+          "title": "금지행위 처벌",
+          "start": 237.91
+        },
+        {
+          "title": "2026.8.28 시행 개정",
+          "start": 253.57
+        },
+        {
+          "title": "부동산거래신고법",
+          "start": 285.25
+        },
+        {
+          "title": "중개실무 단골",
+          "start": 350.32
+        }
+      ]
+    },
+    {
+      "id": "registry",
+      "file": "audio/summary/registry.m4a",
+      "hash": "8f716e362452",
+      "seconds": 374.07,
+      "parts": [
+        {
+          "title": "부동산공시법",
+          "start": 0
+        },
+        {
+          "title": "지적",
+          "start": 8.09
+        },
+        {
+          "title": "등기",
+          "start": 188.43
+        }
+      ]
+    },
+    {
+      "id": "tax",
+      "file": "audio/summary/tax.m4a",
+      "hash": "a3a22a73bd6f",
+      "seconds": 497.31,
+      "parts": [
+        {
+          "title": "부동산 세법",
+          "start": 0
+        },
+        {
+          "title": "성립·확정·가산세",
+          "start": 5
+        },
+        {
+          "title": "신고·납부·분납·물납",
+          "start": 64.32
+        },
+        {
+          "title": "취득세",
+          "start": 120.59
+        },
+        {
+          "title": "등록면허세 (등기)",
+          "start": 169.5
+        },
+        {
+          "title": "재산세",
+          "start": 195.47
+        },
+        {
+          "title": "종부세",
+          "start": 273.5
+        },
+        {
+          "title": "양도소득세",
+          "start": 334.58
+        }
+      ]
+    },
+    {
+      "id": "public",
+      "file": "audio/summary/public.m4a",
+      "hash": "9b76a0cfdd12",
+      "seconds": 612,
+      "parts": [
+        {
+          "title": "부동산공법",
+          "start": 0
+        },
+        {
+          "title": "국토계획법 (12문항)",
+          "start": 23.44
+        },
+        {
+          "title": "도시개발법 (6문항)",
+          "start": 240.02
+        },
+        {
+          "title": "도시정비법 (6문항)",
+          "start": 324.93
+        },
+        {
+          "title": "건축법 (7문항)",
+          "start": 375.39
+        },
+        {
+          "title": "주택법 (7문항)",
+          "start": 475.53
+        },
+        {
+          "title": "농지법 (2문항)",
+          "start": 567.93
+        }
+      ]
+    },
+    {
+      "id": "civil",
+      "file": "audio/summary/civil.m4a",
+      "hash": "26e2d97a05ea",
+      "seconds": 328.52,
+      "parts": [
+        {
+          "title": "민법",
+          "start": 0
+        },
+        {
+          "title": "주택임대차 vs 상가임대차",
+          "start": 8.76
+        },
+        {
+          "title": "집합건물·가등기담보·명의신탁",
+          "start": 63.37
+        },
+        {
+          "title": "총칙·물권·계약에서 자주 틀리는 것",
+          "start": 130.18
+        }
+      ]
+    },
+    {
+      "id": "intro",
+      "file": "audio/summary/intro.m4a",
+      "hash": "4f075270df4b",
+      "seconds": 270.23,
+      "parts": [
+        {
+          "title": "부동산학개론",
+          "start": 0
+        },
+        {
+          "title": "공식",
+          "start": 5.75
+        },
+        {
+          "title": "학자·제도 매칭",
+          "start": 144.64
+        }
+      ]
+    }
+  ]
+}
