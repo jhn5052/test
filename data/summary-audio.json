@@ -1,11 +1,11 @@
 {
-  "voice": "Yuna (Enhanced)",
+  "voice": "Siri 민지",
   "subjects": [
     {
       "id": "broker",
       "file": "audio/summary/broker.m4a",
-      "hash": "413c990377bc",
-      "seconds": 391.98,
+      "hash": "21d189492da6",
+      "seconds": 421.44,
       "parts": [
         {
           "title": "공인중개사법령 및 중개실무",
@@ -13,39 +13,39 @@
         },
         {
           "title": "행정처분",
-          "start": 16.17
+          "start": 16.93
         },
         {
           "title": "핵심 숫자",
-          "start": 86.45
+          "start": 94.69
         },
         {
           "title": "중개보수 (주택)",
-          "start": 174.88
+          "start": 193.24
         },
         {
           "title": "금지행위 처벌",
-          "start": 237.91
+          "start": 258.6
         },
         {
           "title": "2026.8.28 시행 개정",
-          "start": 253.57
+          "start": 276.11
         },
         {
           "title": "부동산거래신고법",
-          "start": 285.25
+          "start": 308.73
         },
         {
           "title": "중개실무 단골",
-          "start": 350.32
+          "start": 378.22
         }
       ]
     },
     {
       "id": "registry",
       "file": "audio/summary/registry.m4a",
-      "hash": "8f716e362452",
-      "seconds": 374.07,
+      "hash": "088532e8970d",
+      "seconds": 411.93,
       "parts": [
         {
           "title": "부동산공시법",
@@ -53,19 +53,19 @@
         },
         {
           "title": "지적",
-          "start": 8.09
+          "start": 8.11
         },
         {
           "title": "등기",
-          "start": 188.43
+          "start": 208.1
         }
       ]
     },
     {
       "id": "tax",
       "file": "audio/summary/tax.m4a",
-      "hash": "a3a22a73bd6f",
-      "seconds": 497.31,
+      "hash": "74a761445269",
+      "seconds": 532.34,
       "parts": [
         {
           "title": "부동산 세법",
@@ -73,39 +73,39 @@
         },
         {
           "title": "성립·확정·가산세",
-          "start": 5
+          "start": 5.11
         },
         {
           "title": "신고·납부·분납·물납",
-          "start": 64.32
+          "start": 70.73
         },
         {
           "title": "취득세",
-          "start": 120.59
+          "start": 132.14
         },
         {
           "title": "등록면허세 (등기)",
-          "start": 169.5
+          "start": 183.03
         },
         {
           "title": "재산세",
-          "start": 195.47
+          "start": 211.69
         },
         {
           "title": "종부세",
-          "start": 273.5
+          "start": 295.13
         },
         {
           "title": "양도소득세",
-          "start": 334.58
+          "start": 358.52
         }
       ]
     },
     {
       "id": "public",
       "file": "audio/summary/public.m4a",
-      "hash": "9b76a0cfdd12",
-      "seconds": 612,
+      "hash": "009bcede5fc0",
+      "seconds": 652.98,
       "parts": [
         {
           "title": "부동산공법",
@@ -113,35 +113,35 @@
         },
         {
           "title": "국토계획법 (12문항)",
-          "start": 23.44
+          "start": 23.89
         },
         {
           "title": "도시개발법 (6문항)",
-          "start": 240.02
+          "start": 261.4
         },
         {
           "title": "도시정비법 (6문항)",
-          "start": 324.93
+          "start": 349.57
         },
         {
           "title": "건축법 (7문항)",
-          "start": 375.39
+          "start": 403.16
         },
         {
           "title": "주택법 (7문항)",
-          "start": 475.53
+          "start": 510.7
         },
         {
           "title": "농지법 (2문항)",
-          "start": 567.93
+          "start": 606.56
         }
       ]
     },
     {
       "id": "civil",
       "file": "audio/summary/civil.m4a",
-      "hash": "26e2d97a05ea",
-      "seconds": 328.52,
+      "hash": "b04a0eab8445",
+      "seconds": 345.78,
       "parts": [
         {
           "title": "민법",
@@ -149,23 +149,23 @@
         },
         {
           "title": "주택임대차 vs 상가임대차",
-          "start": 8.76
+          "start": 8.95
         },
         {
           "title": "집합건물·가등기담보·명의신탁",
-          "start": 63.37
+          "start": 65.78
         },
         {
           "title": "총칙·물권·계약에서 자주 틀리는 것",
-          "start": 130.18
+          "start": 137.16
         }
       ]
     },
     {
       "id": "intro",
       "file": "audio/summary/intro.m4a",
-      "hash": "4f075270df4b",
-      "seconds": 270.23,
+      "hash": "ef5ca3a373c5",
+      "seconds": 296.51,
       "parts": [
         {
           "title": "부동산학개론",
@@ -173,11 +173,11 @@
         },
         {
           "title": "공식",
-          "start": 5.75
+          "start": 5.79
         },
         {
           "title": "학자·제도 매칭",
-          "start": 144.64
+          "start": 154.37
         }
       ]
     }

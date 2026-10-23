@@ -1,6 +1,7 @@
 // Records the 필수 암기 page as one audio file per subject so phones can keep playing with the screen locked.
 // Usage: node scripts/build_summary_audio.js [--dry-run [path]]   (macOS only: uses `say` and `afconvert`)
 // Re-run after editing data/core-summary.json; subjects whose spoken text did not change are skipped.
+// The voice is Siri 민지: download it first in System Settings > Accessibility > Spoken Content > System voice > Manage Voices > 한국어.
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -10,7 +11,7 @@ const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const audioDir = path.join(root, 'audio/summary');
 const outPath = path.join(root, 'data/summary-audio.json');
-const VOICE = 'Yuna (Enhanced)';
+const VOICE = { id: 'com.apple.ttsbundle.gryphon-neural_Minji_ko-KR_premium', name: 'Siri 민지' };
 const RATE = 22050;
 const BITRATE = 32000;
 const GAP = 0.8;
@@ -132,34 +133,51 @@ const previousById = new Map(previous.subjects.map(subject => [subject.id, subje
 if (!dryRun) fs.mkdirSync(audioDir, { recursive: true });
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'summary-audio-'));
 let made = 0, kept = 0;
-const output = summary.subjects.map(subject => {
-  const parts = subjectParts(subject).map(part => ({ ...part, speech: speechText(part.text) }));
-  const hash = crypto.createHash('sha1').update([VOICE, BITRATE, GAP, ...parts.map(part => part.speech)].join('|')).digest('hex').slice(0, 12);
-  const file = `audio/summary/${subject.id}.m4a`;
-  if (dryRun) return { id: subject.id, parts };
-  const old = previousById.get(subject.id);
-  if (old?.hash === hash && fs.existsSync(path.join(root, file))) { kept++; return old; }
-  const gap = Buffer.alloc(Math.round(GAP * RATE) * 2);
-  const chunks = [];
-  let bytes = 0;
-  const timed = parts.map((part, index) => {
-    const textPath = path.join(tmp, 'part.txt'), wavPath = path.join(tmp, 'part.wav');
-    fs.writeFileSync(textPath, part.speech);
-    execFileSync('say', ['-v', VOICE, '-f', textPath, '-o', wavPath, '--file-format=WAVE', `--data-format=LEI16@${RATE}`]);
-    const pcm = wavSamples(wavPath), start = bytes / 2 / RATE;
-    chunks.push(pcm); bytes += pcm.length;
-    if (index < parts.length - 1) { chunks.push(gap); bytes += gap.length; }
-    return { title: part.title, start: Number(start.toFixed(2)) };
+// `say -v` cannot pick Siri voices; it only speaks with one as the system voice. Switch it for this run and put it back afterwards.
+const VOICE_SETTING = ['com.apple.Accessibility', 'SpeechVoiceIdentifierForLanguage'];
+let originalVoice = null;
+if (!dryRun) {
+  try { originalVoice = execFileSync('defaults', ['read', ...VOICE_SETTING], { encoding: 'utf8' }); } catch {}
+  execFileSync('defaults', ['write', ...VOICE_SETTING, '-dict-add', '2', `{ ko = "${VOICE.id}"; }`]);
+}
+function restoreVoice() {
+  if (dryRun) return;
+  if (originalVoice) execFileSync('defaults', ['write', ...VOICE_SETTING, originalVoice]);
+  else execFileSync('defaults', ['delete', ...VOICE_SETTING]);
+}
+let output;
+try {
+  output = summary.subjects.map(subject => {
+    const parts = subjectParts(subject).map(part => ({ ...part, speech: speechText(part.text) }));
+    const hash = crypto.createHash('sha1').update([VOICE.id, BITRATE, GAP, ...parts.map(part => part.speech)].join('|')).digest('hex').slice(0, 12);
+    const file = `audio/summary/${subject.id}.m4a`;
+    if (dryRun) return { id: subject.id, parts };
+    const old = previousById.get(subject.id);
+    if (old?.hash === hash && fs.existsSync(path.join(root, file))) { kept++; return old; }
+    const gap = Buffer.alloc(Math.round(GAP * RATE) * 2);
+    const chunks = [];
+    let bytes = 0;
+    const timed = parts.map((part, index) => {
+      const textPath = path.join(tmp, 'part.txt'), wavPath = path.join(tmp, 'part.wav');
+      fs.writeFileSync(textPath, part.speech);
+      execFileSync('say', ['-f', textPath, '-o', wavPath, '--file-format=WAVE', `--data-format=LEI16@${RATE}`]);
+      const pcm = wavSamples(wavPath), start = bytes / 2 / RATE;
+      chunks.push(pcm); bytes += pcm.length;
+      if (index < parts.length - 1) { chunks.push(gap); bytes += gap.length; }
+      return { title: part.title, start: Number(start.toFixed(2)) };
+    });
+    const joined = path.join(tmp, 'subject.wav');
+    fs.writeFileSync(joined, wavFile(Buffer.concat(chunks)));
+    execFileSync('afconvert', [joined, '-o', path.join(root, file), '-f', 'm4af', '-d', 'aac', '-b', String(BITRATE)]);
+    const info = execFileSync('afinfo', [path.join(root, file)], { encoding: 'utf8' });
+    made++;
+    console.log(`${subject.short}: ${parts.length} parts, ${(bytes / 2 / RATE / 60).toFixed(1)} min`);
+    return { id: subject.id, file, hash, seconds: Number(Number(info.match(/estimated duration: ([\d.]+)/)[1]).toFixed(2)), parts: timed };
   });
-  const joined = path.join(tmp, 'subject.wav');
-  fs.writeFileSync(joined, wavFile(Buffer.concat(chunks)));
-  execFileSync('afconvert', [joined, '-o', path.join(root, file), '-f', 'm4af', '-d', 'aac', '-b', String(BITRATE)]);
-  const info = execFileSync('afinfo', [path.join(root, file)], { encoding: 'utf8' });
-  made++;
-  console.log(`${subject.short}: ${parts.length} parts, ${(bytes / 2 / RATE / 60).toFixed(1)} min`);
-  return { id: subject.id, file, hash, seconds: Number(Number(info.match(/estimated duration: ([\d.]+)/)[1]).toFixed(2)), parts: timed };
-});
-fs.rmSync(tmp, { recursive: true, force: true });
+} finally {
+  restoreVoice();
+  fs.rmSync(tmp, { recursive: true, force: true });
+}
 
 if (dryRun) {
   const symbols = {};
@@ -171,7 +189,7 @@ if (dryRun) {
 } else {
   const used = new Set(output.map(subject => path.basename(subject.file)));
   fs.readdirSync(audioDir).filter(name => !used.has(name)).forEach(name => fs.rmSync(path.join(audioDir, name)));
-  fs.writeFileSync(outPath, JSON.stringify({ voice: VOICE, subjects: output }, null, 2) + '\n');
+  fs.writeFileSync(outPath, JSON.stringify({ voice: VOICE.name, subjects: output }, null, 2) + '\n');
   const total = output.reduce((sum, subject) => sum + subject.seconds, 0);
   console.log(`${output.length} subjects (${made} recorded, ${kept} unchanged), ${(total / 60).toFixed(1)} minutes of audio → ${path.relative(root, outPath)}`);
 }

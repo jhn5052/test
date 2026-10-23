@@ -6,6 +6,6 @@
 
 문제 원본과 최종 정답표는 [`exam/`](exam/)에, 문제은행은 [`data/questions.json`](data/questions.json)에 있습니다. 암기카드는 외울 개념·수치를 회상한 뒤 연결 기출로 확인하는 방식이며, 시험에서 틀린 문제 카드도 같은 화면에서 복습할 수 있습니다. 개념 카드 내용은 [`data/study-types.json`](data/study-types.json)에서 관리하고, 오답노트에서 관련 개념으로 이동할 수 있습니다. 세법·법령 숫자는 카드에 표시된 기출 회차 및 자료 기준을 확인하세요. 문제은행은 `python3 scripts/build_questions.py`로 다시 생성할 수 있습니다.
 
-필수 암기 메뉴는 과목별로 시험 직전에 외울 숫자·기한·암기코드를 모은 페이지입니다. 내용은 [`data/core-summary.json`](data/core-summary.json)에 있고, 숫자는 2026-10-31 시험일에 시행 중인 법령 기준입니다. 과목마다 듣기 버튼이 있어 요약을 음성으로 읽어 줍니다. 음성은 미리 녹음한 파일(`audio/summary/`)이라 휴대폰 화면이 꺼져도 계속 나오고, 한 과목이 끝나면 다음 과목으로 이어집니다. 요약 내용을 고친 뒤에는 macOS에서 `node scripts/build_summary_audio.js`를 실행하면 바뀐 과목만 다시 녹음하고 [`data/summary-audio.json`](data/summary-audio.json)을 갱신합니다.
+필수 암기 메뉴는 과목별로 시험 직전에 외울 숫자·기한·암기코드를 모은 페이지입니다. 내용은 [`data/core-summary.json`](data/core-summary.json)에 있고, 숫자는 2026-10-31 시험일에 시행 중인 법령 기준입니다. 과목마다 듣기 버튼이 있어 요약을 음성으로 읽어 줍니다. 음성은 미리 녹음한 파일(`audio/summary/`)이라 휴대폰 화면이 꺼져도 계속 나오고, 한 과목이 끝나면 다음 과목으로 이어집니다. 목소리는 Siri 음성 민지입니다. 요약 내용을 고친 뒤에는 macOS에서 `node scripts/build_summary_audio.js`를 실행하면 바뀐 과목만 다시 녹음하고 [`data/summary-audio.json`](data/summary-audio.json)을 갱신합니다. 이때 맥에 한국어 Siri 음성(민지)이 내려받아져 있어야 하고, 녹음하는 동안 맥의 시스템 음성을 잠시 민지로 바꿨다가 되돌립니다.
 
 실전 모드는 모의고사 전체를 한 번에 연속 진행하는 기능이 아니라 실제 교시별 구성입니다. 빠진 과목 문항이 있으면 시작을 막고, 대시보드의 문항·개념 자료 점검에서 회차 구성을 확인할 수 있습니다.

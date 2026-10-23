@@ -230,13 +230,14 @@ function nextSummarySubject(id) {
   return index >= 0 ? subjects[index + 1] || null : null;
 }
 // Download the whole subject before playing: a blob URL seeks the same way online and offline, and the service worker keeps a copy.
+// The hash in the URL changes whenever a subject is re-recorded, so a cached old recording never plays against new section times.
 function loadSummaryTrack(id) {
   const track = summaryTrack(id);
   if (!track) return Promise.reject(new Error(`${id} 음성이 없습니다.`));
   let entry = summaryPlayer.tracks.get(id);
   if (!entry) {
     entry = { url: null };
-    entry.promise = fetch(track.file).then(response => { if (!response.ok) throw new Error(`${track.file} ${response.status}`); return response.blob(); })
+    entry.promise = fetch(`${track.file}?v=${track.hash}`).then(response => { if (!response.ok) throw new Error(`${track.file} ${response.status}`); return response.blob(); })
       .then(blob => { entry.url = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: "audio/mp4" })); return entry.url; })
       .catch(error => { summaryPlayer.tracks.delete(id); throw error; });
     summaryPlayer.tracks.set(id, entry);
