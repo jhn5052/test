@@ -26,7 +26,7 @@ function hasFinal(word) {
   return false;
 }
 const particle = (word, withFinal, withoutFinal) => `${word.trim()}${hasFinal(word) ? withFinal : withoutFinal}`;
-// Rewrite symbols the voice would skip or misread (‰, ×, 2/3, →, ·, >) into spoken Korean.
+// Rewrite symbols the voice would skip or misread (‰, ×, 2/3, →, ·, >, 4m) into spoken Korean.
 function speechText(text) {
   return text
     .replace(/\*\*|`/g, '')
@@ -35,12 +35,14 @@ function speechText(text) {
     .replace(/\(\s*[+＋]\s*\)|\(\s*[-−–]\s*\)/g, '')
     .replace(/\)(?=[가-힣])/g, '').replace(/\s*[()]\s*/g, ', ')
     .replace(/;/g, '.')
+    .replace(/테마\s*0?(\d+)/g, '테마 $1')
+    .replace(/도시·군/g, '도시군').replace(/시·군·구/g, '시군구').replace(/시·도/g, '시도').replace(/시·군/g, '시군').replace(/읍·면/g, '읍면')
     .replace(/(\d{4})\.\s?(\d{1,2})\.\s?(\d{1,2})\.?/g, '$1년 $2월 $3일')
     .replace(/([\d][\d,.]*)\s*‰/g, '천분의 $1')
     .replace(/\d+(?:\s*\/\s*\d+){2,}/g, match => match.split('/').map(part => part.trim()).join(', '))
     .replace(/(\d+)\s*\/\s*(\d+)/g, (match, top, bottom) => `${bottom}분의 ${top}`)
     .replace(/%p/g, '퍼센트포인트')
-    .replace(/㎡|m²/g, '제곱미터').replace(/㎢/g, '제곱킬로미터')
+    .replace(/㎡|m²/g, '제곱미터').replace(/㎢/g, '제곱킬로미터').replace(/(\d)\s*m(?![a-zA-Z])/g, '$1미터')
     .replace(/×/g, ' 곱하기 ').replace(/÷/g, ' 나누기 ')
     .replace(/(\S+)\s*>\s*(\d+)이면/g, (match, left, value) => `${particle(left, '이', '가')} ${value}보다 크면`)
     .replace(/([^\s:.,]+)\s*>\s*([^:.,]+)/g, (match, left, right) => `${particle(left, '이', '가')} ${right.trim()}보다 큼`)
