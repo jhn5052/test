@@ -1,0 +1,71 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const assert=require('node:assert/strict');const fs=require('node:fs');
+const base=require('node:path').resolve(__dirname,'../..');const questions=require(base+'/data/questions.json').questions;
+const subjects=['부동산학개론','민법 및 민사특별법','공인중개사법령 및 중개실무','부동산공법','부동산공시에 관한 법령 및 부동산 관련 세법'];
+const trial=(stage,ss,values)=>({id:stage,stage,year:2025,completedAt:'2026-10-27T05:00:00Z',total:ss.length*40,correct:values.reduce((a,b)=>a+b),subjects:Object.fromEntries(ss.map((s,i)=>[s,{total:40,correct:values[i]}])),results:[]});
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH ? {executablePath:process.env.CHROME_PATH} : {})});
+ const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+ const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(seed=>{if(!localStorage.getItem('gyeol-study-v1'))localStorage.setItem('gyeol-study-v1',JSON.stringify(seed));},
+ {history:[trial('first',subjects.slice(0,2),[24,24]),trial('secondFirst',subjects.slice(2,4),[28,20]),trial('secondSecond',subjects.slice(4),[24])],mistakes:['2025-2-36','2025-2-21','2026-4-3'].map(questionId=>({questionId,chosen:1,attemptedAt:'2026-10-26T10:00:00Z'})),flashcards:['2025-2-36'],recallProgress:{legacy:{rating:'again'}},active:null});
+ await page.goto(process.env.APP_URL || 'http://127.0.0.1:8000',{waitUntil:'networkidle'});await page.waitForSelector('.today-tasks');
+ assert.equal(await page.locator('.today-task').count(),3);
+ assert.equal(await page.locator('.stage-result').count(),2);assert.match(await page.locator('.stage-result').first().innerText(),/60점/);
+ assert.equal(await page.locator('.dashboard-details').getAttribute('open'),null);
+ await page.screenshot({path:require('node:os').tmpdir()+'/learning-home-mobile.png',fullPage:true});
+ await page.locator('[data-today-task=memory]').click();assert.match(await page.locator('.quick-status').textContent(),/1 \/ 20장/);
+ for(let i=0;i<20;i++){await page.locator('#quick-reveal').click();await page.locator(`[data-quick-rate=${i<2?'again':'known'}]`).click();}
+ await page.locator('#quick-practice').click();await page.waitForSelector('#check-learning');
+ const active=await page.evaluate(()=>JSON.parse(localStorage.getItem('gyeol-study-v1')).active);
+ assert.equal(active.learning,true);const q=questions.find(q=>q.id===active.questions[0]);const correct=Array.isArray(q.answer)?q.answer[0]:q.answer;const wrong=correct===1?2:1;
+ await page.locator(`[data-answer="${wrong}"]`).click();assert.equal(await page.locator('.learning-feedback').count(),0);
+ await page.locator('#flag-learning').click();await page.locator('#check-learning').click();assert.equal(await page.locator('.learning-feedback.is-wrong').count(),1);
+ await page.locator(`[data-answer="${correct}"]`).click();assert.equal(await page.locator('.answer-option.chosen').getAttribute('data-answer'),String(wrong));
+ await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:require('node:os').tmpdir()+'/learning-feedback-mobile.png',fullPage:true});
+ await page.locator('#mobile-submit').click();await page.waitForSelector('.result-hero');
+ await page.locator('[data-view=mistakes]').click();
+ let card=page.locator('.mistake-card').filter({has:page.locator('[data-review-start="2025-2-36"]')});
+ assert.match(await card.locator('.mistake-concept-review h3').first().textContent(),/집합건물/);
+ await card.locator('[data-review-start]').click();
+ card=page.locator('.mistake-card').filter({has:page.locator('.mistake-retry')});
+ assert.equal(await card.locator('.mistake-concept-review,.explanation,.answer-compare').count(),0);
+ await page.screenshot({path:require('node:os').tmpdir()+'/learning-retry-hidden.png',fullPage:true});
+ const q2=questions.find(q=>q.id==='2025-2-36');const c2=Array.isArray(q2.answer)?q2.answer[0]:q2.answer;
+ await card.locator(`[data-review-choice="${c2}"]`).click();await page.locator('[data-review-check]').click();
+ assert.equal(await page.locator('[data-review-start="2025-2-36"]').count(),0);
+ await page.locator('[data-view=summary]').click();await page.locator('[role=tab][data-summary-subject=public]').click();
+ await page.locator('[data-summary-section="public:8"]').click();
+ assert.match(await page.locator('#study-search').inputValue(),/개발행위허가/);
+ await page.locator('#study-search').fill('아무개념도아님');await page.waitForSelector('.flashcard-empty');
+ await page.locator('#study-search').fill('');await page.waitForSelector('#study-type-card');
+ await page.locator('#study-type-subject').selectOption('all');await page.locator('#study-search').fill('주택임대차 vs 상가임대차 · 대항력');
+ await page.locator('[data-concept-flip]').first().click();
+ assert.equal(await page.locator('.type-card-back').evaluate(el=>getComputedStyle(el).maxHeight),'none');
+ assert.equal(await page.locator('.type-card-back .memory-comparison-row').count(),2);
+ assert.equal(await page.locator('.type-card-back .memory-answer,.type-card-back .memory-facts').count(),0);
+ await page.locator('[data-view=dashboard]').click();
+ const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('gyeol-study-v1')).history.length);
+ const downloadPromise=page.waitForEvent('download');await page.locator('#export-study').click();const download=await downloadPromise;const file=await download.path();
+ const backup=JSON.parse(fs.readFileSync(file));assert.equal(backup.schema,'realtor-study-backup');assert.ok(!('active'in backup.data));
+ await page.locator('#import-study').setInputFiles(file);await page.waitForTimeout(150);
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('gyeol-study-v1')).history.length),before);
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('gyeol-study-v1')).mistakes.some(m=>m.questionId==='2025-2-36')),false);
+ await page.locator('#import-study').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{bad')});await page.waitForTimeout(100);
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('gyeol-study-v1')).history.length),before);
+ for(const viewport of [{width:375,height:667},{width:390,height:844},{width:820,height:1180},{width:1366,height:900}]){
+  await page.setViewportSize(viewport);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,JSON.stringify(viewport));
+ }
+ await page.setViewportSize({width:1366,height:900});await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:require('node:os').tmpdir()+'/learning-home-desktop.png',fullPage:true});
+ // Intercept the GitHub draft page: no issue is sent during verification.
+ await context.route('https://github.com/**',route=>route.fulfill({status:200,contentType:'text/html',body:'<title>Local draft stub</title>'}));
+ await page.locator('[data-view=mistakes]').click();await page.locator('[data-question-issue]').first().click();
+ await page.locator('#issue-description').fill('브라우저 자동 점검. 실제 신고를 전송하지 않음.');
+ const popupPromise=page.waitForEvent('popup');await page.locator('#question-issue-form [type=submit]').click();const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded');
+ assert.ok(popup.url().startsWith('https://github.com/jhn5052/test/issues/new'));
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('gyeol-study-v1')));assert.ok(saved.questionIssues[0].githubUrl.includes('issues/new'));
+ assert.ok(saved.uncertainQuestions.includes(q.id));assert.ok(saved.recallProgress.legacy);
+ assert.deepEqual(errors,[]);
+ console.log('PASS: daily plan, stage-specific real scores, unified 20-card review, related learning questions, deliberate feedback, locked checked answer, uncertainty, retry answer masking, correct removal, section-to-card search, card sizing, backup merge/invalid import, 4 widths, GitHub draft without sending, old records preserved, no browser errors');
+ await browser.close();
+})().catch(error=>{console.error(error);process.exit(1)});

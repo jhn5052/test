@@ -11,8 +11,8 @@ test('extracts real memorization facts, excludes answer keys and generated quest
 });
 test('splits bullet definitions without losing context and includes comparison rows', () => {
   const units = buildUnits([{ ...card, comparison: [{ label: '전', value: '상시 물 이용 없이 경작한다.' }], memorize: ['경작 형태\n• 전: 상시 물 이용 없이 경작한다.\n• 답: 물을 상시 이용한다.'] }], subjects);
-  assert.equal(units.length, 3);
-  assert.equal(units[2].label, '답');
+  assert.equal(units.length, 2);
+  assert.equal(units[1].label, '답');
 });
 test('deduplicates facts across cards and splits the combined subject', () => {
   const units = buildUnits([card, { ...card, id: 'econ-2' }, { ...card, id: 'tax', subject: subjects[4], title: '재산세' }, { ...card, id: 'reg', subject: subjects[4], title: '등기부' }], subjects);
@@ -47,4 +47,22 @@ test('the current deck has usable facts for all six fields, without leaked choic
   assert.equal(new Set(units.map(u => u.id)).size, units.length);
   assert.ok(units.every(u => !/[①②③④⑤]/.test(u.text)));
   for (const subject of [realSubjects[0], realSubjects[1], realSubjects[2], realSubjects[3], '공시법', '세법']) assert.ok(select(units, subject, 10).length > 0);
+});
+test('canonical subject metadata wins over a short title for tax and registry cards', () => {
+ const sample={...card,subject:subjects[4],title:'양도에 해당',memorize:['매매 등 유상 이전을 포함하는 개념이다.']};
+ assert.equal(buildUnits([{...sample,summarySubject:'tax'}],subjects)[0].subject,'세법');
+ assert.equal(buildUnits([{...sample,summarySubject:'registry',title:'등록사항'}],subjects)[0].subject,'공시법');
+});
+test('second-stage mode excludes first-stage facts; due remembered facts precede unseen facts',()=>{
+ const units=[{id:'due',subject:subjects[2]},{id:'future',subject:subjects[2]},{id:'new',subject:subjects[2]},{id:'first',subject:subjects[0]}];
+ const p={due:{rating:'known',dueAt:'2000-01-01'},future:{rating:'known',dueAt:'2100-01-01'}};
+ assert.deepEqual(select(units,'second',10,p,[],()=>0),['due','new','future']);
+});
+test('wrong-question priority follows a shared concept id when no source question id exists',()=>{
+ const units=[{id:'new',cardId:'c1',subject:subjects[0]},{id:'weak',cardId:'c2',subject:subjects[0]}];
+ assert.deepEqual(select(units,'first',2,{},['c2'],()=>0),['weak','new']);
+});
+test('short dates, one-year periods and yes/no table values remain studyable with their labels',()=>{
+ const units=buildUnits([{...card,memorize:[],comparison:[{label:'재산세',value:'6.1'},{label:'종부세',value:'X'},{label:'상가임대차',value:'1년'}]}],subjects);
+ assert.equal(units.length,3);assert.equal(units[0].text,'재산세: 6.1');assert.equal(units[1].text,'종부세: X');
 });

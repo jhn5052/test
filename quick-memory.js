@@ -5,9 +5,9 @@
     const seen = new Set();
     const units = [];
     cards.filter(card => !card.id.startsWith('gap-')).forEach(card => {
-      const subject = card.subject === subjects[4] ? (taxPattern.test(card.title) ? '세법' : '공시법') : card.subject;
-      const facts = (card.comparison || []).map((row, index) => ({ key: `compare-${index}`, label: clean(row.label || ''), text: clean(row.value || '') }));
-      const points = card.memorize?.length ? card.memorize : card.concept || [];
+      const subject = card.subject === subjects[4] ? (card.summarySubject === 'tax' || (card.summarySubject !== 'registry' && taxPattern.test(card.title)) ? '세법' : '공시법') : card.subject;
+      const facts = (card.comparison || []).map((row, index) => ({ key: `compare-${index}`, label: clean(row.label || ''), text: `${clean(row.label || '')}: ${clean(row.value || '')}` }));
+      const points = card.memorize?.length ? card.memorize : card.comparison?.length ? [] : card.concept || [];
       points.forEach((point, index) => {
         const text = clean(point).trim();
         const lines = text.split(/\n\s*[•·]\s*/);
@@ -34,8 +34,8 @@
   }
   function select(units, subject, size, progress = {}, wrongIds = [], random = Math.random) {
     const wrong = new Set(wrongIds);
-    return units.filter(unit => subject === 'all' || (subject === 'first' ? ['부동산학개론', '민법 및 민사특별법'].includes(unit.subject) : unit.subject === subject))
-      .map(unit => ({ unit, rank: progress[unit.id]?.rating === 'again' ? 0 : wrong.has(unit.sourceId) ? 1 : progress[unit.id]?.rating === 'known' ? 3 : 2, last: progress[unit.id]?.updatedAt || '', random: random() }))
+    return units.filter(unit => subject === 'all' || (subject === 'first' ? ['부동산학개론', '민법 및 민사특별법'].includes(unit.subject) : subject === 'second' ? !['부동산학개론', '민법 및 민사특별법'].includes(unit.subject) : unit.subject === subject))
+      .map(unit => ({ unit, rank: progress[unit.id]?.rating === 'again' ? 0 : wrong.has(unit.sourceId) || wrong.has(unit.cardId) ? 1 : progress[unit.id]?.rating === 'known' ? (progress[unit.id]?.dueAt && Date.parse(progress[unit.id].dueAt) <= Date.now() ? 1 : 3) : 2, last: progress[unit.id]?.updatedAt || '', random: random() }))
       .sort((a, b) => a.rank - b.rank || a.last.localeCompare(b.last) || a.random - b.random)
       .slice(0, size).map(item => item.unit.id);
   }

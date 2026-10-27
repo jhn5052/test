@@ -21,6 +21,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate study app
+        run: |
+          node --check app.js
+          node --check quick-memory.js
+          node --check learning-engine.js
+          node --check sw.js
+          node --test tests/*.test.cjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site artifact

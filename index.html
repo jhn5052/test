@@ -12,7 +12,7 @@
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
     <title>공인중개사 기출연습</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=45" />
   </head>
   <body>
     <div class="app-shell">
@@ -64,11 +64,12 @@
         </select>
         <label class="issue-field-label" for="issue-description">어떤 점을 확인하면 될까요? <span>선택</span></label>
         <textarea id="issue-description" maxlength="500" rows="4" placeholder="예: 보기 ③의 문장이 잘려 보여요."></textarea>
-        <div class="dialog-actions"><button type="button" class="button button-quiet" id="issue-cancel-secondary">취소</button><button type="submit" class="button button-primary">요청 저장</button></div>
+        <div class="dialog-actions"><button type="button" class="button button-quiet" id="issue-cancel-secondary">취소</button><button type="submit" class="button button-primary">GitHub 신고 작성</button></div>
       </form>
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="./quick-memory.js" defer></script>
-    <script src="./app.js" defer></script>
+    <script src="./learning-engine.js?v=45" defer></script>
+    <script src="./quick-memory.js?v=45" defer></script>
+    <script src="./app.js?v=45" defer></script>
   </body>
 </html>
