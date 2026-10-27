@@ -20,7 +20,7 @@ let flashcardFlipped = false;
 let studyTypeIndex = 0;
 let studyTypeFlipped = false;
 let studyTypeSubject = "all";
-let studyTypeMode = "concept";
+let studyTypeMode = "quick";
 let studyTypeSelected = null;
 let studyTypeRevealed = false;
 let studyTypeQuestionOpen = false;
@@ -1040,6 +1040,74 @@ function bindFlashcards() {
   document.querySelector("[data-remove-card]")?.addEventListener("click", event => toggleFlashcard(event.currentTarget.dataset.removeCard));
   document.querySelector("[data-action=mistakes]")?.addEventListener("click", () => setView("mistakes"));
 }
+function quickMemoryUnits() {
+  return QuickMemory.buildUnits(studyTypes, SUBJECTS, normalizeStudyText);
+}
+function quickMemorySession(units) {
+  const session = store.quickMemorySession;
+  if (!session || !Array.isArray(session.ids) || !session.ids.length || !Number.isInteger(session.index) || session.index < 0 || session.index > session.ids.length) return null;
+  const validIds = new Set(units.map(unit => unit.id));
+  if (!session.ids.every(id => validIds.has(id))) return null;
+  return session;
+}
+function startQuickMemory(againOnly = false) {
+  const units = quickMemoryUnits();
+  const previous = quickMemorySession(units);
+  const subject = document.querySelector("#quick-subject")?.value || previous?.subject || "first";
+  const size = Number(document.querySelector("#quick-size")?.value) || previous?.size || 10;
+  const ids = againOnly && previous
+    ? previous.ids.filter(id => previous.ratings?.[id] === "again")
+    : QuickMemory.select(units, subject, size, store.quickMemoryProgress || {}, store.mistakes.map(item => item.questionId));
+  if (!ids.length) { toast("선택한 과목에서 복습할 카드가 없습니다."); return; }
+  store.quickMemorySession = { ids, index: 0, revealed: false, ratings: {}, subject, size };
+  persist(); render();
+}
+function revealQuickMemory() {
+  const session = quickMemorySession(quickMemoryUnits());
+  if (!session || session.index >= session.ids.length) return;
+  session.revealed = !session.revealed;
+  persist(); render();
+}
+function rateQuickMemory(known) {
+  const current = quickMemorySession(quickMemoryUnits());
+  const next = QuickMemory.rate(current, known);
+  if (!next) return;
+  const id = current.ids[current.index];
+  store.quickMemoryProgress ||= {};
+  const old = store.quickMemoryProgress[id];
+  store.quickMemoryProgress[id] = { rating: known ? "known" : "again", reviews: (old?.reviews || 0) + 1, updatedAt: new Date().toISOString() };
+  store.quickMemorySession = next;
+  persist(); render();
+}
+function renderQuickMemory() {
+  const units = quickMemoryUnits();
+  const session = quickMemorySession(units);
+  const groups = [...new Set(units.map(unit => unit.subject))];
+  const subject = session?.subject || "first";
+  const size = session?.size || 10;
+  const settings = `<div class="quick-settings"><label>학습 과목<select id="quick-subject" class="filter-select"><option value="first" ${subject === "first" ? "selected" : ""}>1차 집중 · 학개론 + 민법</option><option value="all" ${subject === "all" ? "selected" : ""}>전체 과목</option>${groups.map(group => `<option value="${escapeHTML(group)}" ${subject === group ? "selected" : ""}>${escapeHTML(group)}</option>`).join("")}</select></label><label>한 번에<select id="quick-size" class="filter-select">${[10,20,30].map(n => `<option value="${n}" ${size === n ? "selected" : ""}>${n}장</option>`).join("")}</select></label><button class="button button-outline" id="quick-start">${session ? "새 묶음 시작" : "암기 시작"}</button></div>`;
+  const intro = `<div class="quick-heading"><span class="eyebrow">FINAL REVIEW</span><h2>짧게 보고, 가리고, 기억하기</h2><p>용어 → 개념 확인 → 스스로 기억 판단. 다시 볼 카드부터 골라 드려요.</p></div>`;
+  if (!units.length) return `<section class="quick-memory">${intro}<p>암기 자료를 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.</p></section>`;
+  if (!session) return `<section class="quick-memory">${intro}${settings}<div class="quick-empty"><b>한 장에 한 가지 암기 포인트</b><p>10장부터 시작하세요. 답을 보기 전에 뜻이나 기준을 소리 내어 떠올려 보세요.</p><span>${units.length}개 암기 포인트 · 과목별 선택 가능</span></div></section>`;
+  const again = session.ids.filter(id => session.ratings?.[id] === "again").length;
+  if (session.index === session.ids.length) return `<section class="quick-memory">${intro}${settings}<div class="quick-complete" role="status"><span class="eyebrow">묶음 완료</span><h3>${session.ids.length}장 확인했어요</h3><p>기억났어요 ${session.ids.length - again}장 · 다시 보기 ${again}장</p><p>스스로 표시한 결과입니다. 헷갈린 개념을 한 번 더 떠올려 보세요.</p><button class="button button-primary" id="quick-again" ${again ? "" : "disabled"}>헷갈린 ${again}장만 반복</button></div></section>`;
+  const unit = units.find(item => item.id === session.ids[session.index]);
+  return `<section class="quick-memory">${intro}${settings}<div class="quick-status"><span>${session.index + 1} / ${session.ids.length}장</span><span>확인 ${session.index}장 · 다시 보기 ${again}장</span></div><progress class="quick-progress" max="${session.ids.length}" value="${session.index}" aria-label="이번 묶음 진행"></progress><article class="quick-memory-card ${session.revealed ? "is-revealed" : ""}" aria-label="빠른 암기 카드"><span class="quick-subject">${escapeHTML(unit.subject)}</span><h3>${escapeHTML(unit.title)}</h3><p class="quick-term">${escapeHTML(unit.label)}</p>${session.revealed ? `<div class="quick-answer"><span>외울 개념</span><p>${escapeHTML(unit.text)}</p></div>` : `<p class="quick-hint">뜻·기준·차이를 떠올린 뒤 확인하세요.</p>`}<button class="button button-primary" id="quick-reveal" aria-expanded="${session.revealed}">${session.revealed ? "개념 다시 가리기" : "개념 확인"}</button></article><div class="quick-ratings"><button class="button button-outline" data-quick-rate="again" ${session.revealed ? "" : "disabled"}>↺ 다시 보기</button><button class="button button-primary" data-quick-rate="known" ${session.revealed ? "" : "disabled"}>✓ 기억났어요</button></div><p class="quick-shortcuts">개념을 확인하면 다음 카드로 넘길 수 있어요. 진행은 이 기기에 저장됩니다.<span>키보드: Space 확인 · ← 다시 보기 · → 기억났어요</span></p></section>`;
+}
+function bindQuickMemory() {
+  document.querySelector("#quick-start")?.addEventListener("click", () => startQuickMemory());
+  document.querySelector("#quick-again")?.addEventListener("click", () => startQuickMemory(true));
+  document.querySelector("#quick-reveal")?.addEventListener("click", revealQuickMemory);
+  document.querySelectorAll("[data-quick-rate]").forEach(button => button.addEventListener("click", () => rateQuickMemory(button.dataset.quickRate === "known")));
+}
+document.addEventListener("keydown", event => {
+  if (view !== "study-types" || studyTypeMode !== "quick" || event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.target.closest("input, textarea, select, button, a, [contenteditable]")) return;
+  if (![" ", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+  event.preventDefault();
+  if (event.key === " ") revealQuickMemory();
+  else rateQuickMemory(event.key === "ArrowRight");
+});
+
 function startStudyRecallSession(againOnly = false) {
   const pool = studyTypes.filter(card => (studyTypeSubject === "all" || card.subject === studyTypeSubject) && (!againOnly || studyRecallAgainIds.has(card.id)));
   studyRecallOrder = pool.map(card => ({ card, rank: store.recallProgress?.[card.id]?.rating === "again" ? 0 : store.recallProgress?.[card.id]?.rating === "known" ? 2 : 1, sort: Math.random() }))
@@ -1066,9 +1134,10 @@ function renderStudyTypes() {
   const available = studyTypes.filter(card => studyTypeSubject === "all" || card.subject === studyTypeSubject);
   const subjects = [...new Set(studyTypes.map(card => card.subject))];
   const isRecall = studyTypeMode === "recall";
-  const heading = titleBlock("개념을 떠올리고, 확인하고, 다시 복습하세요", "암기카드", "답을 먼저 적은 뒤 개념 설명과 비교하는 회상 퀴즈입니다.");
+  const heading = titleBlock("개념을 떠올리고, 확인하고, 다시 복습하세요", "암기카드", "용어를 떠올리고 개념을 확인하세요. 헷갈린 카드는 다시 반복합니다.");
   const knownCount = available.filter(card => store.recallProgress?.[card.id]?.rating === "known").length;
-  const modeSwitch = `<div class="memory-mode-switch" role="tablist" aria-label="암기 학습 방식"><button role="tab" aria-selected="${studyTypeMode === "concept"}" class="${studyTypeMode === "concept" ? "selected" : ""}" data-study-mode="concept"><span>개념 카드</span><small>${studyTypes.length}장</small></button><button role="tab" aria-selected="${isRecall}" class="${isRecall ? "selected" : ""}" data-study-mode="recall"><span>개념 퀴즈</span><small>${knownCount}장 기억</small></button><button role="tab" aria-selected="${studyTypeMode === "saved"}" class="${studyTypeMode === "saved" ? "selected" : ""}" data-study-mode="saved"><span>오답 카드</span><small>${store.flashcards.length}장</small></button></div>`;
+  const modeSwitch = `<div class="memory-mode-switch has-quick" role="tablist" aria-label="암기 학습 방식"><button role="tab" aria-selected="${studyTypeMode === "quick"}" class="${studyTypeMode === "quick" ? "selected" : ""}" data-study-mode="quick"><span>빠른 암기</span><small>10장씩 반복</small></button><button role="tab" aria-selected="${studyTypeMode === "concept"}" class="${studyTypeMode === "concept" ? "selected" : ""}" data-study-mode="concept"><span>개념 카드</span><small>${studyTypes.length}장</small></button><button role="tab" aria-selected="${isRecall}" class="${isRecall ? "selected" : ""}" data-study-mode="recall"><span>개념 퀴즈</span><small>${knownCount}장 기억</small></button><button role="tab" aria-selected="${studyTypeMode === "saved"}" class="${studyTypeMode === "saved" ? "selected" : ""}" data-study-mode="saved"><span>오답 카드</span><small>${store.flashcards.length}장</small></button></div>`;
+  if (studyTypeMode === "quick") return `<div class="quick-memory-view">${modeSwitch}${renderQuickMemory()}</div>`;
   if (studyTypeMode === "saved") return `${heading}${modeSwitch}${renderFlashcards(false)}`;
   if (!available.length) return `${heading}${modeSwitch}<div class="flashcard-empty"><h2>개념 카드를 불러오지 못했어요</h2><p>페이지를 새로고침한 뒤 다시 확인해 주세요.</p></div>`;
   if (isRecall && !studyRecallOrder.length) startStudyRecallSession();
@@ -1101,6 +1170,7 @@ function renderStudyTypes() {
     <div class="flashcard-controls study-type-controls">${isRecall ? `<button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 카드</button><button class="button button-quiet" id="type-shuffle">순서 다시 섞기</button><button class="button button-primary" id="type-next" ${studyTypeIndex === queue.length - 1 ? "disabled" : ""}>건너뛰기 →</button>` : `<button class="button button-outline" id="type-prev" ${studyTypeIndex === 0 ? "disabled" : ""}>← 이전 유형</button><button class="button button-quiet" id="type-shuffle">순서 섞기 ↻</button><button class="button button-primary" id="type-next" ${studyTypeIndex === available.length - 1 ? "disabled" : ""}>다음 유형 →</button>`}</div>`;
 }
 function bindStudyTypes() {
+  bindQuickMemory();
   document.querySelectorAll("[data-study-mode]").forEach(button => button.addEventListener("click", () => {
     studyTypeMode = button.dataset.studyMode;
     if (studyTypeMode === "recall") startStudyRecallSession();

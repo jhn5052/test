@@ -424,3 +424,48 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media(max-width:359px){.topbar{padding-right:max(12px,env(safe-area-inset-right));padding-left:max(12px,env(safe-area-inset-left))}}
 /* Long formulas in choices and explanations (e.g. 800×0.90+1,000×0.85…) have no spaces; let them wrap on narrow screens. */
 .mistake-card,.answer-option,.mistake-retry-choice,.type-answer-option,.type-source,.type-answer-feedback,.flashcard{overflow-wrap:anywhere}
+
+/* Short, single-fact reviews for the final days before the exam. */
+.memory-mode-switch.has-quick { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.quick-memory { max-width:860px;margin:0 auto 32px; }
+.quick-heading { margin-bottom:22px; }
+.quick-heading h2 { color:#193e2e;font-size:clamp(23px,4vw,32px);margin:8px 0; }
+.quick-heading p,.quick-hint,.quick-shortcuts { color:#647269;line-height:1.7; }
+.quick-settings { display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:22px; }
+.quick-settings label { display:grid;gap:7px;font-size:13px;font-weight:700;min-width:0; }
+.quick-settings label:first-child { flex:1 1 240px; }
+.quick-settings select { width:100%;max-width:100%;min-height:46px; }
+.quick-settings .button { min-height:46px; }
+.quick-status { display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#52675a; }
+.quick-progress { display:block;appearance:none;width:100%;height:6px;border:0;border-radius:8px;margin:10px 0 18px;background:#e1e8df; }
+.quick-progress::-webkit-progress-bar { background:#e1e8df;border-radius:8px; }
+.quick-progress::-webkit-progress-value { background:#315b43;border-radius:8px; }
+.quick-progress::-moz-progress-bar { background:#315b43;border-radius:8px; }
+.quick-memory-card { background:#fffdf7;border:1px solid #d3c5a4;border-radius:20px;padding:clamp(22px,4vw,38px);overflow-wrap:anywhere; }
+.quick-subject { display:inline-block;padding:6px 12px;background:#e6eee7;color:#214934;border-radius:20px;font-size:12px;font-weight:750; }
+.quick-memory-card h3 { margin:18px 0 12px;font-size:clamp(21px,4vw,30px);line-height:1.45;color:#193e2e; }
+.quick-term { font-size:19px;font-weight:750;color:#675328;margin:16px 0; }
+.quick-answer { margin:20px 0;padding:18px;background:#edf3ec;border-left:4px solid #527552;border-radius:0 12px 12px 0; }
+.quick-answer>span { font-size:12px;color:#527552;font-weight:750; }
+.quick-answer p { font-size:clamp(18px,2.8vw,22px);line-height:1.8;white-space:pre-line;margin:8px 0 0;color:#233a2c; }
+.quick-ratings { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px; }
+.quick-ratings .button { min-height:54px; }
+.quick-shortcuts { font-size:12px;margin:12px 0; }
+.quick-shortcuts span { display:block; }
+.quick-empty,.quick-complete { padding:30px;background:#fffdf7;border:1px solid #d3c5a4;border-radius:20px;line-height:1.8; }
+.quick-empty b,.quick-complete h3 { font-size:24px;color:#193e2e; }
+.quick-empty span { font-size:13px;color:#647269; }
+.quick-complete h3 { margin:12px 0; }
+@media(max-width:600px) {
+  .memory-mode-switch.has-quick { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .quick-settings { gap:10px; }
+  .quick-settings label:first-child { flex-basis:100%; }
+  .quick-settings label:nth-child(2) { flex:1; }
+  .quick-settings .button { flex:1; }
+  .quick-memory-card { border-radius:16px; }
+  .quick-memory-card>#quick-reveal { width:100%;min-height:48px; }
+  .quick-shortcuts span { display:none; }
+  .quick-ratings { gap:8px; }
+}
+
+@media(max-width:720px){.quick-ratings{position:sticky;bottom:calc(74px + env(safe-area-inset-bottom,0px));z-index:3;padding:10px 0;background:var(--paper)}.quick-memory{padding-bottom:20px}.quick-memory-view .memory-mode-switch{margin-bottom:20px}}
