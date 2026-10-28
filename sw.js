@@ -1,5 +1,5 @@
-const CACHE_NAME = "license-practice-v46";
-const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./quick-memory.js", "./learning-engine.js", "./manifest.webmanifest", "./icon.svg", "./data/questions.json", "./data/study-types.json", "./data/answer-keys.json", "./data/core-summary.json", "./data/summary-audio.json"];
+const CACHE_NAME = "license-practice-v47";
+const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./quick-memory.js", "./learning-engine.js", "./manifest.webmanifest", "./icon.svg", "./data/questions.json", "./data/study-types.json", "./data/concept-links.json", "./data/answer-keys.json", "./data/core-summary.json", "./data/summary-audio.json"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_FILES)));

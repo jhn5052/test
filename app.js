@@ -10,6 +10,7 @@ let bank = [];
 let studyTypes = [];
 const conceptLinkCache = new Map();
 let coreSummary = null;
+let conceptLinkAudit = null;
 let answerKeys = {};
 let store = readStore();
 let view = "dashboard";
@@ -973,6 +974,7 @@ function renderMistakeCards(mistakes) {
     const hasDetailedExplanation = q.explanation && !q.explanation.includes("원문에는 별도 해설") && !q.explanation.includes("원본에는 별도 해설");
     const inDeck = (store.flashcards || []).includes(q.id);
     const relatedCards = sourceConceptCards(q);
+    const requiresSourceReview = conceptLinkAudit?.questions?.[q.id]?.status === "source-review";
     const retrying = mistakeRetryQuestionId === q.id;
     const retry = retrying
       ? `<section class="mistake-retry"><div class="mistake-retry-heading"><b>다시 풀어보기</b><button class="mistake-retry-close" data-review-start="${escapeHTML(q.id)}">닫기</button></div><p class="mistake-retry-hint">정답과 해설은 답을 확인한 뒤 다시 볼 수 있어요.</p><div class="mistake-retry-choices">${q.choices.map((choice, index) => `<button class="mistake-retry-choice ${mistakeRetrySelected === index + 1 ? "selected" : ""}" data-review-choice="${index + 1}" aria-pressed="${mistakeRetrySelected === index + 1}"><b>${LETTERS[index]}</b><span>${renderChoiceText(choice)}</span></button>`).join("")}</div><button class="button button-primary" data-review-check="${escapeHTML(q.id)}" ${mistakeRetrySelected ? "" : "disabled"}>정답 확인</button>${mistakeRetryFeedback ? `<p class="mistake-retry-feedback" role="status">${escapeHTML(mistakeRetryFeedback)}</p>` : ""}</section>`
@@ -982,7 +984,7 @@ function renderMistakeCards(mistakes) {
       : `<p>Q-Net 공개 원본에는 정답표만 포함되어 있어, 이 문항의 풀이 해설은 아직 등록되지 않았습니다.</p>`;
     const conceptReview = relatedCards.length
       ? `<section class="mistake-concept-review"><div class="mistake-concept-heading"><span>개념 정리 후 다시 풀기</span><b>${escapeHTML(q.subject)}</b></div>${relatedCards.map((card,index) => `${index ? `<details class="mistake-extra-concept"><summary>${escapeHTML(card.title)}</summary>` : ""}<h3>${escapeHTML(card.title)}</h3>${renderConceptSummary(card)}<button class="related-concept-button" data-open-concept="${escapeHTML(card.id)}">이 개념 카드로 복습 →</button>${index ? "</details>" : ""}`).join("")}</section>`
-      : `<section class="mistake-concept-review is-unmapped"><div class="mistake-concept-heading"><span>이 문항의 풀이로 복습</span><b>${escapeHTML(q.subject)}</b></div>${hasDetailedExplanation ? `<p class="mistake-concept-answer">${escapeHTML(stripAnswerPreamble(q.explanation))}</p>` : `<p>아직 등록된 풀이가 없습니다.</p>`}<button class="related-concept-button" data-open-subject="${escapeHTML(q.subject)}">과목 개념에서 찾아보기 →</button></section>`;
+      : `<section class="mistake-concept-review is-unmapped"><div class="mistake-concept-heading"><span>${requiresSourceReview ? "원문 대조 필요" : "이 문항의 풀이로 복습"}</span><b>${escapeHTML(q.subject)}</b></div>${requiresSourceReview ? `<p class="mistake-concept-answer">원문·정답표와 해설의 대조가 필요한 문항입니다. 이 문항의 결론을 암기하기 전에 원문을 확인해 주세요.</p>` : hasDetailedExplanation ? `<p class="mistake-concept-answer">${escapeHTML(stripAnswerPreamble(q.explanation))}</p>` : `<p>아직 등록된 풀이가 없습니다.</p>`}<button class="related-concept-button" data-open-subject="${escapeHTML(q.subject)}">과목 개념에서 찾아보기 →</button></section>`;
     const explanationBlock = relatedCards.length
       ? `<div class="explanation"><b>풀이 해설</b>${explanation}</div>`
       : "";
@@ -1315,7 +1317,7 @@ function relatedConceptCards(question) {
   return sourceConceptCards(question);
 }
 function sourceConceptCards(question) {
-  if (!conceptLinkCache.has(question.id)) conceptLinkCache.set(question.id, LearningEngine.related(question, studyTypes, SUBJECTS));
+  if (!conceptLinkCache.has(question.id)) conceptLinkCache.set(question.id, LearningEngine.related(question, studyTypes, SUBJECTS, conceptLinkAudit));
   return conceptLinkCache.get(question.id);
 }
 
@@ -1397,6 +1399,13 @@ async function loadBank() {
     coreSummary = await response.json();
   } catch (error) { coreSummary = null; console.warn(error); }
   studyTypes = LearningEngine.conceptCatalog(coreSummary, studyTypes);
+  try {
+    const response = await fetch("./data/concept-links.json");
+    if (!response.ok) throw new Error("문항별 개념 연결표를 찾을 수 없습니다.");
+    const payload = await response.json();
+    if (payload.schema !== "realtor-concept-links" || payload.version !== 1 || !payload.questions) throw new Error("개념 연결표 형식이 올바르지 않습니다.");
+    conceptLinkAudit = payload;
+  } catch (error) { conceptLinkAudit = null; console.warn(error); }
   conceptLinkCache.clear();
   if (quiz && !quiz.questions.every(id => bank.some(q => q.id === id))) { quiz = null; store.active = null; persist(); }
   render();

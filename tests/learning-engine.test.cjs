@@ -7,7 +7,8 @@ const questions=require('../data/questions.json').questions;
 const subjects=['부동산학개론','민법 및 민사특별법','공인중개사법령 및 중개실무','부동산공법','부동산공시에 관한 법령 및 부동산 관련 세법'];
 const core=e.canonicalCards(summary);
 const cards=e.conceptCatalog(summary,old);
-const linked=id=>e.related(questions.find(q=>q.id===id),cards,subjects);
+const audit=require('../data/concept-links.json');
+const linked=id=>e.related(questions.find(q=>q.id===id),cards,subjects,audit);
 test('canonical definitions and table values come from the same summary, with stable unique ids',()=>{
  assert.equal(core.length,new Set(core.map(c=>c.id)).size);
  assert.deepEqual(core,e.canonicalCards(summary));
@@ -20,12 +21,13 @@ test('related concepts use the question topic and never a word in an incorrect c
  assert.deepEqual(linked('2025-2-36').map(c=>c.title),['집합건물']);
  assert.deepEqual(linked('2025-2-37').map(c=>c.title),['가등기담보']);
  assert.ok(linked('2025-2-21').every(c=>c.title.includes('법정지상권')),'general 지상권 must not substitute for 법정지상권');
- assert.deepEqual(linked('2025-3-40'),[],'a topic in the body must not replace 주택임대차');
- assert.ok(linked('2025-5-29').every(c=>/재산세/.test(c.concept.join(' '))));
+ assert.ok(linked('2025-3-40').length);
+ assert.ok(linked('2025-3-40').every(c=>c.id.startsWith('broker-review-') && /임대차|대항력/.test(c.title)));
+ assert.ok(linked('2025-5-29').every(c=>/재산세/.test(c.title+' '+c.concept.join(' '))));
 });
 test('question-derived records cannot override concepts; specific date questions select the date table',()=>{
  const q=questions.find(q=>old.some(c=>c.id.startsWith('gap-')&&c.sourceId===q.id&&c.prompt===q.text));
- assert.ok(e.related(q,cards,subjects).every(c=>!c.id.startsWith('gap-')));
+ assert.ok(e.related(q,cards,subjects,audit).every(c=>!c.id.startsWith('gap-')));
  const date=linked('2026-5-12');assert.ok(date.length);assert.ok(date[0].title.includes('기준'));
 });
 test('all concept modes use a catalog without questions, answer keys, scenario fragments or exam metadata',()=>{
@@ -39,12 +41,12 @@ test('all concept modes use a catalog without questions, answer keys, scenario f
  assert.ok(cards.find(c=>c.id==='civil-37').concept.some(t=>t.includes('도급')));
  assert.ok(!cards.find(c=>c.id==='econ-24').memorize.some(t=>t.includes('정답')));
 });
-test('related concepts stay focused on the actual subtopic and never return a whole chapter of alternatives',()=>{
+test('related concepts stay inside the explicitly reviewed topic',()=>{
  const law=linked('2025-2-21');assert.ok(law.length);assert.ok(law[0].title.includes('법정지상권'));
  assert.equal(linked('2020-1-2')[0].title,'부동산업과 부동산 관련 서비스업');
- for(const q of questions)assert.ok(e.related(q,cards,subjects).length<=1);
+ for(const q of questions)assert.ok(e.related(q,cards,subjects,audit).every(c=>audit.questions[q.id].cards.some(link=>link.id===c.id)));
  const q={id:'regression',subject:subjects[2],text:'공인중개사법령상 자격정지에 관한 설명으로 옳은 것은?'};
- assert.ok(e.related(q,cards,subjects).every(c=>c.concept.join(' ').includes('자격정지')));
+ assert.ok(e.related(q,cards,subjects,audit).every(c=>c.concept.join(' ').includes('자격정지')));
 });
 function attempt(stage,year,corrects,date='2026-10-27T10:00:00Z'){
  const ss=stage==='first'?subjects.slice(0,2):stage==='secondFirst'?subjects.slice(2,4):subjects.slice(4);
@@ -85,12 +87,47 @@ test('backup import validates the schema and merges without erasing existing his
 });
 test('topic links remain inside the correct subject and reference existing cards',()=>{
  const ids=new Set(cards.map(c=>c.id));let mapped=0;
- for(const q of questions){const matches=e.related(q,cards,subjects);if(matches.length)mapped++;assert.ok(matches.every(c=>ids.has(c.id)&&c.subject===q.subject));}
+ for(const q of questions){const matches=e.related(q,cards,subjects,audit);if(matches.length)mapped++;assert.ok(matches.every(c=>ids.has(c.id)&&c.subject===q.subject));}
  assert.ok(mapped>200,`expected usable focused links; got ${mapped}`);
 });
 
 test('regressions: penalties, consent ratios, application methods and investment criteria use their own topic',()=>{
- const checks=[['2025-5-26',/가산세/],['2025-4-25',/동의|리모델링/],['2025-5-13',/단독신청|공동신청/],['2025-1-28',/수익성지수/],['2025-5-9',/적부심사/]];
- for(const [id,topic] of checks){const matches=linked(id);assert.ok(matches.length,id+' should have a focused concept');assert.ok(matches.every(c=>topic.test(c.concept.join(' '))),id+': '+matches.map(c=>c.title));}
- assert.ok(linked('2025-3-28').every(c=>/이용의무/.test(c.concept.join(' '))));
+ const checks=[['2025-5-26',/가산세/],['2025-4-25',/동의|리모델링/],['2025-5-13',/공동신청|공동 신청/],['2025-1-28',/수익성지수/],['2025-5-9',/적부심사/]];
+ for(const [id,topic] of checks){const matches=linked(id);assert.ok(matches.length,id+' should have a focused concept');assert.ok(matches.some(c=>topic.test([...(c.concept||[]),...(c.memorize||[])].join(' '))),id+': '+matches.map(c=>c.title));}
+ assert.ok(linked('2025-3-28').some(c=>/이용.*의무/.test(c.concept.join(' '))));
+});
+
+test('the audit has exactly one checked entry for each of the 1300 questions, and all linked targets resolve',()=>{
+ assert.equal(questions.length,1300);assert.equal(Object.keys(audit.questions).length,questions.length);
+ let linkedCount=0,unmapped=0,hold=0;
+ for(const q of questions){const row=audit.questions[q.id];assert.ok(row,q.id);assert.equal(row.questionFingerprint,e.questionFingerprint(q),q.id);assert.ok(row.reason);const matches=linked(q.id);
+ if(row.status==='linked'){linkedCount++;assert.ok(matches.length,q.id);assert.equal(matches.length,row.cards.length);}
+ else {assert.deepEqual(matches,[],q.id);assert.equal(row.cards.length,0);if(row.status==='unmapped')unmapped++;else if(row.status==='source-review')hold++;else assert.fail(row.status);}
+ }
+ assert.equal(linkedCount,audit.stats.linked);assert.equal(unmapped,audit.stats.unmapped);assert.equal(hold,audit.stats['source-review']);
+});
+test('a changed question, choice, subject, answer or card requires fresh review and cannot use an old link',()=>{
+ const q=questions.find(q=>q.id==='2025-2-36');
+ assert.ok(linked(q.id).length);
+ for(const patch of [{text:q.text+' 수정'},{subject:subjects[0]},{choices:['다른 보기']},{answer:999}])assert.deepEqual(e.related({...q,...patch},cards,subjects,audit),[]);
+ const changed=cards.map(c=>c.id===linked(q.id)[0].id?{...c,concept:['다른 내용']}:c);
+ assert.deepEqual(e.related(q,changed,subjects,audit),[]);
+ assert.deepEqual(e.related(q,cards,subjects,null),[]);
+});
+test('specific cases no longer link through incidental context words',()=>{
+ const expected={
+ '2022-1-25':'econ-23','2023-1-22':'econ-23','2020-2-28':'civil-05',
+ '2021-2-3':'civil-02','2024-2-29':'civil-05','2024-2-37':'core-civil-1afdpyr',
+ '2020-3-34':'broker-04','2021-3-29':'broker-sanction-04','2024-3-16':'broker-sanction-04',
+ '2023-4-3':'core-public-13a4sfa','2024-4-18':'core-public-w86byu','2023-4-35':'core-public-3jb256',
+ '2025-5-4':'core-registry-90t5df','2024-5-34':'tax-57','2025-5-40':'tax-50',
+ '2025-5-35':'tax-56','2025-5-38':'tax-32'};
+ for(const [id,cardId] of Object.entries(expected))assert.ok(linked(id).some(c=>c.id===cardId),id+' -> '+linked(id).map(c=>c.id));
+ for(const id of ['2020-5-1','2020-5-5','2021-5-12','2024-4-38','2025-4-36'])assert.deepEqual(linked(id),[],id);
+});
+test('known source conflicts are held, and corrected definition cards cannot retain their contradictory old rules',()=>{
+ for(const id of ['2023-2-7','2022-2-36','2023-5-4','2025-4-2']){assert.equal(audit.questions[id].status,'source-review');assert.deepEqual(linked(id),[]);}
+ const proxy=cards.find(c=>c.id==='civil-14');assert.ok(proxy.concept.some(x=>/법정대리인은 자기 책임/.test(x)));
+ const unfair=cards.find(c=>c.id==='civil-15');assert.ok(unfair.concept.some(x=>x.includes('궁박은 본인, 경솔·무경험은 대리인')));
+ assert.ok(!cards.find(c=>c.id==='tax-50').memorize.some(x=>/6,700|2,100/.test(x)));
 });

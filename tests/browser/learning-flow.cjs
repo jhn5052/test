@@ -10,6 +10,17 @@ const trial=(stage,ss,values)=>({id:stage,stage,year:2025,completedAt:'2026-10-2
  await page.addInitScript(seed=>{if(!localStorage.getItem('gyeol-study-v1'))localStorage.setItem('gyeol-study-v1',JSON.stringify(seed));},
  {history:[trial('first',subjects.slice(0,2),[24,24]),trial('secondFirst',subjects.slice(2,4),[28,20]),trial('secondSecond',subjects.slice(4),[24])],mistakes:['2025-2-36','2025-2-21','2026-4-3'].map(questionId=>({questionId,chosen:1,attemptedAt:'2026-10-26T10:00:00Z'})),flashcards:['2025-2-36'],recallProgress:{legacy:{rating:'again'}},active:null});
  await page.goto(process.env.APP_URL || 'http://127.0.0.1:8000',{waitUntil:'networkidle'});await page.waitForSelector('.today-tasks');
+ const checked=await page.evaluate(()=>{
+   let linked=0,held=0;
+   for(const q of bank){const row=conceptLinkAudit.questions[q.id];const targets=sourceConceptCards(q);
+     if(row.status==='linked'){if(targets.length!==row.cards.length)throw new Error(q.id+' did not resolve');linked++;}
+     else if(targets.length)throw new Error(q.id+' should not have concepts');else held++;
+     for(const card of targets){const doc=new DOMParser().parseFromString(renderConceptSummary(card),'text/html');
+       if(!doc.body.textContent.trim() || /[①②③④⑤]|정답표/.test(doc.body.textContent))throw new Error(q.id+' rendered an answer instead of concepts');}
+   }
+   return {total:bank.length,linked,held};
+ });
+ assert.equal(checked.total,1300);assert.equal(checked.linked+checked.held,1300);
  assert.equal(await page.locator('.today-task').count(),3);
  assert.equal(await page.locator('.stage-result').count(),2);assert.match(await page.locator('.stage-result').first().innerText(),/60점/);
  assert.equal(await page.locator('.dashboard-details').getAttribute('open'),null);

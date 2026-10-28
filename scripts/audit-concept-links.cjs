@@ -1,0 +1,415 @@
+/* Checked topic selectors for the entire bank. No answers/choices are used as keywords.
+ * Run after reviewing the changed questions: node scripts/audit-concept-links.cjs
+ * --check verifies the checked-in artifact; it never silently accepts new questions.
+ */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const base=path.resolve(__dirname,'..'), e=require('../learning-engine');
+const bank=require('../data/questions.json').questions;
+const catalog=e.conceptCatalog(require('../data/core-summary.json'),require('../data/study-types.json').cards);
+const subjects=[...new Set(bank.map(q=>q.subject))];
+const byId=new Map(catalog.map(c=>[c.id,c]));
+const core=(group,section,filter=()=>true)=>catalog.filter(c=>c.origin==='core'&&c.summarySubject===group&&section.test(c.sectionTitle)&&filter(c)).map(c=>c.id);
+const intro=(name)=>core('intro',/./,c=>c.title===name);
+const pub=(title)=>core('public',/./,c=>c.title===title);
+const theme=(number)=>core('public',new RegExp('^테마'+number+' '));
+const civil=(text)=>core('civil',/総|총칙/,c=>c.concept.join(' ').includes(text));
+const tax=(name)=>core('tax',new RegExp('^'+name+'$'));
+const dates=(label)=>core('tax',/^신고·납부/,c=>c.comparison?.some(row=>row.label.includes(label)));
+const reg=(title)=>core('registry',/./,c=>c.title===title);
+// Rules are ordered from a narrow legal issue to its broader chapter.
+const rules=[
+ [
+  [/토지.*(?:특성|영속성)|부동산의특성/,['econ-03']],
+  [/토지.*용어|부동산용어/,['econ-02','econ-44']],
+  [/한국표준산업분류|부동산업/,['econ-33']],
+  [/정착물|복합개념|부동산의개념|등기의방법으로소유권을공시/,['econ-01']],
+  [/다중주택|단독주택|용도별건축물|주택의유형/,['econ-76']],
+  [/부동산마케팅|시장세분화|마케팅믹스/,['econ-34']],
+  [/거미집/,intro('거미집')],
+  [/탄력성|분양수입을극대화/,['econ-07','econ-06']],
+  [/기반산업|입지계수/,intro('입지계수')],
+  [/컨버스|허프|레일리/,intro('레일리')],
+  [/입지.*도시공간|도시공간.*입지/,['econ-10','econ-12']],
+  [/도시공간구조.*지대/,['econ-11','econ-12']],
+  [/동심원|선형이론|다핵심/,['econ-12']],
+  [/베버|뢰시|크리스탈러|입지이론|상업입지/,['econ-10']],
+  [/지대이론|리카도|튀넨|마르크스/,['econ-11']],
+  [/효율적시장|할당효율|정보의현재가치|정보의현재가치|최대한지불할수있는.*정보/,['econ-08']],
+  [/경기변동|경기순환/,['econ-09']],
+  [/수요.*공급|균형가격|균형변화|균형거래량|수요함수|공급함수/,['econ-04','econ-05']],
+  [/수요.*(?:감소|증가)|공급.*(?:감소|증가)|수요곡선|공급곡선/,['econ-04']],
+  [/여과|주거분리|주택정책|주거정책|임대료상한/,['econ-16']],
+  [/직접개입|간접개입|정부의개입|금융규제/,['econ-13']],
+  [/부동산.*조세|토지단일세/,['econ-17']],
+  [/시장실패|외부효과|공공재/,['econ-14']],
+  [/부동산정책|부동산투기억제제도/,['photo-econ-05']],
+  [/포트폴리오/,['econ-24']],
+  [/수익성지수|순현재가치|내부수익률|DCF|할인현금|투자분석.*기법|투자분석의분석기법|투자분석에관한/,['econ-22']],
+  [/위험|민감도|투자수익률|수익률.*예상/,['econ-21']],
+  [/순소득승수|현금흐름승수|부채감당률/,['econ-23']],
+  [/자본환원율|직접환원법|수익가액|수익방식/,['econ-79']],
+  [/현금흐름|순영업소득|자기자본수익률/,['econ-20','econ-18']],
+  [/지렛대|타인자본을/,['econ-18']],
+  [/화폐의시간가치|매월말.*적립/,['econ-19']],
+  [/비율임대차|percentagelease/,['econ-41']],
+  [/주택연금|주택담보노후연금/,['econ-42']],
+  [/부동산투자회사|REIT/,['econ-29']],
+  [/프로젝트|PF\(|지분금융|부채금융|메자닌|자금조달/,['econ-28']],
+  [/MBS|MBB|MPTS|MPTB|CMO|모기지.*유동화|자산유동화/,['econ-27']],
+  [/상환방식|상환조건|대출조건|회차.*원리금|회차.*이자|회차.*원금/,['econ-26']],
+  [/대출가능|추가대출|주택담보대출|추가로대출|대출에관한|주택금융/,['econ-25','econ-77']],
+  [/지역분석|개별분석/,['econ-37']],
+  [/감가수정/,['econ-78']],
+  [/거래사례비교법/,['econ-39']],
+  [/원가법/,['econ-38']],
+  [/주된감정평가방법|대상물건.*감정평가방법|감정평가방법의연결/,intro('3방식 7방법')],
+  [/감정평가.*정의|시장가치|감정평가.*규정/,['econ-35','econ-36']],
+  [/감정평가.*원칙|대체의원칙/,['econ-80']],
+  [/가격공시|개별공시지가/,['photo-econ-12']],
+  [/타당성분석|사업성분석/,['econ-31']],
+  [/민간투자|BOT|BTL|BTO/,['econ-32']],
+  [/부동산개발/,['econ-32','econ-30']]
+ ],
+ [
+  [/불공정.*법률행위/,['civil-15']],
+  [/반사회질서/,civil('반사회질서')],
+  [/통정허위표시/,['civil-13']],
+  [/사기|강박|비진의|착오|의사와표시|의사표시에관한/,['civil-01']],
+  [/복대리/,['civil-35']],
+  [/표현대리/,['civil-36']],
+  [/무권대리|대리권없이|대리권없는|대리권을수여/,['civil-02']],
+  [/기성조건|불능조건/,civil('조건:')],
+  [/조건|부관|기한/,['civil-16',...civil('조건:')]],
+  [/법정추인|취소권|법률행위의취소/,civil('취소권은')],
+  [/지상물매수|토지임차인/,['civil-27','civil-41']],
+  [/동시이행/,['civil-24']],
+  [/제3자를위한/,['civil-39']],
+  [/위험부담/,['civil-05']],
+  [/계약의종류|계약의유형|계약.*성질/,['civil-37','civil-38']],
+  [/청약|승낙|계약의성립/,['civil-09','civil-23']],
+  [/계약체결상의과실/,['civil-39']],
+  [/가등기담보|담보가등기/,core('civil',/^집합/,c=>c.title==='가등기담보')],
+  [/명의신탁/,core('civil',/^집합/,c=>c.title==='명의신탁')],
+  [/집합건물/,core('civil',/^집합/,c=>c.title==='집합건물')],
+  [/관습법상법정지상권/,['civil-20']],
+  [/법정지상권/,['civil-34']],
+  [/점유보호|물권적청구/,['civil-40']],
+  [/점유취득시효|취득시효/,['civil-03',...civil('점유취득시효')]],
+  [/공유물분할/,['civil-17']],
+  [/합유/,['civil-18']],
+  [/공유|공동소유/,['civil-17']],
+  [/지역권/,['civil-19',...civil('지역권자는')]],
+  [/지상권/,['civil-10']],
+  [/전세권/,civil('전세권은')],
+  [/유치권/,['civil-07',...civil('유치권:')]],
+  [/물상대위/,['civil-21']],
+  [/등기청구권|등기의무|물권변동/,['civil-04']],
+  [/가등기/,['civil-12']],
+  [/담보책임/,civil('담보책임 기간')],
+  [/임차권의대항력|주택임대차보호법|주택임차인/,['civil-11','civil-28','civil-33']],
+  [/상가건물임대차|상가임대차/,core('civil',/^주택임대차/)],
+  [/전대/,['civil-26']],
+  [/보증금/,['civil-41']],
+  [/계약금/,civil('계약금 해제는')]
+ ],
+ [
+  [/벌금|과태료|포상금|수수료|부동산정보체계|검증및조사/,[]],
+  [/매수신청대리/,['broker-12','broker-29']],
+  [/중개보수|실비/,['broker-05','broker-18']],
+  [/행정제재.*승계|폐업.*재등록/,['broker-20']],
+  [/자격.*정지|자격정지/,['broker-sanction-01']],
+  [/자격.*취소|자격취소/,core('broker',/^행정처분/,c=>c.title==='자격취소')],
+  [/등록.*취소|개설등록을취소/,['broker-sanction-02','broker-sanction-03']],
+  [/업무정지/,['broker-sanction-04']],
+  [/결격사유/,core('broker',/^핵심/,c=>c.title.includes('결격'))],
+  [/개설등록/,['broker-01']],
+  [/확인.*설명|확인설명/,['broker-03','broker-61']],
+  [/거래계약서/,['broker-62','broker-15']],
+  [/예치/,['broker-57']],
+  [/일반중개계약|전속중개계약|중개계약/,['broker-04']],
+  [/모니터링/,['broker-14']],
+  [/표시.*광고|인터넷광고/,['broker-65','broker-13']],
+  [/거래정보|정보망/,['broker-11','broker-30']],
+  [/고용|중개보조원/,['photo-broker-01']],
+  [/휴업|폐업/,['broker-64']],
+  [/사무소.*이전|이전신고|분사무소/,['broker-02']],
+  [/교육/,['broker-60']],
+  [/금지행위|거래질서교란/,['broker-63','broker-10']],
+  [/손해배상.*보장|보증설정/,core('broker',/^핵심/,c=>c.title.includes('업무보증'))],
+  [/공제.*책임준비금|책임준비금/,['broker-31']],
+  [/정책심의위원회/,['photo-broker-01']],
+  [/협회|공제사업/,['photo-broker-03']],
+  [/중개대상.*해당|중개대상물의범위/,['broker-09']],
+  [/부동산실권리자|명의신탁/,['photo-broker-06']],
+  [/분묘|장사등에관한/,['photo-broker-06']],
+  [/경매|민사집행법/,core('broker',/^중개실무/,c=>c.title==='경매')],
+  [/토지.*이용.*의무|이행강제금|허가받은목적대로/,['broker-24']],
+  [/외국인.*취득|외국인등에해당/,['broker-27']],
+  [/주택.*임대차.*신고|주택임대차신고/,['broker-26']],
+  [/허가.*(?:계약의효력|계약효력)|허가를받기전/,['broker-23']],
+  [/토지거래.*허가|허가구역.*토지거래/,['photo-broker-06']],
+  [/거래.*변경신고|신고.*계약조건.*변경/,['broker-25']],
+  [/거래신고|거래의신고|부동산매매계약.*신고/,['broker-06']],
+  [/주택임대차보호법/,['broker-review-civil-11','broker-review-civil-28','broker-review-civil-33']],
+  [/상가건물임대차/,core('civil',/^주택임대차/).map(id=>'broker-review-'+id)],
+  [/집합건물/,core('civil',/^집합/,c=>c.title==='집합건물').map(id=>'broker-review-'+id)]
+ ],
+ [
+  [/성장관리|도시계획위원회|입지규제최소|미공개정보|벌금|위임한|공급질서교란|품질점검단|임시거주시설|건축물대장|분쟁|건축.*마감재료|안전영향평가|농지개량|위탁경영|대리경작|농지대장/,[]],
+  [/지구단위계획.*변경/,[]],
+  [/직통계단|출구/,[]],
+  [/도시.*관리계획.*(?:입안|제안)|입안을제안/,['public-13']],
+  [/도시.*관리계획/,theme('03')],
+  [/광역도시계획|광역계획권/,theme('01')],
+  [/도시.*기본계획/,theme('02')],
+  [/용도지역.*용도지구|용도지역.*용도구역/,['public-33']],
+  [/건폐율|용적률/,pub('건폐율/용적률 법률 상한')],
+  [/용도지역.*도시지역|용도지역의지정목적/,['public-31']],
+  [/용도지역/,['public-31',...pub('도시지역 세분 주상공녹')]],
+  [/복합용도지구/,pub('복합용도지구 일일계')],
+  [/개발진흥지구|공업기능.*유통/,pub('개발진흥지구 주산관복특')],
+  [/자연취락지구/,pub('자연취락지구')],
+  [/용도지구/,theme('05')],
+  [/시가화조정구역/,pub('테마06 용도구역 · 시가화조정구역')],
+  [/도시혁신구역/,pub('도시혁신구역 특례 공주미 + 학교 + 공원 → 주택')],
+  [/공동구/,pub('공동구')],
+  [/도시.*계획시설.*결정.*없이|도시.*계획시설.*결정하지않고/,['public-15']],
+  [/도시.*계획시설사업/,['public-28']],
+  [/도시.*계획시설/,core('public',/^테마07/,c=>/매수청구|결정고시|공간시설|방재시설|보건위생|환경기초/.test(c.title.replace(/\s/g,'')))],
+  [/지구단위계획/,theme('08')],
+  [/개발밀도관리/,pub('개발밀도관리구역')],
+  [/기반시설부담/,pub('기반시설부담구역')],
+  [/개발행위.*공공시설|개발행위.*기반시설/,[]],
+  [/개발행위.*규모/,pub('허가 규모 공삼이 관농이')],
+  [/개발행위.*(?:기준|대상)|토지형질변경/,['public-02','public-32']],
+  [/개발행위허가/,theme('09')],
+  [/도시개발.*(?:지정.*해제|해제)/,['public-29']],
+  [/도시개발.*시행방식.*변경/,pub('시행방식 변경 수환이')],
+  [/개발계획.*지정.*후.*포함/,pub('구역 지정 후에 개발계획에 넣을 수 있는 내용 봄이 되니 세순이 임밖하다')],
+  [/도시개발.*조합.*대의원/,pub('대의원회')],
+  [/도시개발.*조합/,['core-public-1bg2qza','core-public-hfk6yg']],
+  [/도시개발.*제안/,[]],
+  [/도시개발.*지정할수있는자|국토교통부장관이도시개발구역/,pub('국토부장관이 지정 국가·중앙·공공·시대·천재')],
+  [/도시개발구역.*지정/,core('public',/^테마11 도시/,c=>/指定|지정규모|구역지정후에개발계획을세울/.test(c.title.replace(/\s/g,'')))],
+  [/토지상환채권/,pub('토지상환채권 시발 이발')],
+  [/도시개발채권/,pub('도시개발채권 시도발 오이')],
+  [/원형지/,pub('원형지 세글자')],
+  [/환지예정지/,['public-16']],
+  [/환지처분/,['public-17']],
+  [/청산금/,pub('청산금')],
+  [/환지|체비지/,['public-05',...pub('환지계획')]],
+  [/도시개발.*수용/,pub('수용')],
+  [/정비사업.*종류|정의.*정비사업|재개발사업|재건축사업의핵심/,theme('12')],
+  [/정비기본계획/,theme('13')],
+  [/주민대표회의/,['public-19']],
+  [/정비구역/,['public-09']],
+  [/도시및주거환경.*조합/,theme('14')],
+  [/사업시행계획.*의제/,['public-25']],
+  [/사업시행계획/,pub('사업시행계획(분양계획 없음)')],
+  [/손실보상/,pub('손실보상 90일 탁자를 탁 치니 뒤집!! 60일')],
+  [/관리처분계획/,pub('관리처분계획(분양계획 있음)')],
+  [/주택상환사채/,pub('주택상환사채 주택3환사채')],
+  [/지역주택조합.*(?:모집|광고)/,['public-22']],
+  [/조합원.*(?:충원|신규)/,[]],
+  [/주택조합.*설립인가/,pub('설립인가')],
+  [/리모델링.*동의|리모델링주택조합/,['public-21']],
+  [/수직증축.*리모델링/,['public-08']],
+  [/리모델링/,pub('리모델링 100% 허가(신고 아님)')],
+  [/사업계획.*승인|사업계획의승인/,core('public',/^테마23 주택/,c=>!c.title.includes('주택상환사채')&&!c.title.includes('양도·중도해약'))],
+  [/주택건설사업자|주택건설사업.*등록/,pub('등록사업자')],
+  [/주택.*사용검사/,['public-23']],
+  [/투기과열/,pub('투기과열지구 투명')],
+  [/조정대상지역/,pub('조정대상지역 집값이 오르니 기분이 삼삼하다')],
+  [/분양가상한제/,pub('분양가상한제 적용지역')],
+  [/주택법령상용어|주택단지가.*별개/,theme('21')],
+  [/공개공지/,pub('공개공지는 지역·용도·규모가 모두 맞을 때')],
+  [/조경/,pub('조경')],
+  [/구조.*안전.*확인.*서류/,pub('구조안전 확인서류 제출 처마구렁이')],
+  [/용도변경|용도를변경/,theme('18').filter(id=>byId.get(id).sectionTitle.includes('용도변경'))],
+  [/사전결정/,pub('사전결정 통지를 받으면 받은 것으로 보는 허가 개산농하')],
+  [/건축허가.*제한/,pub('허가·착공 제한')],
+  [/승강기/,['public-24']],
+  [/건축선/,pub('건축선')],
+  [/건축협정/,pub('건축협정 통합 적용 건조한부대찌개')],
+  [/가설건축물/,['public-11']],
+  [/건축.*신고/,pub('신고로 되는 것')],
+  [/건축.*허가|허가대상건축물/,pub('허가권자')],
+  [/건축법령상용어/,theme('17')],
+  [/농지취득자격증명/,pub('농지취득자격증명')],
+  [/농지.*소유/,pub('소유 상한')],
+  [/농지.*임대/,['public-07']]
+ ],
+ []
+];
+const registryRules=[
+ [/적부심사/,reg('적부심사')],
+ [/축척변경/,reg('축척변경')],
+ [/면적.*(?:결정|정할|허용)|등록할.*면적|면적의결정/,reg('면적')],
+ [/지적도.*축척|임야도.*축척|축척중/,reg('축척')],
+ [/지목/,core('registry',/^지적/,c=>c.title.startsWith('지목 함정'))],
+ [/등록사항.*정정|직권.*정정|정정할수/,['tax-26','tax-03']],
+ [/지적공부.*보존|지적공부.*복구/,[]],
+ [/공통등록사항|등록사항.*연결|등록사항을모두|등록사항만/,reg('등록사항')],
+ [/지번.*부여/,reg('지번')],
+ [/측량기간|검사기간/,reg('지적측량')],
+ [/지적측량.*(?:실시|의뢰)|지적기준점/,[]],
+ [/지적공부.*등록사항/,reg('등록사항')],
+ [/단독.*등기신청|공동.*등기신청|등기.*공동.*신청|공동신청/,['registry-06']],
+ [/합필|합병등기/,['tax-24']],
+ [/부기등기|부기로하는|주등기/,['tax-18']],
+ [/등기.*순위|권리의순위/,['registry-07']],
+ [/등기의효력/,['registry-08']],
+ [/공동저당/,['tax-01']],
+ [/근저당/,['tax-11']],
+ [/가등기/,['tax-23',...reg('가등기')]],
+ [/지역권.*등기|지역권설정/,['tax-20']],
+ [/임차권등기/,['tax-21']],
+ [/소유권보존/,['tax-19',...reg('소유권보존 신청인')]],
+ [/신탁.*등기|신탁등기/,['tax-22']],
+ [/등기관.*(?:이의|처분)|등기.*이의신청/,['tax-10']],
+ [/등기할것이아닌|각하사유/,['tax-51']],
+ [/등기할수없는|등기할수있는권리/,['tax-05']],
+ [/등기.*갑구|표제부|등기부/,['registry-01']],
+ [/구분건물|대지권/,['registry-03','registry-05']]
+];
+function taxSelect(t){
+ if(/미등기양도제외|미등기양도.*제외/.test(t))return ['tax-33'];
+ if(/이월과세|특수관계/.test(t))return core('tax',/^양도소득세$/,c=>c.concept.join(' ').includes('이월과세'));
+ if(/비사업용.*기간/.test(t))return ['tax-31'];
+ if(/필요경비/.test(t))return ['tax-32'];
+ if(/양도차익|양도소득과세표준|양도소득세.*계산|감면액|양도소득.*자료/.test(t))return ['tax-50'];
+ if(/양도소득세.*분납|양도소득세.*분할/.test(t))return ['tax-60'];
+ if(/양도소득세.*(?:신고|납부)|양도소득과세표준.*신고/.test(t))return ['tax-56','tax-34'];
+ if(/양도.*(?:취득시기)|양도또는취득의시기/.test(t))return core('tax',/^양도소득세$/,c=>c.concept.join(' ').startsWith('시기:'));
+ if(/양도소득세.*세율/.test(t))return core('tax',/^양도소득세$/,c=>c.concept.join(' ').startsWith('세율:'));
+ if(/부담부증여/.test(t))return ['tax-35'];
+ if(/가산세/.test(t))return ['tax-58','tax-59'];
+ if(/과세기준일/.test(t)&&!/납세의무자/.test(t))return dates('재산세').filter(id=>byId.get(id).title.includes('기준'));
+ if(/재산세.*(?:분할|분납)/.test(t))return ['tax-57'];
+ if(/종합부동산세.*(?:분납|분할)/.test(t))return ['tax-54'];
+ if(/재산세.*(?:납기|납부|징수|부과)|재산세의물납/.test(t))return ['tax-16','tax-57',...dates('재산세')];
+ if(/재산세.*납세의무자/.test(t))return ['tax-28'];
+ if(/재산세.*(?:세율|토지)/.test(t))return ['tax-13','tax-29'];
+ if(/재산세.*(?:과세표준|공정시장가액)/.test(t))return ['tax-14'];
+ if(/종합부동산세/.test(t))return tax('종부세');
+ if(/재산세/.test(t))return tax('재산세');
+ if(/취득세.*(?:신고|납부)/.test(t))return ['tax-55'];
+ if(/취득세.*(?:취득당시가액|비과세)/.test(t))return []; // Missing the requested special rule; do not show the general rate.
+ if(/취득세/.test(t))return tax('취득세');
+ if(/등록면허세/.test(t))return tax('등록면허세 \\(등기\\)');
+ if(/1세대1주택|고가주택/.test(t))return core('tax',/^양도소득세$/,c=>c.concept.join(' ').startsWith('1세대1주택 비과세'));
+ if(/양도소득세/.test(t))return tax('양도소득세');
+ if(/미등기양도자산/.test(t))return core('tax',/^양도소득세$/,c=>c.concept.join(' ').includes('미등기는'));
+ if(/사업소득|임대업|임대.*소득/.test(t))return ['tax-12','tax-36'];
+ if(/납세의무.*성립/.test(t))return core('tax',/^성립/,c=>c.title.includes('성립'));
+ if(/제척기간|소멸시효/.test(t))return core('tax',/^성립/,c=>c.title.includes('제척기간'));
+ return [];
+}
+// Case questions with several legal relationships require a deliberate topic choice.
+const overrides={
+ '2025-4-1':[], '2020-4-34':pub('고층 고3처럼'), '2025-4-37':pub('고층 고3처럼'),
+ '2020-4-4':core('public',/^테마03/,c=>/결정권자|효력/.test(c.title)),
+ '2024-4-4':core('public',/^테마03/,c=>/결정권자|효력/.test(c.title)),
+ '2025-4-3':[], '2025-4-6':['public-15'], '2025-4-19':theme('13'),
+ '2025-4-26':[], '2025-4-36':[], '2023-4-37':[], '2024-4-13':[],
+ '2024-4-23':[], '2026-4-9':pub('재개발사업'), '2026-4-10':pub('재건축사업'),
+ '2020-1-1':['econ-32'], '2020-1-10':['econ-07'], '2020-1-17':['econ-10','econ-12'],
+ '2020-1-30':['econ-19'],'2020-1-31':['econ-26'],
+ '2021-1-8':['econ-05'],'2021-1-11':['econ-11'],'2021-1-24':['econ-22'],'2021-1-27':['econ-26'],
+ '2022-1-8':['econ-05'],'2022-1-11':['econ-11'],'2022-1-12':['econ-08'],'2022-1-13':['econ-08'],
+ '2022-1-20':['econ-76'],'2022-1-25':['econ-23'],'2022-1-29':['econ-26'],
+ '2023-1-6':['econ-05'],'2023-1-18':['econ-22'],'2023-1-20':['econ-17'],
+ '2023-1-22':['econ-23'],'2023-1-23':['econ-23','econ-20'],'2023-1-25':['econ-23','econ-20'],
+ '2023-1-37':intro('3방식 7방법'),
+ '2024-1-5':['econ-32'],'2024-1-11':['econ-05'],'2024-1-13':['econ-32'],'2024-1-16':['econ-11'],
+ '2024-1-17':['econ-08'],'2024-1-23':['econ-23','econ-20'],'2024-1-29':['econ-77'],
+ '2024-1-40':intro('3방식 7방법'),'2025-1-11':['econ-04'],'2025-1-31':['econ-77'],'2025-1-32':['econ-26'],
+ '2020-2-10':['civil-02'],'2020-2-12':['civil-04'],'2020-2-28':['civil-05'],
+ '2020-2-29':['civil-39'],'2020-2-35':['civil-11'],'2020-2-36':['civil-11'],
+ '2020-2-38':core('civil',/^집합/,c=>c.title==='가등기담보'),
+ '2020-2-39':core('civil',/^주택임대차/),
+ '2021-2-3':['civil-02'],'2021-2-26':['civil-39'],'2021-2-33':['civil-27'],
+ '2021-2-34':['civil-26'],'2021-2-35':['civil-11'],'2021-2-36':['civil-33'],
+ '2022-2-7':['civil-02'],'2022-2-19':[],
+ '2022-2-25':['civil-09','civil-23'],'2022-2-27':['civil-39'],
+ '2023-2-2':['civil-02'],'2023-2-26':['civil-39'],'2023-2-27':['civil-08'],
+ '2023-2-33':['civil-27'],'2023-2-38':['civil-11'],
+ '2024-2-2':['civil-13'],'2024-2-6':['civil-09'],
+ '2024-2-8':['civil-02','civil-35'],'2024-2-14':['civil-40','civil-04'],'2024-2-17':['civil-40'],
+ '2024-2-29':['civil-05'],'2024-2-30':['civil-39'],'2024-2-31':[],
+ '2024-2-32':['civil-41'],
+ '2024-2-34':['civil-11','civil-41'],'2024-2-35':['civil-33','civil-28'],
+ '2024-2-37':core('civil',/^집합/,c=>c.title==='가등기담보'),
+ '2024-2-39':core('civil',/^주택임대차/),'2024-2-40':['civil-41'],
+ '2025-2-25':['civil-22'],'2025-2-32':['civil-26'],'2025-2-33':['civil-27'],
+ '2025-2-35':['civil-28'],'2025-2-40':core('civil',/^주택임대차/),
+ '2026-2-19':['civil-11'],'2026-2-20':['civil-11'],
+ '2020-3-13':['broker-02'],'2020-3-30':['photo-broker-01'],
+ '2021-3-3':[],'2021-3-6':core('civil',/^집합/,c=>c.title==='집합건물').map(id=>'broker-review-'+id),'2021-3-11':['broker-03','broker-04'],
+ '2021-3-13':core('broker',/^핵심/,c=>c.title.includes('보존기간')),
+ '2021-3-24':[],'2021-3-35':['broker-26'],
+ '2022-3-7':[],'2022-3-11':[],'2022-3-15':['broker-63'],'2022-3-22':[],
+ '2023-3-1':['broker-63'],'2023-3-21':['broker-63'],'2023-3-29':['broker-26'],
+ '2024-3-7':['broker-12'],'2024-3-13':['broker-63'],'2024-3-14':['broker-63'],
+ '2024-3-29':['broker-review-civil-11'],'2024-3-33':['broker-review-civil-27'],'2024-3-35':['broker-review-civil-17'],'2024-3-36':[],
+ '2025-3-16':core('broker',/^행정처분/,c=>c.title==='자격취소'),'2025-3-17':['broker-sanction-01'],
+ '2025-3-27':[],'2025-3-30':['broker-26'],'2026-3-18':['broker-29'],'2020-3-32':core('civil',/^주택임대차/).map(id=>'broker-review-'+id),'2020-3-33':['broker-review-civil-11'],'2020-3-38':['broker-03'], '2024-3-34':['broker-review-civil-11'],
+ '2020-4-2':pub('개발진흥지구 주산관복특'),
+ '2020-4-16':['public-29'],'2020-4-17':pub('대의원회'),
+ '2020-4-35':['public-10'],'2021-4-13':pub('국토부장관이 지정 국가·중앙·공공·시대·천재'),
+ '2021-4-19':theme('12'),'2022-4-15':pub('국토부장관이 지정 국가·중앙·공공·시대·천재'),
+ '2022-4-25':[],'2022-4-38':pub('사전결정 통지를 받으면 받은 것으로 보는 허가 개산농하'),
+ '2023-4-3':pub('복합용도지구 일일계'),
+ '2023-4-17':pub('구역 지정 후에 개발계획에 넣을 수 있는 내용 봄이 되니 세순이 임밖하다'),
+ '2023-4-35':pub('구조안전 확인서류 제출 처마구렁이'),
+ '2024-4-18':pub('시행방식 변경 수환이'),'2024-4-24':pub('손실보상 90일 탁자를 탁 치니 뒤집!! 60일'),
+ '2024-4-38':[],'2025-4-2':['public-13'],'2025-4-14':[],
+ '2025-4-33':[],'2025-4-40':[],
+ '2026-4-17':['public-28'],'2026-4-20':[],
+ '2020-5-21':['tax-10'],'2021-5-19':['tax-01'],
+ '2021-5-31':['tax-15'],'2020-5-32':[],'2024-5-39':[],'2021-5-38':[],
+ '2022-5-32':['tax-50'],'2022-5-34':core('tax',/^양도소득세$/,c=>c.concept.join(' ').includes('이월과세')),
+ '2023-5-35':['tax-12'], '2023-5-40':['tax-50'], '2024-5-40':['tax-50'],
+ '2025-5-4':reg('면적'),'2025-5-26':['tax-58','tax-59'],
+ '2025-5-28':['tax-16','tax-57'],'2025-5-29':['tax-28'],
+ '2025-5-31':['tax-14'],'2025-5-40':['tax-50'],
+ '2026-5-14':core('tax',/^양도소득세$/,c=>c.concept.join(' ').startsWith('양도에 해당')),
+ '2026-5-15':['tax-50'],'2026-5-16':['tax-35'],'2026-5-18':['tax-29']
+};
+const holds=new Set(['2023-1-27','2023-2-7','2022-2-36','2023-5-4','2021-2-37','2025-4-2','2023-2-39']);
+function classify(q){
+ if(holds.has(q.id))return {ids:[],topic:'원문·정답표 대조',reason:'정답 복수인정 또는 저장된 정답·해설 간 충돌이 있어 연결 보류',status:'source-review'};
+ if(Object.hasOwn(overrides,q.id))return {ids:overrides[q.id],topic:'사례별 쟁점',reason:'사례의 주된 법률관계·계산 목적에 맞춘 개별 지정'};
+ const stem=q.text.split(/[?？]/)[0].replace(/[·ㆍ•․・\s]/g,'');
+ const subjectIndex=subjects.indexOf(q.subject);
+ if(subjectIndex===4){
+  const isTax=q.number >= (q.year===2026?11:25);
+  if(isTax)return {ids:taxSelect(stem),topic:'세법 세목·세부 쟁점',reason:'과세대상·과표·세율·시기·신고·분납을 분리하여 지정'};
+  const rule=registryRules.find(([re])=>re.test(stem));
+  return {ids:rule?.[1]||[],topic:rule?stem.match(rule[0])[0]:'공시법 세부 쟁점',reason:rule?'지적과 등기를 구분한 세부 주제 지정':'현재 카드에 질문과 일치하는 내용이 없음'};
+ }
+ const rule=rules[subjectIndex]?.find(([re])=>re.test(stem));
+ return {ids:rule?.[1]||[],topic:rule?stem.match(rule[0])[0]:'개념 보완 필요',reason:rule?'과목·법률·세부 쟁점에 따른 지정':'현재 카드에 질문과 일치하는 내용이 없음'};
+}
+const entries={},stats={total:bank.length,linked:0,unmapped:0,'source-review':0,bySubject:{},byField:{}};
+for(const q of bank){
+ const result=classify(q),ids=[...new Set(result.ids)];
+ for(const id of ids){assert.ok(byId.has(id),`${q.id}: missing ${id}`);assert.equal(byId.get(id).subject,q.subject,`${q.id}: cross-subject ${id}`);}
+ const status=result.status || (ids.length?'linked':'unmapped');
+ entries[q.id]={questionFingerprint:e.questionFingerprint(q),status,topic:result.topic,reason:ids.length?result.reason:status==='source-review'?result.reason:'질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.',cards:ids.map(id=>({id,fingerprint:e.cardFingerprint(byId.get(id))}))};
+ const field=q.subject===subjects[4] ? (q.number >= (q.year===2026?11:25) ? '세법' : '공시법') : q.subject;
+ const fieldRow=stats.byField[field] ||= {total:0,linked:0,unmapped:0,'source-review':0};fieldRow.total++;fieldRow[status]++;
+ stats[status]++;const row=stats.bySubject[q.subject] ||= {total:0,linked:0,unmapped:0,'source-review':0};row.total++;row[status]++;
+}
+const output={schema:'realtor-concept-links',version:1,reviewedAt:'2026-10-28',scope:'전 문항의 개념 연결 주제·참조·원문 변경 여부 점검. 법령 숫자 전수 검증이나 모든 선택지 해설 검증을 뜻하지 않음.',stats,questions:entries};
+const artifact=JSON.stringify(output,null,2)+'\n',target=path.join(base,'data/concept-links.json');
+if(process.argv.includes('--check')){assert.equal(fs.readFileSync(target,'utf8'),artifact,'concept-links.json is stale: review the changed source before regenerating');}
+else {
+ fs.writeFileSync(target,artifact);
+ const esc=s=>String(s).replace(/\|/g,'／').replace(/\s+/g,' ').trim();
+ const lines=['# 전 문항 개념 연결 점검','',`점검 대상: ${stats.total}문항. 연결 ${stats.linked}, 개념 보완 ${stats.unmapped}, 원문 대조 ${stats['source-review']}.`,'',output.scope,'','| 문항 | 상태 | 질문 | 연결 개념 |','|---|---|---|---|'];
+ for(const q of bank){const row=entries[q.id];lines.push(`| ${q.id} | ${row.status} | ${esc(q.text.split(/[?？]/)[0])} | ${row.cards.map(x=>esc(byId.get(x.id).title)).join(' / ') || row.reason} |`);}
+ lines.push('', '## 확인 중 발견한 내용 충돌', '', '복대리인 선임 책임과 불공정 법률행위의 판단 기준은 기존 카드 간 설명이 달라 수정했다. 도시개발구역 해제 시 환원·폐지의 원칙과 사업완료 예외도 구분했다.', '', '[민법 제121조](https://law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1019572187), [민법 제122조](https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0122&lsiSeq=284415&urlMode=lsScJoRltInfoR), [불공정 법률행위 판단 기준 판례](https://law.go.kr/LSW/precStmdInfoP.do?precSeq=172631), [도시개발법 제10조](https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0010&lsiSeq=284059&urlMode=lsScJoRltInfoR).', '', '주민 입안 제안 동의율 문항(2025-4-2)은 저장 해설과 카드가 충돌한다. [국토계획법 시행령 제19조의2](https://www.law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1032189723)와 원문을 추가 대조할 대상으로 분리했다. 과목별 법령 숫자 전체를 검증했다는 의미는 아니다.');
+ fs.mkdirSync(path.join(base,'reports'),{recursive:true});fs.writeFileSync(path.join(base,'reports/concept-link-audit.md'),lines.join('\n')+'\n');
+}
+console.log(JSON.stringify(stats,null,2));
