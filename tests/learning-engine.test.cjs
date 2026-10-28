@@ -6,7 +6,7 @@ const old=require('../data/study-types.json').cards;
 const questions=require('../data/questions.json').questions;
 const subjects=['부동산학개론','민법 및 민사특별법','공인중개사법령 및 중개실무','부동산공법','부동산공시에 관한 법령 및 부동산 관련 세법'];
 const core=e.canonicalCards(summary);
-const cards=[...core,...old];
+const cards=e.conceptCatalog(summary,old);
 const linked=id=>e.related(questions.find(q=>q.id===id),cards,subjects);
 test('canonical definitions and table values come from the same summary, with stable unique ids',()=>{
  assert.equal(core.length,new Set(core.map(c=>c.id)).size);
@@ -19,14 +19,32 @@ test('related concepts use the question topic and never a word in an incorrect c
  assert.deepEqual(e.related({id:'x',subject:subjects[1],text:'민법상 권리능력에 관한 설명은?',choices:['유치권','표현대리']},core,subjects),[]);
  assert.deepEqual(linked('2025-2-36').map(c=>c.title),['집합건물']);
  assert.deepEqual(linked('2025-2-37').map(c=>c.title),['가등기담보']);
- assert.deepEqual(linked('2025-2-21'),[],'general 지상권 must not substitute for 법정지상권');
+ assert.ok(linked('2025-2-21').every(c=>c.title.includes('법정지상권')),'general 지상권 must not substitute for 법정지상권');
  assert.deepEqual(linked('2025-3-40'),[],'a topic in the body must not replace 주택임대차');
- assert.ok(linked('2025-5-29').every(c=>c.summarySubject==='tax'));
+ assert.ok(linked('2025-5-29').every(c=>/재산세/.test(c.concept.join(' '))));
 });
-test('source-linked cards win; specific date questions select the date table',()=>{
+test('question-derived records cannot override concepts; specific date questions select the date table',()=>{
  const q=questions.find(q=>old.some(c=>c.id.startsWith('gap-')&&c.sourceId===q.id&&c.prompt===q.text));
- assert.ok(e.related(q,cards,subjects)[0].id.startsWith('gap-'));
+ assert.ok(e.related(q,cards,subjects).every(c=>!c.id.startsWith('gap-')));
  const date=linked('2026-5-12');assert.ok(date.length);assert.ok(date[0].title.includes('기준'));
+});
+test('all concept modes use a catalog without questions, answer keys, scenario fragments or exam metadata',()=>{
+ assert.ok(cards.length>400);
+ for(const c of cards){
+  assert.equal(c.sourceId,undefined);assert.equal(c.prompt,undefined);assert.equal(c.answer,undefined);
+  assert.ok(!c.id.startsWith('gap-'));
+  assert.ok(!/[?？①②③④⑤]|정답표|甲|乙|丙/.test([...(c.concept||[]),...(c.memorize||[])].join(' ')),c.id);
+ }
+ assert.ok(cards.find(c=>c.id==='econ-01').concept.some(t=>t.includes('정착물')));
+ assert.ok(cards.find(c=>c.id==='civil-37').concept.some(t=>t.includes('도급')));
+ assert.ok(!cards.find(c=>c.id==='econ-24').memorize.some(t=>t.includes('정답')));
+});
+test('related concepts stay focused on the actual subtopic and never return a whole chapter of alternatives',()=>{
+ const law=linked('2025-2-21');assert.ok(law.length);assert.ok(law[0].title.includes('법정지상권'));
+ assert.equal(linked('2020-1-2')[0].title,'부동산업과 부동산 관련 서비스업');
+ for(const q of questions)assert.ok(e.related(q,cards,subjects).length<=1);
+ const q={id:'regression',subject:subjects[2],text:'공인중개사법령상 자격정지에 관한 설명으로 옳은 것은?'};
+ assert.ok(e.related(q,cards,subjects).every(c=>c.concept.join(' ').includes('자격정지')));
 });
 function attempt(stage,year,corrects,date='2026-10-27T10:00:00Z'){
  const ss=stage==='first'?subjects.slice(0,2):stage==='secondFirst'?subjects.slice(2,4):subjects.slice(4);
@@ -68,5 +86,11 @@ test('backup import validates the schema and merges without erasing existing his
 test('topic links remain inside the correct subject and reference existing cards',()=>{
  const ids=new Set(cards.map(c=>c.id));let mapped=0;
  for(const q of questions){const matches=e.related(q,cards,subjects);if(matches.length)mapped++;assert.ok(matches.every(c=>ids.has(c.id)&&c.subject===q.subject));}
- assert.ok(mapped>400,`expected meaningful improvement over 85 links; got ${mapped}`);
+ assert.ok(mapped>200,`expected usable focused links; got ${mapped}`);
+});
+
+test('regressions: penalties, consent ratios, application methods and investment criteria use their own topic',()=>{
+ const checks=[['2025-5-26',/가산세/],['2025-4-25',/동의|리모델링/],['2025-5-13',/단독신청|공동신청/],['2025-1-28',/수익성지수/],['2025-5-9',/적부심사/]];
+ for(const [id,topic] of checks){const matches=linked(id);assert.ok(matches.length,id+' should have a focused concept');assert.ok(matches.every(c=>topic.test(c.concept.join(' '))),id+': '+matches.map(c=>c.title));}
+ assert.ok(linked('2025-3-28').every(c=>/이용의무/.test(c.concept.join(' '))));
 });

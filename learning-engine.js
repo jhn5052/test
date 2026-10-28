@@ -34,6 +34,27 @@
     }
     return cards;
   }
+  // Legacy question fields never enter the concept deck. Keep factual prose only.
+  function conceptText(value) {
+    return plain(value).split(/\n|(?<=[다함됨음])\.\s+/).map(line => {
+      const text = line.trim();
+      if (!text || /[?？①②③④⑤]|정답|선택지|이 보기|나머지 보기|해당 기출|이 기출|같은 문제|정답표|원문을 확인|사용자 노트|연도별 법령|법령 숫자는 개정|문제에서|시험에서는|기출.{0,15}(?:기준|함정|확인)|숫자는 제공|甲|乙|丙|丁|설명이 틀렸/.test(text)) return '';
+      if (/(?:구분한다|살핀다|확인한다|정리한다|복습한다|기억한다|외우지 않는다)\.?$/.test(text) && !/[:：=]|은 |는 |이란 |이므로|때문|해야|없다|있다/.test(text)) return '';
+      return text.replace(/^\d{4}년 기출(?: 포인트)?\s*[:：]\s*/, '').replace(/\(\d{4}년 기출\)/g, '').replace(/^제공된 교재 요약표 기준(?: 숫자)?\s*[:：]\s*/, '');
+    }).filter(Boolean).join('\n');
+  }
+  function conceptCatalog(summary, legacy = []) {
+    const core = canonicalCards(summary);
+    const safe = legacy.filter(c => c.id && c.subject && c.title && !c.id.startsWith('gap-')).map(c => {
+      const clean = points => [...new Set((points || []).map(conceptText).filter(Boolean))];
+      const concept = clean(c.concept), memorize = clean(c.memorize);
+      // Do not carry prompt/answer/sourceId: they were exam content, not concept content.
+      return {id:c.id, subject:c.subject, title:plain(c.title).replace(/^사진 암기노트:\s*/, ''), concept, memorize,
+        relatedTerms:(c.relatedTerms || []).map(plain).filter(t=>t && !/[?？①②③④⑤]/.test(t)),
+        comparison:(c.comparison || []).filter(r=>conceptText(r.value)).map(r=>({label:plain(r.label),value:conceptText(r.value)})), origin:'concept'};
+    }).filter(c => c.concept.length || c.memorize.length || c.comparison.length);
+    return [...core, ...safe];
+  }
   // Topic anchors are applied to the question stem only, never to an incorrect choice.
   const rules = [
     ['public', /광역도시계획|광역계획권/, /테마01/], ['public', /도시[·ㆍ\s]*군기본계획/, /테마02/],
@@ -48,7 +69,7 @@
     ['tax', /분할납부|분납|물납|납부기한|납기|과세기준일/, /신고·납부/], ['tax', /가산세|납세의무의성립|납세의무의확정|부과제척기간/, /성립·확정/],
     ['registry', /축척/, /지적/, /축척/], ['registry', /지목/, /지적/, /지목/], ['registry', /지적측량/, /지적/, /지적측량/], ['registry', /적부심사/, /지적/, /적부심사/],
     ['registry', /지번/, /지적/, /지번/], ['registry', /지적공부|토지대장|임야대장|대지권등록부|경계점좌표등록부/, /지적/, /등록사항|면적/],
-    ['registry', /부기등기/, /등기/, /부기등기/], ['registry', /주등기/, /등기/, /주등기/], ['registry', /단독신청|공동신청/, /등기/, /단독신청/],
+    ['registry', /부기등기/, /등기/, /부기등기/], ['registry', /주등기/, /등기/, /주등기/], ['registry', /단독신청|공동신청|등기를공동으로신청|등기를단독으로신청/, /등기/, /단독신청/],
     ['registry', /소유권보존등기/, /등기/, /소유권보존/], ['registry', /이의신청/, /등기/, /이의신청/], ['registry', /가등기/, /등기/, /가등기/], ['registry', /근저당권|신탁등기/, /등기/, /근저당은/],
     ['civil', /주택임대차보호법|상가건물임대차보호법/, /주택임대차/], ['civil', /집합건물|가등기담보|명의신탁/, /집합건물/, /집합건물|가등기담보|명의신탁/],
     ['civil', /통정허위표시|비진의표시|착오|제3자의사기|복대리|표현대리|무권대리|취소권|법정추인|기성조건|불능조건|불법조건|공유|취득시효|지역권|지상권|전세권|유치권|계약금|동시이행|담보책임|부속물매수청구권|지상물매수청구권/, /총칙·물권·계약/],
@@ -63,34 +84,64 @@
     ['broker', /금지행위/, /금지행위/], ['broker', /부동산거래신고|주택임대차계약.*신고|토지거래허가|외국인.*신고/, /부동산거래신고법/], ['broker', /분묘|경매|명의신탁/, /중개실무단골/]
   ];
   function related(question, cards, subjects) {
-    const text = compact(String(question.text).split(/[?？]/)[0]);
-    const exact = cards.filter(c => c.id.startsWith('gap-') && c.sourceId === question.id && c.prompt === question.text && c.subject === question.subject);
-    if (exact.length) return exact.slice(0, 1);
+    const stem = String(question.text).split(/[?？]/)[0];
+    const text = compact(stem).replace(/^부동산거래신고등에관한법령상/, '');
+
+    const focus = text.match(/수익성지수|내부수익률|순현재가치|적부심사|축척변경|가산세/)?.[0];
     const scoped = cards.filter(c => c.origin === 'core' && c.subject === question.subject);
     const taxStem = /취득세|재산세|종합부동산세|양도소득세|등록면허세|지방세|소득세법|가산세/.test(text);
-    const specific = ['과세표준','납세의무자','과세기준일','분납','물납','납기','납부기한','가산세','제척기간','신고','양도차익','비과세','공정시장가액비율','체비지','환지예정지','환지처분','조합원','법정지상권','직통계단','승강기','위탁경영','농지개량','허가권자','승인권자','용적률','건폐율'].filter(term => text.includes(term));
+    const specific = ['자격정지','자격취소','필수등록취소','임의등록취소','과세표준','납세의무자','과세기준일','분납','물납','납기','납부기한','가산세','제척기간','적부심사','축척변경','동의비율','설립인가','리모델링','과태료','징역','벌금','이용의무','검증','조사','징수','납부','신고','양도차익','비과세','공정시장가액비율','체비지','환지예정지','환지처분','조합원','법정지상권','직통계단','승강기','위탁경영','농지개량','허가권자','승인권자','용적률','건폐율'].filter(term => text.includes(term));
     const candidates = new Map();
     for (const [group, pattern, sectionPattern, factPattern] of rules) {
       const match = text.match(pattern);
+      if (match?.[0] === '가등기' && !/가등기/.test(stem)) continue;
       if (!match || (taxStem && question.subject === subjects[4] && group !== 'tax')) continue;
       for (const c of scoped) {
         if (c.summarySubject !== group || !sectionPattern.test(compact(c.sectionTitle))) continue;
         const fact = compact([...(c.concept || []), ...(c.searchTerms || [])].join(' '));
         if (factPattern && !factPattern.test(fact)) continue;
+        if (focus && !fact.includes(focus) && !(focus === '내부수익률' && fact.includes('IRR')) && !(focus === '순현재가치' && fact.includes('NPV'))) continue;
         const specificHits = specific.filter(term => fact.includes(term)).length;
         if (specific.length && !specificHits) continue;
         if (group === 'civil' && /집합건물|가등기담보|명의신탁/.test(match[0]) && !fact.includes(match[0])) continue;
         // For broad civil/tax topics, require the specific stem anchor in the fact.
         const anchor = match[0];
-        if (!factPattern && !fact.includes(anchor) && !compact(c.sectionTitle).includes(anchor)) continue;
+        if (group === 'civil' && /복대리|표현대리|무권대리/.test(text) && !fact.includes(text.match(/복대리|표현대리|무권대리/)[0])) continue;
+        if (!factPattern && !fact.includes(anchor) && (group !== 'public' || !compact(c.sectionTitle).includes(anchor))) continue;
+        if (group === 'public' && !fact.includes(anchor)) {
+          const details = ['지정','수립','승인','공동','내용','입안','제안','변경','동의','허가','기간','신청','조합원','용적률','건폐율','모집'].filter(term=>text.includes(term));
+          if (!details.length || !details.some(term=>compact(c.title).includes(term) || fact.includes(term))) continue;
+          if (/내용|제안|변경|동의/.test(text) && !['내용','제안','변경','동의'].filter(term=>text.includes(term)).some(term=>fact.includes(term))) continue;
+        }
         const labels = [c.title, ...(c.comparison || []).map(row => row.label)];
         const overlap = labels.filter(label => compact(label).length > 1 && text.includes(compact(label))).length;
-        const score = match[0].length + overlap * 20 + specificHits * 30;
+        const score = match[0].length + overlap * 20 + specificHits * 30 + (compact(c.title).includes(anchor) ? 40 : 0) + text.lastIndexOf(anchor) * 0.2;
         if (!candidates.has(c.id) || candidates.get(c.id).score < score) candidates.set(c.id, { card: c, score });
       }
     }
-    const topic = [...candidates.values()].sort((a,b) => b.score - a.score).slice(0,3).map(item => item.card);
-    return [...exact.slice(0,1), ...topic].slice(0,3);
+    const ranked = [...candidates.values()].sort((a,b) => b.score - a.score);
+    // A single strongest topic prevents unrelated rows of a broad chapter leaking in.
+    if (ranked.length) return [ranked[0].card];
+    return legacyRelated(text, question.subject, cards);
+
+  }
+  const fallbackTopics = /법정지상권|반사회질서|불공정(?:한)?법률행위|비진의(?:의사)?표시|통정허위표시|복대리|표현대리|무권대리|취소권|법정추인|착오|사기|강박|계약의종류|쌍무|낙성|불요식|도급|현상광고|점유보호청구권|점유취득시효|공유물분할|공유|지역권|지상권|전세권|유치권|근저당권|저당권|동시이행|계약금|계약해제|지상물매수청구권|부속물매수청구권|후보지|이행지|포락지|나대지|나지|법지|빈지|정착물|복합개념|부동산업|토지의특성|토지의자연적특성|한국표준산업분류|부동산관련서비스업|부동산마케팅|시장실패|수요와공급|수요.*공급|포트폴리오|감가수정|가격공시|확인[·ㆍ]?설명|개설등록|휴업|폐업|분사무소|등기부|표제부|갑구|을구|대지권|등기할수있는권리/;
+  function legacyRelated(text, subject, cards) {
+    const found = text.match(fallbackTopics)?.[0] || rules.map(([,pattern])=>text.match(pattern)?.[0]).find(Boolean);
+    const anchor = /한국표준산업분류|부동산관련서비스업/.test(found || '') ? '부동산업' : found;
+    if (!anchor) return [];
+    const matches = cards.filter(c => c.origin === 'concept' && c.subject === subject).map(card => {
+      const title = compact(card.title);
+      const fact = compact([...(card.concept || []), ...(card.memorize || [])].join(' '));
+      if (!fact.includes(anchor) || !title.includes(anchor)) return null;
+      if (/재산세|종합부동산세|취득세|양도소득세/.test(anchor) && (card.concept || []).length + (card.memorize || []).length < 2) return null;
+      // Distinct subtopics cannot be replaced by a generic parent concept.
+      if (/법정지상권|점유보호청구권|공유물분할|지상물매수청구권|부속물매수청구권/.test(anchor) && !title.includes(anchor)) return null;
+      const terms = [title, ...(card.relatedTerms || []).map(compact)].filter(t=>t.length>1 && text.includes(t));
+      const score = (/부동산관련서비스업/.test(text) && title.includes('부동산관련서비스업') ? 100 : 0) + (title.includes(found) ? 80 : 0) + (title.includes(anchor) ? 40 : 0) + terms.reduce((n,t)=>n+t.length,0);
+      return score ? {card,score} : null;
+    }).filter(Boolean).sort((a,b)=>b.score-a.score);
+    return matches.length ? [matches[0].card] : [];
   }
   function stageReadiness(history, subjects) {
     const specs = [{ id:'first', label:'1차', subjects:subjects.slice(0,2) }, { id:'secondFirst', label:'2차 1교시', subjects:subjects.slice(2,4) }, { id:'secondSecond', label:'2차 2교시', subjects:subjects.slice(4) }];
@@ -138,6 +189,6 @@
       uncertainQuestions:[...new Set([...(current.uncertainQuestions||[]),...(Array.isArray(incoming.uncertainQuestions)?incoming.uncertainQuestions:[])])].filter(id=>typeof id==='string' && !(latestResult.get(id)?.correct && !latestResult.get(id)?.uncertain)),
       recallProgress:recordMerge(current.recallProgress,incoming.recallProgress),quickMemoryProgress:recordMerge(current.quickMemoryProgress,incoming.quickMemoryProgress),resolvedMistakes:resolved};
   }
-  const api={plain,canonicalCards,related,stageReadiness,firstAttemptAccuracy,reviewSchedule,readBackup,mergeBackup};
+  const api={plain,canonicalCards,conceptText,conceptCatalog,related,stageReadiness,firstAttemptAccuracy,reviewSchedule,readBackup,mergeBackup};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.LearningEngine=api;
 })(typeof globalThis==='undefined'?this:globalThis);

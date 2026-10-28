@@ -530,3 +530,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 @media(max-width:720px) { .stage-readiness{grid-template-columns:1fr}.today-heading h1{font-size:26px}.today-heading p:not(.eyebrow){font-size:14px}.stage-result{padding:18px}.today-weak button{flex-direction:column;gap:6px}.study-backup>div{flex-basis:100%;margin-bottom:4px}.study-backup .button{min-height:44px;font-size:13px}.primary-nav .nav-item{font-size:10px}.memory-facts .concept-points,.mistake-concept-review p,.mistake-concept-review li{font-size:16px}.quick-settings .quick-query-label{flex-basis:100%}#app-main{padding-bottom:120px}.type-card-back{height:auto;max-height:none;min-height:0;overflow:visible} }
 .stage-criteria { grid-column:1/-1;font-size:12px;line-height:1.7;color:#58695b;margin:0; }
 .stage-criteria a { color:#315d3d; }
+
+/* Saved concepts grow with their definitions; no blank answer-sized back face. */
+.flashcard-face.flashcard-front{min-height:260px}
+.flashcard-face.flashcard-back{min-height:0;font-size:16px;line-height:1.85;gap:20px}
+.flashcard-back .mistake-concept-answer,.flashcard-back .mistake-concept-comparison,.flashcard-back .mistake-concept-group{font-size:16px;line-height:1.85}
+.flashcard-back .mistake-concept-answer{margin:0}
+.flashcard-back small{font-size:13px;color:#536459}
+.flashcard:has(.flashcard-back){min-height:0}

@@ -24,6 +24,17 @@ const trial=(stage,ss,values)=>({id:stage,stage,year:2025,completedAt:'2026-10-2
  await page.locator(`[data-answer="${correct}"]`).click();assert.equal(await page.locator('.answer-option.chosen').getAttribute('data-answer'),String(wrong));
  await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:require('node:os').tmpdir()+'/learning-feedback-mobile.png',fullPage:true});
  await page.locator('#mobile-submit').click();await page.waitForSelector('.result-hero');
+ // Saved cards must show concepts, including after flipping and reloading.
+ await page.locator('[data-view=study-types]').click();
+ await page.locator('[data-study-mode=saved]').click();
+ assert.match(await page.locator('.flashcard-front').innerText(),/집합건물/);
+ assert.ok(!/[?？①②③④⑤]|틀린 것은/.test(await page.locator('.flashcard-front').innerText()));
+ await page.locator('#flashcard').click();
+ assert.equal(await page.locator('.flashcard-back').isVisible(),true);
+ assert.match(await page.locator('.flashcard-back').innerText(),/대지사용권|공용부분/);
+ assert.ok(!/정답|틀린 것은/.test(await page.locator('.flashcard-back').innerText()));
+ await page.screenshot({path:require('node:os').tmpdir()+'/saved-concept-mobile.png',fullPage:true});
+ await page.locator('#flashcard').click();assert.equal(await page.locator('.flashcard-front').isVisible(),true);
  await page.locator('[data-view=mistakes]').click();
  let card=page.locator('.mistake-card').filter({has:page.locator('[data-review-start="2025-2-36"]')});
  assert.match(await card.locator('.mistake-concept-review h3').first().textContent(),/집합건물/);
