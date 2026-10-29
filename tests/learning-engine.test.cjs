@@ -123,10 +123,11 @@ test('specific cases no longer link through incidental context words',()=>{
  '2025-5-4':'core-registry-90t5df','2024-5-34':'tax-57','2025-5-40':'tax-50',
  '2025-5-35':'tax-56','2025-5-38':'tax-32'};
  for(const [id,cardId] of Object.entries(expected))assert.ok(linked(id).some(c=>c.id===cardId),id+' -> '+linked(id).map(c=>c.id));
- for(const id of ['2024-4-38','2025-4-36'])assert.deepEqual(linked(id),[],id);
+ assert.ok(linked('2024-4-38').some(c=>c.id==='batch-b-public-earthquake'));
+ assert.ok(linked('2025-4-36').some(c=>c.id==='last-public-street-height'));
 });
 test('known source conflicts are held, and corrected definition cards cannot retain their contradictory old rules',()=>{
- for(const id of ['2023-1-27','2021-2-37']){assert.equal(audit.questions[id].status,'source-review');assert.deepEqual(linked(id),[]);}
+ for(const id of ['2023-1-27','2021-2-37','2022-5-6']){assert.equal(audit.questions[id].status,'source-review');assert.deepEqual(linked(id),[]);}
  const proxy=cards.find(c=>c.id==='civil-14');assert.ok(proxy.concept.some(x=>/법정대리인은 자기 책임/.test(x)));
  const unfair=cards.find(c=>c.id==='civil-15');assert.ok(unfair.concept.some(x=>x.includes('궁박은 본인, 경솔·무경험은 대리인')));
  assert.ok(!cards.find(c=>c.id==='tax-50').memorize.some(x=>/6,700|2,100/.test(x)));
@@ -167,4 +168,21 @@ test('new concept links cover the tested rule and correct contradictory explanat
  for(const [id,card] of Object.entries(expected))assert.ok(linked(id).some(c=>c.id===card),id);
  assert.match(questions.find(q=>q.id==='2021-5-1').explanation,/하단부/);assert.doesNotMatch(questions.find(q=>q.id==='2021-5-1').explanation,/상단부/);
  assert.match(questions.find(q=>q.id==='2022-3-20').explanation,/무등록 중개업은 별도로 지급 대상/);
+});
+
+test('reviewed cases preserve source choices and explain the correct legal rule',()=>{
+ const by=id=>questions.find(q=>q.id===id);
+ assert.deepEqual(by('2025-3-21').choices,['ㄱ','ㄷ','ㄱ, ㄴ','ㄴ, ㄷ','ㄱ, ㄴ, ㄷ']);assert.match(by('2025-3-21').explanation,/기소유예/);
+ assert.deepEqual(by('2020-4-12').choices,['100','200','300','400','500']);assert.equal(by('2022-4-10').choices.length,5);
+ assert.match(by('2023-5-17').explanation,/5개 이상/);assert.match(by('2025-5-15').explanation,/취득하지 못한다/);
+ assert.equal(audit.questions['2022-5-6'].status,'source-review');
+});
+
+test('every ordinary question has an audited concept and source conflicts stay separate',()=>{
+ assert.equal(audit.stats.unmapped,0);assert.equal(audit.stats.linked,1297);
+ for(const id of ['2023-1-27','2021-2-37','2022-5-6']){assert.equal(audit.questions[id].status,'source-review');assert.deepEqual(linked(id),[])}
+ assert.match(questions.find(q=>q.id==='2025-4-40').explanation,/어느 하나/);
+ assert.match(questions.find(q=>q.id==='2023-5-26').explanation,/연대하여 납부/);
+ assert.match(questions.find(q=>q.id==='2024-3-36').explanation,/3자간/);
+ assert.deepEqual(questions.find(q=>q.id==='2022-4-33').choices.length,5);
 });
