@@ -366,7 +366,7 @@ const overrides={
  '2024-4-38':[],'2025-4-2':['public-13'],'2025-4-14':[],
  '2025-4-33':[],'2025-4-40':[],
  '2026-4-17':['public-28'],'2026-4-20':[],
- '2020-5-21':['tax-10'],'2021-5-19':['tax-01'],
+ '2023-2-7':['review-civil-invalid'], '2022-2-36':['review-civil-commercial-period'], '2023-5-4':reg('면적'), '2023-2-39':['review-civil-commercial-period'], '2020-5-21':['tax-10'],'2021-5-19':['tax-01'],
  '2021-5-31':['tax-15'],'2020-5-32':[],'2024-5-39':[],'2021-5-38':[],
  '2022-5-32':['tax-50'],'2022-5-34':core('tax',/^양도소득세$/,c=>c.concept.join(' ').includes('이월과세')),
  '2023-5-35':['tax-12'], '2023-5-40':['tax-50'], '2024-5-40':['tax-50'],
@@ -376,9 +376,54 @@ const overrides={
  '2026-5-14':core('tax',/^양도소득세$/,c=>c.concept.join(' ').startsWith('양도에 해당')),
  '2026-5-15':['tax-50'],'2026-5-16':['tax-35'],'2026-5-18':['tax-29']
 };
-const holds=new Set(['2023-1-27','2023-2-7','2022-2-36','2023-5-4','2021-2-37','2025-4-2','2023-2-39']);
+// Additional links reviewed against the question's actual topic and the complete concept text.
+const reviewedLinks = new Map();
+for (const [id, ids] of [
+  ['review-econ-stock', '2020-1-9 2024-1-12 2025-1-7'],
+  ['review-econ-market', '2020-1-16 2022-1-9 2025-1-15'],
+  ['review-econ-management', '2022-1-34 2023-1-32 2024-1-30'],
+  ['review-econ-appraisal', '2020-1-37 2021-1-40 2023-1-35 2025-1-37'],
+  ['review-econ-invest', '2022-1-21 2022-1-24 2023-1-24 2025-1-25'],
+  ['econ-14', '2022-1-16 2025-1-18'],
+  ['econ-15', '2021-1-16'],
+  ['review-civil-invalid', '2020-2-1 2020-2-8 2021-2-10 2022-2-2 2023-2-10 2025-2-9'],
+  ['civil-01', '2020-2-9'],
+  ['review-civil-agent', '2020-2-4 2020-2-5 2022-2-8 2026-2-8'],
+  ['review-civil-property', '2020-2-11 2023-2-16 2024-2-12'],
+  ['review-civil-possession', '2020-2-14 2020-2-15 2021-2-18 2022-2-12 2022-2-14 2023-2-11'],
+  ['review-civil-mortgage', '2020-2-23 2020-2-24 2021-2-22 2021-2-23 2022-2-19 2022-2-20 2023-2-21 2023-2-22 2023-2-24 2024-2-23 2024-2-24 2025-2-22 2025-2-23 2026-2-16'],
+  ['review-civil-cancel', '2020-2-30 2020-2-32 2021-2-27 2022-2-28 2023-2-34 2024-2-31 2025-2-28'],
+  ['review-civil-juristic', '2021-2-1 2022-2-1'],
+  ['review-civil-landpermit', '2022-2-4 2023-2-8'],
+  ['review-civil-buyback', '2021-2-31 2022-2-30 2022-2-32 2023-2-25 2023-2-29 2025-2-29'],
+  ['civil-37', '2021-2-32 2024-2-25'],
+  ['review-civil-property-rights', '2021-2-11 2022-2-11 2022-2-18 2023-2-17 2024-2-11 2025-2-12 2025-2-13'],
+  ['civil-01', '2024-2-5'],
+  ['review-civil-person', '2026-2-9 2026-2-10'],
+  ['review-civil-limitation', '2026-2-11'],
+  ['review-broker-office', '2020-3-9 2020-3-10 2020-3-12 2021-3-8 2023-3-10 2023-3-16 2024-3-8 2025-3-4'],
+  ['review-broker-legal', '2020-3-1 2020-3-17 2022-3-1 2023-3-3 2024-3-4 2025-3-1'],
+  ['review-broker-branch', '2021-3-33 2023-3-4 2025-3-6'],
+  ['broker-22', '2020-3-5'],
+  ['review-public-farm', '2020-4-39 2023-4-40 2025-4-39'],
+  ['review-public-construction', '2024-4-32'],
+  ['review-public-facilities', '2021-4-11 2024-4-25'],
+  ['review-registry-application', '2020-5-13 2020-5-15 2020-5-16 2022-5-14 2022-5-16 2023-5-13 2024-5-23 2025-5-16 2025-5-21'],
+  ['review-registry-mortgage', '2024-5-13'],
+  ['tax-04', '2022-5-3'],
+  ['tax-02', '2022-5-17'],
+  ['tax-24', '2024-5-6'],
+  ['tax-19', '2020-5-17 2025-5-18'],
+  ['tax-06', '2021-5-32'],
+]) for (const questionId of ids.split(' ')) {
+  assert.ok(bank.some(question => question.id === questionId), `Unknown reviewed question ${questionId}`);
+  assert.ok(!reviewedLinks.has(questionId), `Duplicate review ${questionId}`);
+  reviewedLinks.set(questionId, [id]);
+}
+const holds=new Set(['2023-1-27','2021-2-37']);
 function classify(q){
- if(holds.has(q.id))return {ids:[],topic:'원문·정답표 대조',reason:'정답 복수인정 또는 저장된 정답·해설 간 충돌이 있어 연결 보류',status:'source-review'};
+ if(holds.has(q.id))return {ids:[],topic:'원문·정답표 대조',reason:'공식 전항 정답 처리 문항으로 선택지별 판단을 암기하지 않도록 연결 보류',status:'source-review'};
+ if(reviewedLinks.has(q.id))return {ids:reviewedLinks.get(q.id),topic:'개념 비교 보강',reason:'문항의 주요 개념과 비교 카드의 내용을 대조해 지정'};
  if(Object.hasOwn(overrides,q.id))return {ids:overrides[q.id],topic:'사례별 쟁점',reason:'사례의 주된 법률관계·계산 목적에 맞춘 개별 지정'};
  const stem=q.text.split(/[?？]/)[0].replace(/[·ㆍ•․・\s]/g,'');
  const subjectIndex=subjects.indexOf(q.subject);
@@ -401,7 +446,7 @@ for(const q of bank){
  const fieldRow=stats.byField[field] ||= {total:0,linked:0,unmapped:0,'source-review':0};fieldRow.total++;fieldRow[status]++;
  stats[status]++;const row=stats.bySubject[q.subject] ||= {total:0,linked:0,unmapped:0,'source-review':0};row.total++;row[status]++;
 }
-const output={schema:'realtor-concept-links',version:1,reviewedAt:'2026-10-28',scope:'전 문항의 개념 연결 주제·참조·원문 변경 여부 점검. 법령 숫자 전수 검증이나 모든 선택지 해설 검증을 뜻하지 않음.',stats,questions:entries};
+const output={schema:'realtor-concept-links',version:1,reviewedAt:'2026-10-29',scope:'전 문항의 개념 연결 주제·참조·원문 변경 여부 점검. 법령 숫자 전수 검증이나 모든 선택지 해설 검증을 뜻하지 않음.',stats,questions:entries};
 const artifact=JSON.stringify(output,null,2)+'\n',target=path.join(base,'data/concept-links.json');
 if(process.argv.includes('--check')){assert.equal(fs.readFileSync(target,'utf8'),artifact,'concept-links.json is stale: review the changed source before regenerating');}
 else {
@@ -409,7 +454,7 @@ else {
  const esc=s=>String(s).replace(/\|/g,'／').replace(/\s+/g,' ').trim();
  const lines=['# 전 문항 개념 연결 점검','',`점검 대상: ${stats.total}문항. 연결 ${stats.linked}, 개념 보완 ${stats.unmapped}, 원문 대조 ${stats['source-review']}.`,'',output.scope,'','| 문항 | 상태 | 질문 | 연결 개념 |','|---|---|---|---|'];
  for(const q of bank){const row=entries[q.id];lines.push(`| ${q.id} | ${row.status} | ${esc(q.text.split(/[?？]/)[0])} | ${row.cards.map(x=>esc(byId.get(x.id).title)).join(' / ') || row.reason} |`);}
- lines.push('', '## 확인 중 발견한 내용 충돌', '', '복대리인 선임 책임과 불공정 법률행위의 판단 기준은 기존 카드 간 설명이 달라 수정했다. 도시개발구역 해제 시 환원·폐지의 원칙과 사업완료 예외도 구분했다.', '', '[민법 제121조](https://law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1019572187), [민법 제122조](https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0122&lsiSeq=284415&urlMode=lsScJoRltInfoR), [불공정 법률행위 판단 기준 판례](https://law.go.kr/LSW/precStmdInfoP.do?precSeq=172631), [도시개발법 제10조](https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0010&lsiSeq=284059&urlMode=lsScJoRltInfoR).', '', '주민 입안 제안 동의율 문항(2025-4-2)은 저장 해설과 카드가 충돌한다. [국토계획법 시행령 제19조의2](https://www.law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1032189723)와 원문을 추가 대조할 대상으로 분리했다. 과목별 법령 숫자 전체를 검증했다는 의미는 아니다.');
+ lines.push('', '## 확인 중 발견한 내용 충돌', '', '복대리인 선임 책임과 불공정 법률행위의 판단 기준은 기존 카드 간 설명이 달라 수정했다. 도시개발구역 해제 시 환원·폐지의 원칙과 사업완료 예외도 구분했다.', '', '[민법 제121조](https://law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1019572187), [민법 제122조](https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0122&lsiSeq=284415&urlMode=lsScJoRltInfoR), [불공정 법률행위 판단 기준 판례](https://law.go.kr/LSW/precStmdInfoP.do?precSeq=172631), [도시개발법 제10조](https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0010&lsiSeq=284059&urlMode=lsScJoRltInfoR).', '', '2025-4-2는 주민 표기와 동의율을 법령에 맞춰 정정했다. 2023-5-4는 끝수처리의 차이를, 2023-2-39는 기간 미정 상가의 갱신요구를 법령·판례로 확인했다. 과목별 법령 숫자 전체를 검증했다는 의미는 아니다.');
  fs.mkdirSync(path.join(base,'reports'),{recursive:true});fs.writeFileSync(path.join(base,'reports/concept-link-audit.md'),lines.join('\n')+'\n');
 }
 console.log(JSON.stringify(stats,null,2));

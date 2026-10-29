@@ -461,6 +461,12 @@ function renderStageReadiness() {
   const report = LearningEngine.stageReadiness(store.history,SUBJECTS);
   return `<section class="stage-readiness" aria-label="1차·2차 최근 실전 성적">${[report.first,report.second].map(stage=>`<article class="stage-result"><div class="stage-result-heading"><h2>${stage.label} 최근 실전</h2><span>${stage.result ? `${Math.round(stage.result.mean*10)/10}점` : "기록 대기"}</span></div>${stage.rows.map(row=>`<div class="stage-subject"><span>${escapeHTML(row.name)}</span><b>${row.score===null?"—":`${row.score}점`}</b></div>`).join("")}<p>${stage.result ? `${stage.result.pass?"최근 실전은 합격 기준 충족":"최근 실전은 보완 필요"} · 개인 목표 ${stage.result.goal?"충족":"평균 65·과목별 45점"}` : stage.id==="first"?"1차 실전 80문항을 마치면 표시합니다.":"같은 회차의 2차 두 교시를 마치면 종합 점수를 표시합니다."}</p></article>`).join("")}<p class="stage-criteria">합격 기준: 과목별 40점 · 평균 60점 / 개인 목표: 과목별 45점 · 평균 65점. <a href="https://www.q-net.or.kr/crf005.do?gId=08&amp;gSite=L&amp;id=crf00503s02&amp;jmCd=9630&amp;jmInfoDivCcd=B0" target="_blank" rel="noopener noreferrer">Q-Net 기준 확인</a></p></section>`;
 }
+function renderExposureDashboard() {
+  const rows=LearningEngine.latestExposure(store.history,bank);
+  const entries=[...SUBJECTS.slice(0,4),'공시법','세법'].filter(subject=>rows[subject]);
+  const fmt = x => x.total ? `${Math.round(x.correct/x.total*100)}% (${x.correct}/${x.total})` : '—';
+  return `<section class="exposure-panel dashboard-exposure"><div><h2>과목별 새로운 문제 점검</h2><p>첫 풀이 여부가 저장된 최근 시험에서 과목별 결과를 나누어 봅니다.</p></div>${entries.length ? `<div class="exposure-table-wrap"><table class="exposure-table"><thead><tr><th>과목</th><th>처음 푼 문제</th><th>다시 푼 문제</th></tr></thead><tbody>${entries.map(name=>`<tr><th scope="row">${escapeHTML(name)}</th><td>${fmt(rows[name].fresh)}</td><td>${fmt(rows[name].repeat)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="exposure-note">새 시험을 완료하면 과목별 결과가 표시됩니다. 기존 기록에는 최초 풀이 여부가 저장되지 않았습니다.</p>'}<small>풀이 수가 적을수록 결과의 변동이 큽니다. 점수는 실전 모의고사 결과와 함께 확인하세요.</small></section>`;
+}
 function renderDashboard() {
   const second=store.studyStage==="second";
   const subjects=second?SUBJECTS.slice(2):SUBJECTS.slice(0,2);
@@ -468,12 +474,12 @@ function renderDashboard() {
   const uncertain=(store.uncertainQuestions || []).filter(id=>subjects.includes(bank.find(q=>q.id===id)?.subject));
   const reviewCount=new Set([...mistakes.map(m=>m.questionId),...uncertain]).size;
   const activity=store.dailyActivity?.[studyDayKey()]||{cards:0,questions:0};
-  const unique=LearningEngine.firstAttemptAccuracy(store.history);
+  const unique=LearningEngine.firstAttemptAccuracy(store.history,bank);
   const topicCounts=new Map();
   mistakes.forEach(m=>{const q=bank.find(q=>q.id===m.questionId);if(q)sourceConceptCards(q).forEach(card=>topicCounts.set(card.id,(topicCounts.get(card.id)||0)+1));});
   const weak=[...topicCounts].sort((a,b)=>b[1]-a[1]).slice(0,2).map(([id,count])=>({card:studyTypes.find(c=>c.id===id),count}));
   const dday=coreSummary ? summaryDday(coreSummary.examDate):"";
-  return `<section class="today-home"><div class="today-heading"><div><p class="eyebrow">${studyDayKey()} · ${escapeHTML(dday)}</p><h1>오늘은 이 순서로 공부해요</h1><p>개념을 떠올리고, 틀린 이유를 확인하고, 실전으로 점검하세요.</p></div><div class="today-stage" role="group" aria-label="오늘 준비할 시험"><button data-today-stage="first" aria-pressed="${!second}" class="${second?"":"selected"}">1차 집중</button><button data-today-stage="second" aria-pressed="${second}" class="${second?"selected":""}">2차 집중</button></div></div><div class="today-tasks"><article class="today-task main-task"><span class="today-task-number">01</span><h2>핵심 개념 20장</h2><p>필수 암기를 가리고 떠올리세요.<br>헷갈린 개념부터 먼저 나옵니다.</p><span class="today-task-meta">오늘 카드 확인 ${activity.cards}회</span><button class="button button-primary" data-today-task="memory">빠른 암기 시작 →</button></article><article class="today-task"><span class="today-task-number">02</span><h2>오답·헷갈림 ${Math.min(10,reviewCount)}문제</h2><p>${reviewCount?"한 문제씩 답을 확인하고<br>관련 개념을 다시 정리해요.":"현재 이 시험의 오답이 없습니다.<br>실전 또는 과목 연습으로 점검하세요."}</p><span class="today-task-meta">오답 ${mistakes.length}개 · 헷갈림 ${uncertain.length}개</span><button class="button button-outline" data-today-task="mistakes">${reviewCount?"오답 다시 풀기":"오답노트 보기"} →</button></article><article class="today-task"><span class="today-task-number">03</span><h2>실전 점수 점검</h2><p>${second?"2차 1교시와 2교시를 나눠":"학개론·민법 80문항으로"}<br>최근 실전 성적을 확인하세요.</p><span class="today-task-meta">오늘 풀이 ${activity.questions}문항</span><button class="button button-outline" data-today-task="exam">실전 시험 설정 →</button></article></div>${weak.length?`<section class="today-weak"><h2>먼저 확인할 개념</h2>${weak.map(({card,count})=>`<button data-open-concept="${escapeHTML(card.id)}"><span>${escapeHTML(card.title)}</span><small>관련 오답 ${count}개 →</small></button>`).join("")}</section>`:""}${renderStageReadiness()}<div class="first-accuracy"><span>처음 푼 문제 정답률</span><b>${unique.rate===null?"기록 없음":`${unique.rate}%`}</b><small>${unique.total}개 서로 다른 문항 기준 · 반복 풀이와 분리</small></div><details class="dashboard-details" ${showAllHistory?"open":""}><summary>상세 성적·지난 시험 기록</summary>${renderDetailedDashboard()}</details><section class="study-backup"><div><h2>학습 기록 보관</h2><p>휴대폰과 아이패드 사이에서 기록 파일을 옮길 수 있습니다.</p></div><button class="button button-outline" id="export-study">기록 내보내기</button><label class="button button-outline" for="import-study">기록 가져오기</label><input type="file" id="import-study" accept="application/json,.json" hidden></section></section>`;
+  return `<section class="today-home"><div class="today-heading"><div><p class="eyebrow">${studyDayKey()} · ${escapeHTML(dday)}</p><h1>오늘은 이 순서로 공부해요</h1><p>개념을 떠올리고, 틀린 이유를 확인하고, 실전으로 점검하세요.</p></div><div class="today-stage" role="group" aria-label="오늘 준비할 시험"><button data-today-stage="first" aria-pressed="${!second}" class="${second?"":"selected"}">1차 집중</button><button data-today-stage="second" aria-pressed="${second}" class="${second?"selected":""}">2차 집중</button></div></div><div class="today-tasks"><article class="today-task main-task"><span class="today-task-number">01</span><h2>핵심 개념 20장</h2><p>필수 암기를 가리고 떠올리세요.<br>헷갈린 개념부터 먼저 나옵니다.</p><span class="today-task-meta">오늘 카드 확인 ${activity.cards}회</span><button class="button button-primary" data-today-task="memory">빠른 암기 시작 →</button></article><article class="today-task"><span class="today-task-number">02</span><h2>오답·헷갈림 ${Math.min(10,reviewCount)}문제</h2><p>${reviewCount?"한 문제씩 답을 확인하고<br>관련 개념을 다시 정리해요.":"현재 이 시험의 오답이 없습니다.<br>실전 또는 과목 연습으로 점검하세요."}</p><span class="today-task-meta">오답 ${mistakes.length}개 · 헷갈림 ${uncertain.length}개</span><button class="button button-outline" data-today-task="mistakes">${reviewCount?"오답 다시 풀기":"오답노트 보기"} →</button></article><article class="today-task"><span class="today-task-number">03</span><h2>실전 점수 점검</h2><p>${second?"2차 1교시와 2교시를 나눠":"학개론·민법 80문항으로"}<br>최근 실전 성적을 확인하세요.</p><span class="today-task-meta">오늘 풀이 ${activity.questions}문항</span><button class="button button-outline" data-today-task="exam">실전 시험 설정 →</button></article></div>${weak.length?`<section class="today-weak"><h2>먼저 확인할 개념</h2>${weak.map(({card,count})=>`<button data-open-concept="${escapeHTML(card.id)}"><span>${escapeHTML(card.title)}</span><small>관련 오답 ${count}개 →</small></button>`).join("")}</section>`:""}${renderStageReadiness()}${renderExposureDashboard()}<div class="first-accuracy"><span>처음 푼 문제 정답률</span><b>${unique.rate===null?"기록 없음":`${unique.rate}%`}</b><small>${unique.total}개 서로 다른 문항 기준 · 반복 풀이와 분리</small></div><details class="dashboard-details" ${showAllHistory?"open":""}><summary>상세 성적·지난 시험 기록</summary>${renderDetailedDashboard()}</details><section class="study-backup"><div><h2>학습 기록 보관</h2><p>휴대폰과 아이패드 사이에서 기록 파일을 옮길 수 있습니다.</p></div><button class="button button-outline" id="export-study">기록 내보내기</button><label class="button button-outline" for="import-study">기록 가져오기</label><input type="file" id="import-study" accept="application/json,.json" hidden></section></section>`;
 }
 function exportStudyBackup() {
   const {active, ...data}=store;
@@ -700,6 +706,7 @@ function renderSetup() {
       <label class="form-label" for="exam-year">문제 연도</label><select class="year-select" id="exam-year"><option value="all" selected>2020~2026년 전체</option>${years.map(y => `<option value="${y}">${y === 2026 ? "2026년 예상문제 (100문항)" : `${y}년 제${y - 1989}회`}</option>`).join("")}</select>
       <span class="form-label">풀이 범위</span><div class="segmented" id="scope-switch"><button class="segment selected" data-scope="all">전과목 혼합</button><button class="segment" data-scope="subject">단일 과목</button></div>
       <div id="subject-picker" hidden><span class="form-label">과목 선택</span><div class="subject-options">${SUBJECTS.map((s, i) => `<label class="subject-option ${i === 0 ? "selected" : ""}"><input type="radio" name="subject" value="${escapeHTML(s)}" ${i === 0 ? "checked" : ""}><span>${escapeHTML(s)}</span></label>`).join("")}</div></div>
+      <label class="fresh-filter" id="fresh-filter-wrap"><input type="checkbox" id="fresh-only"> <span><b>처음 푸는 문제만</b><small>이 기기에 기록된 풀이·오답·저장 문제와 전항 정답 문항을 제외합니다.</small></span></label>
       <label class="form-label" for="question-count">출제 문항 수</label><select class="year-select" id="question-count"><option value="10">10문제</option><option value="20">20문제</option><option value="30">30문제</option><option value="40" selected>40문제</option><option value="80">80문제</option><option value="120">120문제</option></select>
       <label class="form-label" for="exam-duration">시험 시간</label><select class="year-select" id="exam-duration"><option value="10">10분</option><option value="20">20분</option><option value="30">30분</option><option value="40" selected>40분</option><option value="50">50분</option><option value="100">100분</option></select>
       <div class="setup-summary"><div class="summary-text">문제은행 <b id="question-total">—</b></div><div class="summary-text">이번 시험 <b id="question-benchmark">—</b></div><div class="summary-text">제한 시간 <b id="duration-summary">40</b>분</div></div>
@@ -720,6 +727,7 @@ function bindSetup() {
   document.querySelector("#exam-year").addEventListener("change", updateQuestionTotal);
   document.querySelector("#exam-mode").addEventListener("change", updateQuestionTotal);
   document.querySelector("#question-count").addEventListener("change", updateQuestionTotal);
+  document.querySelector("#fresh-only").addEventListener("change", updateQuestionTotal);
   document.querySelector("#exam-duration").addEventListener("change", event => { document.querySelector("#duration-summary").textContent = event.target.value; });
   document.querySelector("#begin-exam").addEventListener("click", beginExam);
   updateQuestionTotal();
@@ -732,18 +740,21 @@ function selectedQuestions() {
   const year = stage ? (selectedYear && selectedYear <= 2025 ? selectedYear : 2025) : selectedYear;
   const scope = document.querySelector("[data-scope].selected")?.dataset.scope || "all";
   const subject = document.querySelector("input[name=subject]:checked")?.value || SUBJECTS[0];
-  const list = bank.filter(q => (year === null || q.year === year) && (!stage || stage.subjects.includes(q.subject)) && (stage || scope !== "subject" || q.subject === subject));
-  return { year, scope: stage ? "all" : scope, subject, stage: mode, list };
+  const freshOnly = !stage && Boolean(document.querySelector("#fresh-only")?.checked);
+  const seen = freshOnly ? LearningEngine.seenQuestionIds(store, bank, EXAM_STAGES) : null;
+  const list = bank.filter(q => (year === null || q.year === year) && (!stage || stage.subjects.includes(q.subject)) && (stage || scope !== "subject" || q.subject === subject) && (!seen || (!seen.has(q.id) && !LearningEngine.allAnswersAccepted(q))));
+  return { year, scope: stage ? "all" : scope, subject, stage: mode, list, freshOnly };
 }
 function updateQuestionTotal() {
   const total = document.querySelector("#question-total"); if (!total) return;
-  const { year, scope, stage, list } = selectedQuestions();
+  const { year, scope, stage, list, freshOnly } = selectedQuestions();
   const stageInfo = EXAM_STAGES[stage];
   const yearSelect = document.querySelector("#exam-year");
   if (stageInfo && (yearSelect.value === "all" || Number(yearSelect.value) === 2026)) yearSelect.value = "2025";
   const subjectPicker = document.querySelector("#subject-picker");
   if (subjectPicker) subjectPicker.hidden = Boolean(stageInfo) || scope !== "subject";
   const scopeSwitch = document.querySelector("#scope-switch");
+  document.querySelector("#fresh-filter-wrap").hidden = Boolean(stageInfo);
   if (scopeSwitch) scopeSwitch.hidden = Boolean(stageInfo);
   const countSelect = document.querySelector("#question-count");
   const durationSelect = document.querySelector("#exam-duration");
@@ -762,12 +773,12 @@ function updateQuestionTotal() {
   const note = document.querySelector("#coverage-note");
   const subjectCounts = stageInfo ? Object.fromEntries(stageInfo.subjects.map(name => [name, list.filter(question => question.subject === name).length])) : {};
   const completeStage = !stageInfo || (count === requestedCount && stageInfo.subjects.every(name => subjectCounts[name] === 40));
-  note.textContent = !count ? "선택한 범위에 문제가 없습니다." : stageInfo && !completeStage ? `${year}년 ${stageInfo.label} 문항 구성이 불완전합니다. 과목별 ${stageInfo.subjects.map(name => `${name} ${subjectCounts[name] || 0}/40`).join(" · ")} · 실전 시험은 시작할 수 없습니다.` : stageInfo ? `${year}년 ${stageInfo.label} 구성 확인 완료 · ${count}문항 · ${stageInfo.minutes}분` : `선택한 범위에서 무작위로 ${examCount}문항을 출제합니다.${examCount < requestedCount ? ` 선택한 범위의 문항이 ${count}개라 ${count}문항으로 조정했습니다.` : ""}`;
+  note.textContent = !count ? "선택한 범위에 문제가 없습니다." : stageInfo && !completeStage ? `${year}년 ${stageInfo.label} 문항 구성이 불완전합니다. 과목별 ${stageInfo.subjects.map(name => `${name} ${subjectCounts[name] || 0}/40`).join(" · ")} · 실전 시험은 시작할 수 없습니다.` : stageInfo ? `${year}년 ${stageInfo.label} 구성 확인 완료 · ${count}문항 · ${stageInfo.minutes}분` : `선택한 범위에서 ${freshOnly ? "기록상 처음 푸는 " : ""}${examCount}문항을 무작위로 출제합니다.${examCount < requestedCount ? ` 선택한 범위의 문항이 ${count}개라 ${count}문항으로 조정했습니다.` : ""}`;
   note.classList.toggle("coverage-incomplete", !completeStage);
   document.querySelector("#begin-exam").disabled = !count || !completeStage;
 }
 function beginExam() {
-  const { year, scope, subject, stage, list } = selectedQuestions();
+  const { year, scope, subject, stage, list, freshOnly } = selectedQuestions();
   const stageInfo = EXAM_STAGES[stage];
   const requestedCount = stageInfo?.questions || Number(document.querySelector("#question-count")?.value || 40);
   const durationMs = Number(document.querySelector("#exam-duration")?.value || 40) * 60 * 1000;
@@ -778,7 +789,9 @@ function beginExam() {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  quiz = { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, stage, questions: shuffled.slice(0, Math.min(list.length, requestedCount)).map(q => q.id), answers: {}, index: 0, paused: false, durationMs, remaining: durationMs, endsAt: Date.now() + durationMs, startedAt: new Date().toISOString() };
+  const seen = LearningEngine.seenQuestionIds(store, bank, EXAM_STAGES);
+  const selected = shuffled.slice(0, Math.min(list.length, requestedCount));
+  quiz = { firstSeenIds: selected.filter(q => !seen.has(q.id)).map(q => q.id), freshOnly, id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`, year, scope, subject, stage, questions: selected.map(q => q.id), answers: {}, index: 0, paused: false, durationMs, remaining: durationMs, endsAt: Date.now() + durationMs, startedAt: new Date().toISOString() };
   persist(); setView("exam");
 }
 function currentQuestions() { return quiz.questions.map(id => bank.find(q => q.id === id)).filter(Boolean); }
@@ -940,7 +953,7 @@ function submitExam(reason) {
     subject.total++;
     if (isCorrect(q, quiz.answers[q.id])) { subject.correct++; correct++; }
   });
-  const result = { learning: Boolean(quiz.learning), id: quiz.id, year: quiz.year, scope: quiz.scope, subject: quiz.subject, stage: quiz.stage || null, total: questions.length, correct, score: Math.round(correct / questions.length * 100), subjects: subjectScores, completedAt: new Date().toISOString(), duration: Math.max(0, quizDurationMs() - remainingMs()), durationLimit: quizDurationMs(), timedOut: reason === "timeout", results: questions.map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, correct: isCorrect(q, quiz.answers[q.id]), uncertain: Boolean(quiz.uncertain?.[q.id]) })) };
+  const result = { learning: Boolean(quiz.learning), id: quiz.id, year: quiz.year, scope: quiz.scope, subject: quiz.subject, stage: quiz.stage || null, total: questions.length, correct, score: Math.round(correct / questions.length * 100), subjects: subjectScores, completedAt: new Date().toISOString(), duration: Math.max(0, quizDurationMs() - remainingMs()), durationLimit: quizDurationMs(), timedOut: reason === "timeout", results: questions.map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, correct: isCorrect(q, quiz.answers[q.id]), uncertain: Boolean(quiz.uncertain?.[q.id]), firstSeen: Array.isArray(quiz.firstSeenIds) ? quiz.firstSeenIds.includes(q.id) : null })) };
   const mistakes = questions.filter(q => !isCorrect(q, quiz.answers[q.id])).map(q => ({ questionId: q.id, chosen: Number(quiz.answers[q.id]) || null, answer: q.answer, attemptedAt: result.completedAt, attemptId: result.id }));
   store.flashcards = [...new Set([...(store.flashcards || []), ...mistakes.map(m => m.questionId)])];
   const resolvedIds = new Set(questions.filter(q => isCorrect(q, quiz.answers[q.id])).map(q => q.id));
@@ -955,9 +968,11 @@ function submitExam(reason) {
 }
 function renderResult(attempt) {
   const subjects = Object.entries(attempt.subjects || {});
+  const exposure = LearningEngine.exposureSummary(attempt.results, bank);
   const label = attempt.learning ? "개념 확인 연습" : attempt.stage && EXAM_STAGES[attempt.stage] ? `${EXAM_STAGES[attempt.stage].label} 실전` : attempt.scope === "all" ? "전과목 혼합" : attempt.subject;
   return `${titleBlock("EXAM RESULT", "수고했어요, 시험을 마쳤어요", `${attempt.learning ? "학습 모드" : `${yearLabel(attempt.year)} 기출`} · ${escapeHTML(label)} · ${fmtDate(attempt.completedAt)}`)}
     <section class="result-hero"><div><div class="eyebrow">YOUR SCORE</div><h2>${attempt.correct}문제를 맞혔어요</h2><p>${attempt.timedOut ? "제한 시간이 끝나 답안이 자동 제출됐습니다." : "틀린 문제는 오답노트에 자동으로 모아두었어요."}</p></div><div class="result-score">${attempt.score}<small> 점</small></div></section>
+    <section class="exposure-panel" aria-label="처음 푼 문제와 다시 푼 문제 성적"><div><h2>처음 푼 문제와 복습 문제</h2><p>이 기기의 기존 풀이·오답·저장 기록과 비교한 결과입니다.</p></div><div class="exposure-cards">${[['fresh','처음 푼 문제'],['repeat','다시 푼 문제']].map(([key,label])=>{const x=exposure.total[key];return `<div><span>${label}</span><b>${x.total ? `${Math.round(x.correct/x.total*100)}%` : '기록 없음'}</b><small>${x.correct}/${x.total}문제</small></div>`;}).join('')}</div>${exposure.total.unknown ? `<p class="exposure-note">이전에 저장된 ${exposure.total.unknown}문제는 최초 풀이 여부를 확인할 수 없습니다.</p>` : ''}${exposure.total.excluded ? `<p class="exposure-note">전항 정답 처리된 ${exposure.total.excluded}문제는 최초·재풀이 정답률 계산에서 제외했습니다.</p>` : ''}</section>
     <section class="result-grid"><article class="panel"><div class="panel-head"><div><h2>과목별 결과</h2><p>정답 수와 정답률을 확인해 보세요</p></div></div><div class="result-subjects">${subjects.map(([name, s]) => `<div class="result-subject"><span>${escapeHTML(name)}</span><span>${s.correct}/${s.total} · ${Math.round(s.correct / s.total * 100)}%</span><div class="progress-track"><i style="width:${Math.round(s.correct / s.total * 100)}%"></i></div></div>`).join("")}</div></article>
     <article class="panel"><div class="panel-head"><div><h2>다음 학습</h2><p>오늘의 결과를 이어가요</p></div></div><p style="font-size:12px;color:#7f8c82;line-height:1.8;margin:0 0 18px">이번 시험에서 <b style="color:#b15a4b">${attempt.total - attempt.correct}문제</b>를 다시 볼 문제로 분류했어요. 오답노트에서 내가 고른 답과 정답을 비교해 보세요.</p><button class="button button-primary" data-action="mistakes">오답노트 확인 →</button> <button class="button button-outline" data-action="start-exam">다시 풀기</button></article></section>`;
 }

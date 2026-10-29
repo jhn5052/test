@@ -1232,6 +1232,310 @@
       "text": "제척기간 5년 · 무신고 7년 · 부정행위 10년(국세 상속·증여세는 10년·15년, 지방세 상속·증여 취득 무신고는 10년) / 가산세: 무신고 20%(부정 40%) · 과소신고 10%(부정 40%) · 납부지연은 하루 0.022%",
       "answer": "10%",
       "aliases": []
+    },
+    {
+      "id": "cloze-121",
+      "subject": "부동산학개론",
+      "cardId": "review-econ-stock",
+      "unitId": "review-econ-stock:compare-0",
+      "title": "저량과 유량: 시점과 기간",
+      "text": "저량: 일정 시점에 측정하는 누적량. 주택 재고량, 자산, 자본총량, 통화량이 대표적이다.",
+      "answer": "저량",
+      "aliases": []
+    },
+    {
+      "id": "cloze-122",
+      "subject": "부동산학개론",
+      "cardId": "review-econ-stock",
+      "unitId": "review-econ-stock:compare-1",
+      "title": "저량과 유량: 시점과 기간",
+      "text": "유량: 일정 기간 동안 측정하는 변화량. 연간 소득·소비, 주택 거래량, 신규 주택 공급량이 대표적이다.",
+      "answer": "유량",
+      "aliases": []
+    },
+    {
+      "id": "cloze-123",
+      "subject": "부동산학개론",
+      "cardId": "review-econ-management",
+      "unitId": "review-econ-management:compare-0",
+      "title": "부동산 관리방식: 자가·위탁·혼합",
+      "text": "자가관리: 소유자가 직접 관리하므로 통제와 기밀 유지에 유리하나 전문성이 부족하거나 관리가 안일해질 수 있다.",
+      "answer": "자가관리",
+      "aliases": []
+    },
+    {
+      "id": "cloze-124",
+      "subject": "부동산학개론",
+      "cardId": "review-econ-management",
+      "unitId": "review-econ-management:compare-1",
+      "title": "부동산 관리방식: 자가·위탁·혼합",
+      "text": "위탁관리: 전문업자에게 맡겨 전문성을 활용하고 대형·복잡한 시설에 대응하기 쉽지만 용역비 부담과 기밀 유지 문제가 있다.",
+      "answer": "위탁관리",
+      "aliases": []
+    },
+    {
+      "id": "cloze-125",
+      "subject": "부동산학개론",
+      "cardId": "review-econ-invest",
+      "unitId": "review-econ-invest:compare-1",
+      "title": "투자분석: 요구수익률과 할인·비할인",
+      "text": "할인법: 현금흐름의 시간가치를 반영한다\n순현재가치·내부수익률·수익성지수가 대표적이다.",
+      "answer": "할인법",
+      "aliases": []
+    },
+    {
+      "id": "cloze-126",
+      "subject": "민법 및 민사특별법",
+      "cardId": "review-civil-invalid",
+      "unitId": "review-civil-invalid:compare-0",
+      "title": "무효와 취소: 효력과 추인",
+      "text": "무효: 처음부터 법률행위의 효력이 없다\n무효임을 알고 추인하면 특별한 사정이 없는 한 새로운 법률행위로 본다.",
+      "answer": "무효",
+      "aliases": []
+    },
+    {
+      "id": "cloze-127",
+      "subject": "민법 및 민사특별법",
+      "cardId": "review-civil-invalid",
+      "unitId": "review-civil-invalid:compare-1",
+      "title": "무효와 취소: 효력과 추인",
+      "text": "취소: 취소 전에는 일단 유효하며, 취소하면 처음부터 무효인 것으로 본다\n취소권자와 행사기간이 정해져 있다.",
+      "answer": "취소",
+      "aliases": []
+    },
+    {
+      "id": "cloze-128",
+      "subject": "민법 및 민사특별법",
+      "cardId": "review-civil-possession",
+      "unitId": "review-civil-possession:compare-1",
+      "title": "점유자와 회복자: 과실·필요비·유익비",
+      "text": "필요비: 점유물의 보존을 위해 지출한 필요비는 원칙적으로 상환을 청구한다\n다만 점유자가 과실을 취득한 경우 통상의 필요비는 청구하지 못한다.",
+      "answer": "필요비",
+      "aliases": []
+    },
+    {
+      "id": "cloze-129",
+      "subject": "민법 및 민사특별법",
+      "cardId": "review-civil-possession",
+      "unitId": "review-civil-possession:compare-2",
+      "title": "점유자와 회복자: 과실·필요비·유익비",
+      "text": "유익비: 가액 증가가 현존할 때 지출금액 또는 증가액 중 회복자의 선택에 따라 상환을 청구한다.",
+      "answer": "유익비",
+      "aliases": []
+    },
+    {
+      "id": "cloze-130",
+      "subject": "민법 및 민사특별법",
+      "cardId": "review-civil-commercial-period",
+      "unitId": "review-civil-commercial-period:compare-2",
+      "title": "상가임대차: 환산보증금과 계약기간",
+      "text": "기준 초과 + 기간 미정: 최단 1년 규정이 적용되지 않고 기간이 정해져 있지 않아 그 만료를 전제로 한 갱신요구권이 발생할 여지가 없다.",
+      "answer": "갱신요구권",
+      "aliases": []
+    },
+    {
+      "id": "cloze-131",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "review-broker-office",
+      "unitId": "review-broker-office:compare-0",
+      "title": "중개사무소: 인장·명칭·게시",
+      "text": "인장: 개업공인중개사와 소속공인중개사는 중개업무에 사용할 인장을 등록하고, 변경할 때도 신고한다.",
+      "answer": "소속공인중개사",
+      "aliases": []
+    },
+    {
+      "id": "cloze-132",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "review-broker-office",
+      "unitId": "review-broker-office:compare-2",
+      "title": "중개사무소: 인장·명칭·게시",
+      "text": "게시: 등록증 원본과 자격증 원본, 보수·실비 요율표, 보증 설정을 증명하는 서류 등 법정 서류를 보기 쉬운 곳에 게시한다.",
+      "answer": "보증",
+      "aliases": []
+    },
+    {
+      "id": "cloze-133",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "review-broker-legal",
+      "unitId": "review-broker-legal:compare-0",
+      "title": "개업공인중개사와 소속공인중개사",
+      "text": "개업공인중개사: 중개사무소 개설등록을 하고 자기 책임으로 중개업을 영위한다.",
+      "answer": "개업공인중개사",
+      "aliases": []
+    },
+    {
+      "id": "cloze-134",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "review-broker-legal",
+      "unitId": "review-broker-legal:compare-1",
+      "title": "개업공인중개사와 소속공인중개사",
+      "text": "소속공인중개사: 개업공인중개사에게 소속되어 중개업무를 수행하는 공인중개사다.",
+      "answer": "소속공인중개사",
+      "aliases": []
+    },
+    {
+      "id": "cloze-135",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "review-broker-legal",
+      "unitId": "review-broker-legal:compare-2",
+      "title": "개업공인중개사와 소속공인중개사",
+      "text": "중개보조원: 공인중개사가 아닌 사람으로 현장 안내 등 중개업무에 관한 단순 업무를 보조한다.",
+      "answer": "중개보조원",
+      "aliases": []
+    },
+    {
+      "id": "cloze-136",
+      "subject": "부동산공법",
+      "cardId": "review-public-redevelopment",
+      "unitId": "review-public-redevelopment:compare-0",
+      "title": "정비사업: 재개발과 재건축",
+      "text": "재개발: 정비기반시설이 열악하고 노후·불량건축물이 밀집한 지역에서 주거환경 또는 도시환경을 개선한다.",
+      "answer": "열악",
+      "aliases": []
+    },
+    {
+      "id": "cloze-137",
+      "subject": "부동산공법",
+      "cardId": "review-public-redevelopment",
+      "unitId": "review-public-redevelopment:compare-1",
+      "title": "정비사업: 재개발과 재건축",
+      "text": "재건축: 정비기반시설이 양호하지만 노후·불량건축물이 밀집한 공동주택 지역의 주거환경을 개선한다.",
+      "answer": "양호",
+      "aliases": []
+    },
+    {
+      "id": "cloze-138",
+      "subject": "부동산공법",
+      "cardId": "review-public-land",
+      "unitId": "review-public-land:compare-0",
+      "title": "도시개발: 수용방식과 환지방식",
+      "text": "수용방식: 시행자가 토지를 취득해 개발하고 보상한다\n토지 소유자의 기존 권리는 수용으로 소멸한다.",
+      "answer": "수용방식",
+      "aliases": []
+    },
+    {
+      "id": "cloze-139",
+      "subject": "부동산공법",
+      "cardId": "review-public-land",
+      "unitId": "review-public-land:compare-1",
+      "title": "도시개발: 수용방식과 환지방식",
+      "text": "환지방식: 종전 토지의 위치·면적 등을 고려해 개발 후 토지를 다시 배분한다\n환지처분 공고 다음 날부터 환지를 종전 토지로 본다.",
+      "answer": "환지방식",
+      "aliases": []
+    },
+    {
+      "id": "cloze-140",
+      "subject": "부동산공법",
+      "cardId": "review-public-facilities",
+      "unitId": "review-public-facilities:compare-2",
+      "title": "기반시설·기간시설·복리시설",
+      "text": "복리시설: 어린이놀이터 등 주민 생활의 편의를 위한 시설",
+      "answer": "복리시설",
+      "aliases": []
+    },
+    {
+      "id": "cloze-141",
+      "subject": "공시법",
+      "cardId": "review-registry-application",
+      "unitId": "review-registry-application:compare-0",
+      "title": "등기신청: 권리자·의무자·단독신청",
+      "text": "공동신청: 원칙적으로 등기권리자와 등기의무자가 함께 신청한다\n매매에 따른 소유권이전등기에서는 매수인이 권리자, 매도인이 의무자다.",
+      "answer": "공동신청",
+      "aliases": []
+    },
+    {
+      "id": "cloze-142",
+      "subject": "공시법",
+      "cardId": "review-registry-application",
+      "unitId": "review-registry-application:compare-1",
+      "title": "등기신청: 권리자·의무자·단독신청",
+      "text": "단독신청: 상속에 의한 등기, 소유권보존등기, 판결에 의한 등기 등 법률이 정한 경우 단독신청이 가능하다.",
+      "answer": "단독신청",
+      "aliases": []
+    },
+    {
+      "id": "cloze-143",
+      "subject": "공시법",
+      "cardId": "review-registry-application",
+      "unitId": "review-registry-application:compare-2",
+      "title": "등기신청: 권리자·의무자·단독신청",
+      "text": "대위신청: 채권자가 채무자를 대위하여 등기를 신청할 때에는 대위 원인과 관계를 증명하는 정보를 제공해야 한다.",
+      "answer": "대위신청",
+      "aliases": []
+    },
+    {
+      "id": "cloze-144",
+      "subject": "공시법",
+      "cardId": "review-registry-mortgage",
+      "unitId": "review-registry-mortgage:compare-1",
+      "title": "등기사항: 저당권과 근저당권",
+      "text": "근저당권: 채권최고액과 채무자를 기록한다\n피담보채권의 변제기나 이자를 근저당권 등기사항으로 혼동하지 않는다.",
+      "answer": "채권최고액",
+      "aliases": []
+    },
+    {
+      "id": "cloze-145",
+      "subject": "공시법",
+      "cardId": "core-registry-1kjyk33",
+      "unitId": "core-registry-1kjyk33:point-0",
+      "title": "등기할 수 있는 권리 8개 소지지전저권채임",
+      "text": "등기할 수 있는 권리 8개 소지지전저권채임: 소유권·지상권·지역권·전세권·저당권·권리질권·채권담보권·임차권 / 등기 불가: 점유권·유치권·분묘기지권·주위토지통행권",
+      "answer": "유치권",
+      "aliases": []
+    },
+    {
+      "id": "cloze-146",
+      "subject": "세법",
+      "cardId": "tax-61",
+      "unitId": "tax-61:compare-0",
+      "title": "재산세·종부세·양도세 분납 비교",
+      "text": "재산세: 250만원 초과부터\n500만원 이하: 250만원 초과분\n500만원 초과: 50% 이하\n3개월 이내",
+      "answer": "3개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-147",
+      "subject": "세법",
+      "cardId": "tax-61",
+      "unitId": "tax-61:compare-1",
+      "title": "재산세·종부세·양도세 분납 비교",
+      "text": "종부세: 250만원 초과부터\n500만원 이하: 250만원 초과분\n500만원 초과: 50% 이하\n6개월 이내",
+      "answer": "6개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-148",
+      "subject": "세법",
+      "cardId": "tax-61",
+      "unitId": "tax-61:compare-2",
+      "title": "재산세·종부세·양도세 분납 비교",
+      "text": "양도소득세: 1천만원 초과부터\n2천만원 이하: 1천만원 초과분\n2천만원 초과: 50% 이하\n2개월 이내",
+      "answer": "2개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-149",
+      "subject": "세법",
+      "cardId": "core-tax-6pec0m",
+      "unitId": "core-tax-6pec0m:point-0",
+      "title": "재산세 · 세율",
+      "text": "세율: 주택 0.1·0.15·0.25·0.4%(시가표준액 9억 이하 1세대1주택은 특례 0.05·0.1·0.2·0.35%) / 분리과세 토지는 전·답·과수원·목장·임야 0.07%, 공장용지 등 0.2%, 골프장·고급오락장 4% / 종합합산 0.2~0.5% · 별도합산 0.2~0.4% / 건축물 0.25%, 시 지역 주거지역 등의 공장 0.5%, 골프장·고급오락장 4%",
+      "answer": "0.07%",
+      "aliases": [
+        "0.7‰"
+      ]
+    },
+    {
+      "id": "cloze-150",
+      "subject": "세법",
+      "cardId": "core-tax-6pec0m",
+      "unitId": "core-tax-6pec0m:point-0",
+      "title": "재산세 · 세율",
+      "text": "세율: 주택 0.1·0.15·0.25·0.4%(시가표준액 9억 이하 1세대1주택은 특례 0.05·0.1·0.2·0.35%) / 분리과세 토지는 전·답·과수원·목장·임야 0.07%, 공장용지 등 0.2%, 골프장·고급오락장 4% / 종합합산 0.2~0.5% · 별도합산 0.2~0.4% / 건축물 0.25%, 시 지역 주거지역 등의 공장 0.5%, 골프장·고급오락장 4%",
+      "answer": "0.25%",
+      "aliases": [
+        "2.5‰"
+      ]
     }
   ]
 }

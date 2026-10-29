@@ -126,8 +126,38 @@ test('specific cases no longer link through incidental context words',()=>{
  for(const id of ['2020-5-1','2020-5-5','2021-5-12','2024-4-38','2025-4-36'])assert.deepEqual(linked(id),[],id);
 });
 test('known source conflicts are held, and corrected definition cards cannot retain their contradictory old rules',()=>{
- for(const id of ['2023-2-7','2022-2-36','2023-5-4','2025-4-2']){assert.equal(audit.questions[id].status,'source-review');assert.deepEqual(linked(id),[]);}
+ for(const id of ['2023-1-27','2021-2-37']){assert.equal(audit.questions[id].status,'source-review');assert.deepEqual(linked(id),[]);}
  const proxy=cards.find(c=>c.id==='civil-14');assert.ok(proxy.concept.some(x=>/법정대리인은 자기 책임/.test(x)));
  const unfair=cards.find(c=>c.id==='civil-15');assert.ok(unfair.concept.some(x=>x.includes('궁박은 본인, 경솔·무경험은 대리인')));
  assert.ok(!cards.find(c=>c.id==='tax-50').memorize.some(x=>/6,700|2,100/.test(x)));
+});
+test('seen question detection uses prior results, wrong notes, saved questions and complete old stage records',()=>{
+ const b=[{id:'a',year:2025,subject:'A'},{id:'b',year:2025,subject:'B'},{id:'c',year:2025,subject:'C'},{id:'d',year:2024,subject:'A'}];
+ const stages={first:{questions:80,subjects:['A','B']}};
+ const store={history:[{stage:'first',year:2025,total:80,subjects:{A:{total:40},B:{total:40}},results:[]},{results:[{questionId:'c'}]}],mistakes:[{questionId:'d'}],flashcards:['saved'],uncertainQuestions:['uncertain']};
+ assert.deepEqual([...e.seenQuestionIds(store,b,stages)].sort(),['a','b','c','d','saved','uncertain'].sort());
+ const partial={...store,history:[{stage:'first',year:2025,total:80,subjects:{A:{total:39},B:{total:40}},results:[] }],mistakes:[],flashcards:[],uncertainQuestions:[]};
+ assert.equal(e.seenQuestionIds(partial,b,stages).size,0);
+});
+test('result summary separates first exposure, repeated and legacy unknown by subject',()=>{
+ const b=[{id:'a',subject:'A'},{id:'b',subject:'A'},{id:'c',subject:'B'},{id:'d',subject:'A'}];
+ const rows=[{questionId:'a',correct:true,firstSeen:true},{questionId:'b',correct:false,firstSeen:false},{questionId:'c',correct:true,firstSeen:false},{questionId:'d',correct:true}];
+ const r=e.exposureSummary(rows,b);assert.deepEqual(r.total,{fresh:{total:1,correct:1},repeat:{total:2,correct:1},unknown:1,excluded:0});
+ assert.equal(r.subjects.A.repeat.correct,0);assert.equal(r.subjects.B.repeat.correct,1);assert.equal(r.subjects.A.unknown,1);
+ const history=[{completedAt:'2026-10-29',learning:true,results:[{questionId:'a',correct:false,firstSeen:true}]},{completedAt:'2026-10-28',results:rows}];
+ assert.equal(e.latestExposure(history,b).A.fresh.correct,1);
+});
+test('verified source corrections retain official answers and meaningful legal comparisons',()=>{
+ for(const id of ['2021-2-37','2023-1-27'])assert.equal(audit.questions[id].status,'source-review');
+ for(const id of ['2023-5-4','2025-4-2','2023-2-39','2023-2-7','2022-2-36'])assert.equal(audit.questions[id].status,'linked');
+ const q=questions.find(x=>x.id==='2023-2-39');assert.equal(q.answer,1);assert.match(q.explanation,/기간을 정하지 않은/);assert.doesNotMatch(q.explanation,/갱신요구권은 주장할 수 없다/);
+ assert.match(questions.find(x=>x.id==='2026-2-11').text,/중단 사유/);assert.doesNotMatch(questions.find(x=>x.id==='2026-2-11').text,/완성유예/);
+ assert.ok(cards.find(x=>x.id==='review-civil-commercial-period').comparison.some(x=>x.label.includes('기간 미정')));
+});
+test('canceled all-answer questions do not inflate first or repeated accuracy, and public registration/tax are shown separately',()=>{
+ const combined=subjects[4];
+ const b=[{id:'canceled',subject:combined,year:2021,number:1,choices:['a','b','c','d','e'],answer:[1,2,3,4,5]},{id:'registry',subject:combined,year:2025,number:10,choices:['a','b'],answer:1},{id:'tax',subject:combined,year:2025,number:30,choices:['a','b'],answer:1},{id:'predicted-tax',subject:combined,year:2026,number:11,choices:['a','b'],answer:1}];
+ const rows=[{questionId:'canceled',correct:true,firstSeen:true},{questionId:'registry',correct:false,firstSeen:true},{questionId:'tax',correct:true,firstSeen:false},{questionId:'predicted-tax',correct:true,firstSeen:true}];
+ const out=e.exposureSummary(rows,b);assert.equal(out.total.excluded,1);assert.equal(out.total.fresh.total,2);assert.equal(out.subjects['공시법'].fresh.correct,0);assert.equal(out.subjects['세법'].repeat.correct,1);assert.equal(out.subjects['세법'].fresh.correct,1);
+ const all=e.firstAttemptAccuracy([{completedAt:'2026-10-29',results:rows}],b);assert.deepEqual(all,{total:3,correct:2,rate:67});
 });

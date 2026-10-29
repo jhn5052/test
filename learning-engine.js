@@ -12,7 +12,7 @@
             const facts = points.map(plain).filter(Boolean);
             if (!facts.length) return;
             const title = plain(label) || plain(section.title);
-            cards.push({ id: `core-${subject.id}-${hash(section.title + title + facts.join('|'))}`, subject: subject.appSubject, title,
+            cards.push({ id: subject.id==='civil' && section.title==='주택임대차 vs 상가임대차' && title.endsWith(' · 최단기간') ? 'core-civil-1mhtutz' : subject.id==='civil' && section.title==='주택임대차 vs 상가임대차' && title.endsWith(' · 묵시갱신') ? 'core-civil-nuascc' : `core-${subject.id}-${hash(section.title + title + facts.join('|'))}`, subject: subject.appSubject, title,
               concept: facts, memorize: comparison.length ? [] : facts, comparison, relatedTerms: [title, plain(section.title)],
               searchTerms: /기준·신고/.test(title) ? ['과세기준일','신고기한'] : /납기/.test(title) ? ['납부기한'] : /분납/.test(title) ? ['분할납부'] : [],
               origin: 'core', summarySubject: subject.id, summarySection: sectionIndex, sectionTitle: plain(section.title) });
@@ -91,15 +91,64 @@
     const second={id:'second',label:'2차',rows:[...a.rows,...b.rows], result:compatible ? assess([...a.rows,...b.rows]):null, complete:Boolean(compatible)};
     return {first,second};
   }
-  function firstAttemptAccuracy(history) {
+  function allAnswersAccepted(question) {
+    return Array.isArray(question?.answer) && Array.isArray(question?.choices) && question.choices.length > 0 && question.answer.length >= question.choices.length && question.choices.every((_,index)=>question.answer.includes(index+1));
+  }
+  function firstAttemptAccuracy(history, bank = null) {
+    const lookup = bank ? new Map(bank.map(q=>[q.id,q])) : null;
     const seen=new Set();let correct=0;
-    [...history].sort((a,b)=>String(a.completedAt||'').localeCompare(String(b.completedAt||''))).forEach(a=>(a.results||[]).forEach(r=>{if(!r.questionId||seen.has(r.questionId)||typeof r.correct!=='boolean')return;seen.add(r.questionId);if(r.correct)correct++;}));
+    [...history].sort((a,b)=>String(a.completedAt||'').localeCompare(String(b.completedAt||''))).forEach(a=>(a.results||[]).forEach(r=>{if(!r.questionId||seen.has(r.questionId)||typeof r.correct!=='boolean'||(lookup && allAnswersAccepted(lookup.get(r.questionId))))return;seen.add(r.questionId);if(r.correct)correct++;}));
     return {total:seen.size,correct,rate:seen.size?Math.round(correct/seen.size*100):null};
   }
   function reviewSchedule(previous, known, now = Date.now()) {
     const streak=known ? (Number(previous?.streak)||0)+1:0;
     const days=known ? [1,3,7][Math.min(2,streak-1)]:0;
     return {rating:known?'known':'again',reviews:(Number(previous?.reviews)||0)+1,streak,updatedAt:new Date(now).toISOString(),dueAt:new Date(now+days*86400000).toISOString()};
+  }
+  // A question is unseen only when no saved attempt, wrong note, or saved question records it.
+  function seenQuestionIds(store, bank = [], stages = {}) {
+    const ids = new Set();
+    for (const attempt of store?.history || []) {
+      for (const result of attempt?.results || []) if (typeof result.questionId === 'string') ids.add(result.questionId);
+      // Older full-stage records can lack individual rows; their complete year/stage identifies all questions.
+      const spec = stages[attempt?.stage];
+      if (spec && Number.isInteger(attempt.year) && attempt.total === spec.questions && (!Array.isArray(attempt.results) || !attempt.results.length)) {
+        const complete = spec.subjects.every(subject => Number(attempt.subjects?.[subject]?.total) === 40);
+        if (complete) for (const q of bank) if (q.year === attempt.year && spec.subjects.includes(q.subject)) ids.add(q.id);
+      }
+    }
+    for (const row of store?.mistakes || []) if (typeof row?.questionId === 'string') ids.add(row.questionId);
+    for (const id of [...(store?.flashcards || []), ...(store?.uncertainQuestions || [])]) if (typeof id === 'string') ids.add(id);
+    return ids;
+  }
+  function exposureSummary(results, bank) {
+    const byId = new Map(bank.map(q=>[q.id,q]));
+    const total = {fresh:{total:0,correct:0},repeat:{total:0,correct:0},unknown:0,excluded:0};
+    const subjects = {};
+    for (const result of results || []) {
+      const question = byId.get(result.questionId);
+      if (!question || typeof result.correct !== 'boolean') continue;
+      const group = result.firstSeen === true ? 'fresh' : result.firstSeen === false ? 'repeat' : null;
+      const field = question.subject.includes('부동산공시에 관한 법령 및 부동산 관련 세법') ? (question.number >= (question.year === 2026 ? 11 : 25) ? '세법' : '공시법') : question.subject;
+      const row = subjects[field] ||= {fresh:{total:0,correct:0},repeat:{total:0,correct:0},unknown:0,excluded:0};
+      if (allAnswersAccepted(question)) { total.excluded++; row.excluded++; continue; }
+      if (!group) { total.unknown++; row.unknown++; continue; }
+      total[group].total++; row[group].total++;
+      if (result.correct) { total[group].correct++; row[group].correct++; }
+    }
+    return {total,subjects};
+  }
+  function latestExposure(history, bank) {
+    const rows = {};
+    // Snapshot labels belong to the attempt; never reclassify an earlier attempt after later reviews.
+    for (const attempt of [...(history || [])].sort((a,b)=>String(b.completedAt||'').localeCompare(String(a.completedAt||'')))) {
+      if (attempt.learning) continue;
+      const report = exposureSummary(attempt.results, bank);
+      for (const [subject, value] of Object.entries(report.subjects)) {
+        if (!rows[subject] && (value.fresh.total || value.repeat.total)) rows[subject] = { ...value, completedAt:attempt.completedAt, year:attempt.year };
+      }
+    }
+    return rows;
   }
   function readBackup(payload) {
     if (payload?.schema!=='realtor-study-backup'||payload.version!==1||!payload.data||typeof payload.data!=='object') throw new Error('이 앱에서 내보낸 학습 기록 파일을 선택해 주세요.');
@@ -122,6 +171,6 @@
       uncertainQuestions:[...new Set([...(current.uncertainQuestions||[]),...(Array.isArray(incoming.uncertainQuestions)?incoming.uncertainQuestions:[])])].filter(id=>typeof id==='string' && !(latestResult.get(id)?.correct && !latestResult.get(id)?.uncertain)),
       recallProgress:recordMerge(current.recallProgress,incoming.recallProgress),quickMemoryProgress:recordMerge(current.quickMemoryProgress,incoming.quickMemoryProgress),clozeProgress:recordMerge(current.clozeProgress,incoming.clozeProgress),resolvedMistakes:resolved};
   }
-  const api={plain,canonicalCards,conceptText,conceptCatalog,questionFingerprint,cardFingerprint,related,stageReadiness,firstAttemptAccuracy,reviewSchedule,readBackup,mergeBackup};
+  const api={plain,canonicalCards,conceptText,conceptCatalog,questionFingerprint,cardFingerprint,related,stageReadiness,firstAttemptAccuracy,allAnswersAccepted,seenQuestionIds,exposureSummary,latestExposure,reviewSchedule,readBackup,mergeBackup};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.LearningEngine=api;
 })(typeof globalThis==='undefined'?this:globalThis);

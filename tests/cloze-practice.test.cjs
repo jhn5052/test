@@ -3,10 +3,10 @@ const C=require('../cloze-practice'),Q=require('../quick-memory'),E=require('../
 const S=['부동산학개론','민법 및 민사특별법','공인중개사법령 및 중개실무','부동산공법','부동산공시에 관한 법령 및 부동산 관련 세법'];
 const cards=E.conceptCatalog(require('../data/core-summary.json'),require('../data/study-types.json').cards);
 const units=Q.buildUnits(cards,S,E.plain),raw=require('../data/essential-cloze.json').items,items=C.build(raw,units);
-test('all 120 clozes preserve a real source fact and cover six fields equally',()=>{
- assert.equal(items.length,120);assert.equal(new Set(items.map(x=>x.id)).size,120);
+test('all 150 clozes preserve a real source fact and cover six fields equally',()=>{
+ assert.equal(items.length,150);assert.equal(new Set(items.map(x=>x.id)).size,150);
  const counts={};for(const x of items){counts[x.subject]=(counts[x.subject]||0)+1;assert.ok(x.text.includes(x.answer));assert.equal(C.check(x,x.answer),true);assert.doesNotMatch(x.text,/[①②③④⑤]/);}
- assert.equal(Object.keys(counts).length,6);assert.ok(Object.values(counts).every(n=>n===20));
+ assert.equal(Object.keys(counts).length,6);assert.ok(Object.values(counts).every(n=>n===25));
 });
 test('changed or missing source facts cannot silently keep an old cloze',()=>{
  assert.equal(C.build([{...raw[0],text:raw[0].text+' changed'}],units).length,0);
@@ -21,7 +21,7 @@ test('grading tolerates whitespace and commas but preserves units, decimals and 
 test('wrong and due items precede new items; future successes come last; subject filters hold',()=>{
  const now=Date.now(),pick=items.slice(0,4);const progress={ [pick[0].id]:{rating:'known',dueAt:new Date(now+99999).toISOString()},[pick[1].id]:{rating:'again'},[pick[2].id]:{rating:'known',dueAt:new Date(now-1).toISOString()}};
  assert.deepEqual(C.select(pick,'all',4,progress,now,()=>0),[pick[1].id,pick[2].id,pick[3].id,pick[0].id]);
- assert.equal(C.select(items,'세법',30).length,20);
+ assert.equal(C.select(items,'세법',30).length,25);
 });
 test('invalid sessions fail safely and completed sessions resume as completed',()=>{
  assert.equal(C.session({ids:['missing'],index:0,results:{}},items),null);

@@ -8,7 +8,7 @@ const assert=require('node:assert/strict');const path=require('node:path');const
  await page.goto(process.env.APP_URL || 'http://127.0.0.1:8020',{waitUntil:'networkidle'});
  await page.waitForSelector('.today-tasks');await page.locator('.nav-item[data-view="study-types"]').click();
  await page.locator('[data-study-mode="cloze"]').click();
- assert.ok((await page.locator('.cloze-view').innerText()).includes('120'));
+ assert.ok((await page.locator('.cloze-view').innerText()).includes('150'));
  const groups=await page.locator('#cloze-subject option').evaluateAll(opts=>opts.slice(1).map(x=>x.value));assert.equal(groups.length,6);
  const original=await page.evaluate(()=>JSON.stringify(store.history));
  // Each field has usable, masked prompts; no answer appears before a response.
