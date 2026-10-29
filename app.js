@@ -8,6 +8,7 @@ const EXAM_STAGES = {
 const LETTERS = ["①", "②", "③", "④", "⑤"];
 let bank = [];
 let studyTypes = [];
+let essentialCloze = [];
 const conceptLinkCache = new Map();
 let coreSummary = null;
 let conceptLinkAudit = null;
@@ -1228,13 +1229,65 @@ function studyRecallPrompt(card) {
   if (terms.length) return `다음 항목의 뜻과 서로 다른 점을 설명해 보세요: ${terms.map(normalizeStudyText).join(" · ")}.`;
   return `${normalizeStudyText(card.title)}의 핵심 정의·구분·기준을 떠올려 적어보세요.`;
 }
+function clozeItems() { return ClozePractice.build(essentialCloze, QuickMemory.buildUnits(studyTypes, SUBJECTS, LearningEngine.plain)); }
+function clozeSession() { return ClozePractice.session(store.clozeSession, clozeItems()); }
+function startCloze(againOnly = false) {
+  const items = clozeItems(), previous = clozeSession();
+  const subject = document.querySelector("#cloze-subject")?.value || previous?.subject || "all";
+  const size = Number(document.querySelector("#cloze-size")?.value || previous?.size || 10);
+  const ids = againOnly && previous ? previous.ids.filter(id => previous.results[id]?.correct === false || previous.results[id]?.uncertain) : ClozePractice.select(items, subject, size, store.clozeProgress || {});
+  if (!ids.length) { toast("다시 풀 항목이 없습니다."); return; }
+  store.clozeSession = { ids, subject, size, index:0, results:{}, feedback:null, createdAt:new Date().toISOString() };
+  persist(); render();
+}
+function renderCloze() {
+  const items = clozeItems(), session = clozeSession();
+  const groups = [...new Set(items.map(x => x.subject))];
+  const subject = session?.subject || "all";
+  const settings = `<div class="cloze-settings"><label>학습 과목<select id="cloze-subject" class="filter-select"><option value="all">전체 과목 · ${items.length}개</option>${groups.map(g=>`<option value="${escapeHTML(g)}" ${subject===g?"selected":""}>${escapeHTML(g)} · ${items.filter(x=>x.subject===g).length}개</option>`).join("")}</select></label><label>한 번에<select id="cloze-size" class="filter-select">${[10,20,30].map(n=>`<option value="${n}" ${session?.size===n?"selected":""}>${n}개</option>`).join("")}</select></label><button class="button button-outline" id="cloze-start">${session?"새 묶음 시작":"빈칸 학습 시작"}</button></div>`;
+  const intro = `<div class="quick-heading"><span class="eyebrow">ACTIVE RECALL</span><h2>빈칸으로 꺼내 쓰는 필수 개념</h2><p>답을 가리고 직접 적어 보세요. 틀리거나 헷갈린 개념부터 반복하고, 맞힌 개념은 1일·3일·7일 뒤 복습합니다.</p></div>`;
+  const head = `<section class="cloze-view">${intro}${settings}`;
+  if (!items.length) return `${head}<p>빈칸 자료를 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.</p></section>`;
+  if (!session) return `${head}<div class="quick-empty"><b>읽기 → 가리기 → 직접 떠올리기</b><p>필수 개념 ${items.length}개에서 10개씩 시작해 보세요. 빈칸 여러 개는 모두 같은 답입니다. 오답과 헷갈림은 묶음이 끝난 뒤 다시 풀 수 있어요.</p><p>빈칸 결과는 시험 점수와 별도로 기록됩니다.</p></div></section>`;
+  if (session.index>=session.ids.length) {
+    const results=Object.values(session.results), correct=results.filter(r=>r.correct).length, again=results.filter(r=>!r.correct || r.uncertain).length;
+    return `${head}<div class="quick-complete" role="status"><span class="eyebrow">묶음 완료</span><h3>처음 떠올려 맞힌 개념 ${correct} / ${results.length}개</h3><p>오답·헷갈림 ${again}개를 답을 가린 채 다시 풀어보세요.</p><button class="button button-primary" id="cloze-again" ${again?"":"disabled"}>오답·헷갈림 ${again}개 반복</button></div></section>`;
+  }
+  const item=items.find(x=>x.id===session.ids[session.index]), feedback=session.feedback;
+  const mask = text => ClozePractice.parts(String(text),item.answer).map(part=>part.gap?'<span class="cloze-gap" aria-label="빈칸">____</span>':escapeHTML(part.text)).join("");
+  return `${head}<div class="quick-status"><span>${escapeHTML(item.subject)}</span><b>${session.index+1} / ${session.ids.length}</b></div><progress class="quick-progress" value="${session.index}" max="${session.ids.length}" aria-label="빈칸 학습 진행"></progress><article class="quick-memory-card cloze-card"><h3>${mask(item.title)}</h3><p class="cloze-sentence">${mask(item.text)}</p><form id="cloze-form"><label for="cloze-input">빈칸에 들어갈 말 <small>숫자에는 단위도 함께 적어주세요 · 예: 3개월</small></label><input class="filter-select" id="cloze-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHTML(feedback?.input || '')}" ${feedback?"disabled":""}><div class="cloze-actions"><button class="button button-primary" type="submit" ${feedback?"disabled":""}>정답 확인</button><button class="button button-outline" id="cloze-skip" type="button" ${feedback?"disabled":""}>모르겠어요</button></div></form>${feedback?`<section class="cloze-feedback ${feedback.correct?"is-correct":"is-wrong"}" role="status"><b>${feedback.correct?"맞혔어요":"개념을 확인하고 다시 떠올려 보세요"}</b><p>빈칸 답: <strong>${escapeHTML(item.answer)}</strong></p><p>${escapeHTML(item.text)}</p><button class="button button-quiet" data-open-concept="${escapeHTML(item.cardId)}">전체 개념 정리 보기 →</button><label class="cloze-unsure"><input type="checkbox" id="cloze-unsure" ${feedback.uncertain?"checked":""}> 맞혔지만 헷갈렸어요</label></section><button class="button button-primary cloze-next" id="cloze-next">${session.index+1===session.ids.length?"묶음 결과 보기":"다음 개념 →"}</button>`:""}</article></section>`;
+}
+function bindCloze() {
+  document.querySelectorAll(".cloze-view [data-open-concept]").forEach(button=>button.addEventListener("click",()=>{ openConceptCard(button.dataset.openConcept);studyTypeFlipped=true;render(); }));
+  document.querySelector("#cloze-start")?.addEventListener("click",()=>startCloze());
+  document.querySelector("#cloze-again")?.addEventListener("click",()=>startCloze(true));
+  const answer = skip => {
+    const session=clozeSession(); if(!session || session.feedback || session.index>=session.ids.length) return;
+    const item=clozeItems().find(x=>x.id===session.ids[session.index]);
+    const input=document.querySelector("#cloze-input")?.value || "";
+    if(!skip && !input.trim()) { document.querySelector("#cloze-input")?.focus(); toast("답을 적거나 모르겠어요를 눌러 주세요."); return; }
+    session.feedback={input,correct:!skip && ClozePractice.check(item,input),uncertain:false};
+    persist();render();document.querySelector("#cloze-next")?.focus();
+  };
+  document.querySelector("#cloze-form")?.addEventListener("submit",e=>{e.preventDefault();answer(false);});
+  document.querySelector("#cloze-skip")?.addEventListener("click",()=>answer(true));
+  document.querySelector("#cloze-unsure")?.addEventListener("change",e=>{const session=clozeSession();if(session?.feedback){session.feedback.uncertain=e.target.checked;persist();}});
+  document.querySelector("#cloze-next")?.addEventListener("click",()=>{
+    const session=clozeSession();if(!session?.feedback)return;
+    const id=session.ids[session.index], result=session.feedback;
+    session.results[id]=result;store.clozeProgress ||= {};
+    store.clozeProgress[id]={...LearningEngine.reviewSchedule(store.clozeProgress[id],result.correct && !result.uncertain),correct:result.correct,uncertain:result.uncertain};
+    session.index++;session.feedback=null;recordDailyActivity("cards",1);persist();render();document.querySelector("#cloze-input")?.focus();
+  });
+}
 function renderStudyTypes() {
   const available = visibleStudyCards();
   const subjects = [...new Set(studyTypes.map(card => card.subject))];
   const isRecall = studyTypeMode === "recall";
   const heading = titleBlock("개념을 떠올리고, 확인하고, 다시 복습하세요", "암기카드", "용어를 떠올리고 개념을 확인하세요. 헷갈린 카드는 다시 반복합니다.");
   const knownCount = available.filter(card => store.recallProgress?.[card.id]?.rating === "known").length;
-  const modeSwitch = `<div class="memory-mode-switch has-quick" role="tablist" aria-label="암기 학습 방식"><button role="tab" aria-selected="${studyTypeMode === "quick"}" class="${studyTypeMode === "quick" ? "selected" : ""}" data-study-mode="quick"><span>빠른 암기</span><small>10장씩 반복</small></button><button role="tab" aria-selected="${studyTypeMode === "concept"}" class="${studyTypeMode === "concept" ? "selected" : ""}" data-study-mode="concept"><span>개념 카드</span><small>${studyTypes.length}장</small></button><button role="tab" aria-selected="${isRecall}" class="${isRecall ? "selected" : ""}" data-study-mode="recall"><span>개념 퀴즈</span><small>${knownCount}장 기억</small></button><button role="tab" aria-selected="${studyTypeMode === "saved"}" class="${studyTypeMode === "saved" ? "selected" : ""}" data-study-mode="saved"><span>저장한 개념</span><small>${savedConceptCards().length}장</small></button></div>`;
+  const modeSwitch = `<div class="memory-mode-switch has-cloze" role="tablist" aria-label="암기 학습 방식"><button role="tab" aria-selected="${studyTypeMode === "quick"}" class="${studyTypeMode === "quick" ? "selected" : ""}" data-study-mode="quick"><span>빠른 암기</span><small>10장씩 반복</small></button><button role="tab" aria-selected="${studyTypeMode === "cloze"}" class="${studyTypeMode === "cloze" ? "selected" : ""}" data-study-mode="cloze"><span>빈칸 채우기</span><small>직접 쓰며 반복</small></button><button role="tab" aria-selected="${studyTypeMode === "concept"}" class="${studyTypeMode === "concept" ? "selected" : ""}" data-study-mode="concept"><span>개념 카드</span><small>${studyTypes.length}장</small></button><button role="tab" aria-selected="${isRecall}" class="${isRecall ? "selected" : ""}" data-study-mode="recall"><span>개념 퀴즈</span><small>${knownCount}장 기억</small></button><button role="tab" aria-selected="${studyTypeMode === "saved"}" class="${studyTypeMode === "saved" ? "selected" : ""}" data-study-mode="saved"><span>저장한 개념</span><small>${savedConceptCards().length}장</small></button></div>`;
+  if (studyTypeMode === "cloze") return `<div class="quick-memory-view">${modeSwitch}${renderCloze()}</div>`;
   if (studyTypeMode === "quick") return `<div class="quick-memory-view">${modeSwitch}${renderQuickMemory()}</div>`;
   if (studyTypeMode === "saved") return `${heading}${modeSwitch}${renderFlashcards(false)}`;
   const search = `<label class="concept-search">개념 검색<input type="search" id="study-search" value="${escapeHTML(studyTypeSearch)}" placeholder="개념·숫자·용어를 검색하세요"></label>`;
@@ -1270,6 +1323,7 @@ function renderStudyTypes() {
 }
 function bindStudyTypes() {
   bindQuickMemory();
+  bindCloze();
   document.querySelector("#study-search")?.addEventListener("input", event => {
     const position = event.target.selectionStart;
     studyTypeSearch = event.target.value; studyTypeIndex = 0; studyTypeFlipped = false;
@@ -1406,6 +1460,11 @@ async function loadBank() {
     if (payload.schema !== "realtor-concept-links" || payload.version !== 1 || !payload.questions) throw new Error("개념 연결표 형식이 올바르지 않습니다.");
     conceptLinkAudit = payload;
   } catch (error) { conceptLinkAudit = null; console.warn(error); }
+  try {
+    const response = await fetch("./data/essential-cloze.json");
+    if (!response.ok) throw new Error("빈칸 학습 자료를 찾을 수 없습니다.");
+    essentialCloze = (await response.json()).items || [];
+  } catch (error) { essentialCloze = []; console.warn(error); }
   conceptLinkCache.clear();
   if (quiz && !quiz.questions.every(id => bank.some(q => q.id === id))) { quiz = null; store.active = null; persist(); }
   render();

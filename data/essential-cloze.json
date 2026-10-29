@@ -1,0 +1,1237 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "cloze-001",
+      "subject": "부동산학개론",
+      "cardId": "econ-01",
+      "unitId": "econ-01:point-0",
+      "title": "복합개념·정착물·부동산업",
+      "text": "협의의 부동산 = 토지 + 정착물 / 광의의 부동산 = 협의의 부동산 + 준부동산.",
+      "answer": "정착물",
+      "aliases": []
+    },
+    {
+      "id": "cloze-002",
+      "subject": "부동산학개론",
+      "cardId": "econ-01",
+      "unitId": "econ-01:point-0",
+      "title": "복합개념·정착물·부동산업",
+      "text": "협의의 부동산 = 토지 + 정착물 / 광의의 부동산 = 협의의 부동산 + 준부동산.",
+      "answer": "준부동산",
+      "aliases": []
+    },
+    {
+      "id": "cloze-003",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-duyn1o",
+      "unitId": "core-intro-duyn1o:point-0",
+      "title": "레일리",
+      "text": "레일리: 유인력의 비 = 인구의 비 × (거리의 역비)² / 컨버스: A에서 분기점까지 거리 = 두 도시 거리 ÷ (1 + √(B 인구/A 인구)) / 허프: 각 점포의 면적 ÷ 거리^λ를 합계로 나눈 비율",
+      "answer": "레일리",
+      "aliases": []
+    },
+    {
+      "id": "cloze-004",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-duyn1o",
+      "unitId": "core-intro-duyn1o:point-0",
+      "title": "레일리",
+      "text": "레일리: 유인력의 비 = 인구의 비 × (거리의 역비)² / 컨버스: A에서 분기점까지 거리 = 두 도시 거리 ÷ (1 + √(B 인구/A 인구)) / 허프: 각 점포의 면적 ÷ 거리^λ를 합계로 나눈 비율",
+      "answer": "컨버스",
+      "aliases": []
+    },
+    {
+      "id": "cloze-005",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-duyn1o",
+      "unitId": "core-intro-duyn1o:point-0",
+      "title": "레일리",
+      "text": "레일리: 유인력의 비 = 인구의 비 × (거리의 역비)² / 컨버스: A에서 분기점까지 거리 = 두 도시 거리 ÷ (1 + √(B 인구/A 인구)) / 허프: 각 점포의 면적 ÷ 거리^λ를 합계로 나눈 비율",
+      "answer": "허프",
+      "aliases": []
+    },
+    {
+      "id": "cloze-006",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-s1mpt3",
+      "unitId": "core-intro-s1mpt3:point-0",
+      "title": "지대",
+      "text": "지대: 리카도 차액지대(한계지 지대 0) · 마르크스 절대지대(최열등지에도 지대) · 튀넨 위치지대(수송비) · 마셜 준지대 · 알론소 입찰지대 · 헤이그 마찰비용",
+      "answer": "리카도",
+      "aliases": []
+    },
+    {
+      "id": "cloze-007",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-s1mpt3",
+      "unitId": "core-intro-s1mpt3:point-0",
+      "title": "지대",
+      "text": "지대: 리카도 차액지대(한계지 지대 0) · 마르크스 절대지대(최열등지에도 지대) · 튀넨 위치지대(수송비) · 마셜 준지대 · 알론소 입찰지대 · 헤이그 마찰비용",
+      "answer": "마르크스",
+      "aliases": []
+    },
+    {
+      "id": "cloze-008",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-s1mpt3",
+      "unitId": "core-intro-s1mpt3:point-0",
+      "title": "지대",
+      "text": "지대: 리카도 차액지대(한계지 지대 0) · 마르크스 절대지대(최열등지에도 지대) · 튀넨 위치지대(수송비) · 마셜 준지대 · 알론소 입찰지대 · 헤이그 마찰비용",
+      "answer": "튀넨",
+      "aliases": []
+    },
+    {
+      "id": "cloze-009",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-s1mpt3",
+      "unitId": "core-intro-s1mpt3:point-0",
+      "title": "지대",
+      "text": "지대: 리카도 차액지대(한계지 지대 0) · 마르크스 절대지대(최열등지에도 지대) · 튀넨 위치지대(수송비) · 마셜 준지대 · 알론소 입찰지대 · 헤이그 마찰비용",
+      "answer": "마셜",
+      "aliases": []
+    },
+    {
+      "id": "cloze-010",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-s1mpt3",
+      "unitId": "core-intro-s1mpt3:point-0",
+      "title": "지대",
+      "text": "지대: 리카도 차액지대(한계지 지대 0) · 마르크스 절대지대(최열등지에도 지대) · 튀넨 위치지대(수송비) · 마셜 준지대 · 알론소 입찰지대 · 헤이그 마찰비용",
+      "answer": "알론소",
+      "aliases": []
+    },
+    {
+      "id": "cloze-011",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-s1mpt3",
+      "unitId": "core-intro-s1mpt3:point-0",
+      "title": "지대",
+      "text": "지대: 리카도 차액지대(한계지 지대 0) · 마르크스 절대지대(최열등지에도 지대) · 튀넨 위치지대(수송비) · 마셜 준지대 · 알론소 입찰지대 · 헤이그 마찰비용",
+      "answer": "헤이그",
+      "aliases": []
+    },
+    {
+      "id": "cloze-012",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-1bb05f4",
+      "unitId": "core-intro-1bb05f4:point-0",
+      "title": "입지",
+      "text": "입지: 베버 최소비용(원료지수 > 1이면 원료지향) · 뢰시 최대수요 · 크리스탈러 중심지(최소요구범위 < 재화의 도달범위면 성립) · 넬슨 소매입지",
+      "answer": "베버",
+      "aliases": []
+    },
+    {
+      "id": "cloze-013",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-1bb05f4",
+      "unitId": "core-intro-1bb05f4:point-0",
+      "title": "입지",
+      "text": "입지: 베버 최소비용(원료지수 > 1이면 원료지향) · 뢰시 최대수요 · 크리스탈러 중심지(최소요구범위 < 재화의 도달범위면 성립) · 넬슨 소매입지",
+      "answer": "뢰시",
+      "aliases": []
+    },
+    {
+      "id": "cloze-014",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-1kvj17a",
+      "unitId": "core-intro-1kvj17a:point-0",
+      "title": "도시구조",
+      "text": "도시구조: 버제스 동심원 · 호이트 선형 · 해리스·울만 다핵심",
+      "answer": "버제스",
+      "aliases": []
+    },
+    {
+      "id": "cloze-015",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-1kvj17a",
+      "unitId": "core-intro-1kvj17a:point-0",
+      "title": "도시구조",
+      "text": "도시구조: 버제스 동심원 · 호이트 선형 · 해리스·울만 다핵심",
+      "answer": "호이트",
+      "aliases": []
+    },
+    {
+      "id": "cloze-016",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-1kvj17a",
+      "unitId": "core-intro-1kvj17a:point-0",
+      "title": "도시구조",
+      "text": "도시구조: 버제스 동심원 · 호이트 선형 · 해리스·울만 다핵심",
+      "answer": "해리스·울만",
+      "aliases": [
+        "해리스와 울만",
+        "해리스 울만"
+      ]
+    },
+    {
+      "id": "cloze-017",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-1vcg6yt",
+      "unitId": "core-intro-1vcg6yt:point-0",
+      "title": "채택 기준",
+      "text": "채택 기준: NPV ≥ 0, IRR ≥ 요구수익률, 수익성지수 ≥ 1 / 재투자율 가정은 NPV가 요구수익률, IRR은 IRR / 가치가산원리는 NPV만 성립",
+      "answer": "요구수익률",
+      "aliases": []
+    },
+    {
+      "id": "cloze-018",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-fvznju",
+      "unitId": "core-intro-fvznju:point-0",
+      "title": "비율",
+      "text": "비율: 부채감당률 = NOI ÷ 부채서비스액 · LTV = 대출 ÷ 가치 · 채무불이행률 = (영업경비 + 부채서비스액) ÷ 유효총소득 · 순소득승수 = 총투자액 ÷ NOI · 지분배당률 = 세전현금흐름 ÷ 지분투자액",
+      "answer": "부채서비스액",
+      "aliases": []
+    },
+    {
+      "id": "cloze-019",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-eo3dn2",
+      "unitId": "core-intro-eo3dn2:point-0",
+      "title": "탄력성",
+      "text": "탄력성 = |수량 변화율 ÷ 가격 변화율| / 탄력적이면 가격을 내릴 때 총수입 증가 / 교차탄력성은 대체재 +, 보완재 −",
+      "answer": "증가",
+      "aliases": []
+    },
+    {
+      "id": "cloze-020",
+      "subject": "부동산학개론",
+      "cardId": "core-intro-kpx97u",
+      "unitId": "core-intro-kpx97u:point-0",
+      "title": "감정평가",
+      "text": "감정평가: 원가법 = 재조달원가 − 감가(정액법은 (재조달원가 − 잔존가치) ÷ 내용연수 × 경과연수) / 거래사례비교법 = 사례가격 × 사정보정 × 시점수정 × 지역요인 × 개별요인 × 면적 / 직접환원법 = NOI ÷ 환원율",
+      "answer": "환원율",
+      "aliases": []
+    },
+    {
+      "id": "cloze-021",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-18h2bw1",
+      "unitId": "core-civil-18h2bw1:compare-0",
+      "title": "주택임대차 vs 상가임대차 · 대항력",
+      "text": "주택임대차: 인도 + 전입신고 다음 날 0시",
+      "answer": "전입신고",
+      "aliases": []
+    },
+    {
+      "id": "cloze-022",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-18h2bw1",
+      "unitId": "core-civil-18h2bw1:compare-1",
+      "title": "주택임대차 vs 상가임대차 · 대항력",
+      "text": "상가임대차: 인도 + 사업자등록 신청 다음 날",
+      "answer": "사업자등록",
+      "aliases": []
+    },
+    {
+      "id": "cloze-023",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-1mhtutz",
+      "unitId": "core-civil-1mhtutz:compare-0",
+      "title": "주택임대차 vs 상가임대차 · 최단기간",
+      "text": "주택임대차: 2년(임차인은 더 짧게 주장 가능)",
+      "answer": "2년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-024",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-498908",
+      "unitId": "core-civil-498908:compare-0",
+      "title": "주택임대차 vs 상가임대차 · 갱신요구",
+      "text": "주택임대차: 만료 6개월~2개월 전, 1회, 2년",
+      "answer": "2개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-025",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-498908",
+      "unitId": "core-civil-498908:compare-1",
+      "title": "주택임대차 vs 상가임대차 · 갱신요구",
+      "text": "상가임대차: 만료 6개월~1개월 전, 전체 10년 이내",
+      "answer": "10년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-026",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-f9pzzl",
+      "unitId": "core-civil-f9pzzl:compare-0",
+      "title": "주택임대차 vs 상가임대차 · 해지",
+      "text": "주택임대차: 차임 2기 연체",
+      "answer": "2기",
+      "aliases": []
+    },
+    {
+      "id": "cloze-027",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-f9pzzl",
+      "unitId": "core-civil-f9pzzl:compare-1",
+      "title": "주택임대차 vs 상가임대차 · 해지",
+      "text": "상가임대차: 차임 3기 연체",
+      "answer": "3기",
+      "aliases": []
+    },
+    {
+      "id": "cloze-028",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-12bpvhq",
+      "unitId": "core-civil-12bpvhq:point-0",
+      "title": "불공정 법률행위(104조)",
+      "text": "불공정 법률행위(104조): 궁박은 본인, 경솔·무경험은 대리인 기준 / 무상행위와 경매에는 적용 안 함",
+      "answer": "본인",
+      "aliases": []
+    },
+    {
+      "id": "cloze-029",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-12bpvhq",
+      "unitId": "core-civil-12bpvhq:point-0",
+      "title": "불공정 법률행위(104조)",
+      "text": "불공정 법률행위(104조): 궁박은 본인, 경솔·무경험은 대리인 기준 / 무상행위와 경매에는 적용 안 함",
+      "answer": "대리인",
+      "aliases": []
+    },
+    {
+      "id": "cloze-030",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-j2uzl2",
+      "unitId": "core-civil-j2uzl2:point-0",
+      "title": "통정허위표시",
+      "text": "통정허위표시: 선의 제3자에게 대항 못 함, 제3자의 선의는 추정되고 과실은 따지지 않음",
+      "answer": "선의",
+      "aliases": []
+    },
+    {
+      "id": "cloze-031",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-zawqi3",
+      "unitId": "core-civil-zawqi3:point-0",
+      "title": "착오 취소",
+      "text": "착오 취소: 중요부분 착오 + 중과실 없음 / 상대방이 착오를 알고 이용했으면 중과실이 있어도 취소 가능 / 착오로 취소한 사람에게 불법행위 책임 없음",
+      "answer": "중과실",
+      "aliases": []
+    },
+    {
+      "id": "cloze-032",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-1hi8pn9",
+      "unitId": "core-civil-1hi8pn9:point-0",
+      "title": "제3자의 사기",
+      "text": "제3자의 사기: 상대방이 알았거나 알 수 있었을 때만 취소",
+      "answer": "알았거나 알 수 있었을 때",
+      "aliases": []
+    },
+    {
+      "id": "cloze-033",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-17dlhg4",
+      "unitId": "core-civil-17dlhg4:point-0",
+      "title": "총칙·물권·계약에서 자주 틀리는 것 · 복대리인은 본인의 대리인 / 임의대리인은 본",
+      "text": "복대리인은 본인의 대리인 / 임의대리인은 본인 승낙이나 부득이한 사유가 있어야 복대리인 선임 / 표현대리 125조(수여 표시 + 상대방 선의·무과실)·126조(권한 초과 + 정당한 이유)·129조(대리권 소멸 후 + 상대방 선의·무과실)",
+      "answer": "본인",
+      "aliases": []
+    },
+    {
+      "id": "cloze-034",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-17dlhg4",
+      "unitId": "core-civil-17dlhg4:point-0",
+      "title": "총칙·물권·계약에서 자주 틀리는 것 · 복대리인은 본인의 대리인 / 임의대리인은 본",
+      "text": "복대리인은 본인의 대리인 / 임의대리인은 본인 승낙이나 부득이한 사유가 있어야 복대리인 선임 / 표현대리 125조(수여 표시 + 상대방 선의·무과실)·126조(권한 초과 + 정당한 이유)·129조(대리권 소멸 후 + 상대방 선의·무과실)",
+      "answer": "부득이한 사유",
+      "aliases": []
+    },
+    {
+      "id": "cloze-035",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-14j0r26",
+      "unitId": "core-civil-14j0r26:point-0",
+      "title": "무권대리",
+      "text": "무권대리: 상대방이 최고했는데 기간 안에 확답이 없으면 추인 거절로 봄 / 철회권은 선의 상대방만",
+      "answer": "추인 거절",
+      "aliases": []
+    },
+    {
+      "id": "cloze-036",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-14j0r26",
+      "unitId": "core-civil-14j0r26:point-0",
+      "title": "무권대리",
+      "text": "무권대리: 상대방이 최고했는데 기간 안에 확답이 없으면 추인 거절로 봄 / 철회권은 선의 상대방만",
+      "answer": "선의",
+      "aliases": []
+    },
+    {
+      "id": "cloze-037",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-vt3vft",
+      "unitId": "core-civil-vt3vft:point-0",
+      "title": "총칙·물권·계약에서 자주 틀리는 것 · 취소권은 추인할 수 있는 날부터 3년, 행위",
+      "text": "취소권은 추인할 수 있는 날부터 3년, 행위한 날부터 10년 / 법정추인(추인할 수 있는 후, 이의를 보류하지 않은 경우): 이행, 취소권자의 이행청구, 경개, 담보 제공, 양도, 강제집행",
+      "answer": "3년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-038",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-vt3vft",
+      "unitId": "core-civil-vt3vft:point-0",
+      "title": "총칙·물권·계약에서 자주 틀리는 것 · 취소권은 추인할 수 있는 날부터 3년, 행위",
+      "text": "취소권은 추인할 수 있는 날부터 3년, 행위한 날부터 10년 / 법정추인(추인할 수 있는 후, 이의를 보류하지 않은 경우): 이행, 취소권자의 이행청구, 경개, 담보 제공, 양도, 강제집행",
+      "answer": "10년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-039",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-1afdpyr",
+      "unitId": "core-civil-1afdpyr:point-0",
+      "title": "가등기담보",
+      "text": "가등기담보: 변제기 후 청산금 평가액 통지 → 통지가 도달한 날부터 2개월 청산기간 → 청산기간이 지나면 본등기 청구 가능, 청산금 지급과 본등기·인도는 동시이행 / 청산금을 받기 전이면 채무자가 빚을 갚고 말소 청구 가능(변제기 후 10년이 지났거나 선의 제3자가 취득했으면 불가)",
+      "answer": "2개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-040",
+      "subject": "민법 및 민사특별법",
+      "cardId": "core-civil-1sw3s6s",
+      "unitId": "core-civil-1sw3s6s:point-0",
+      "title": "집합건물",
+      "text": "집합건물: 규약 3/4 · 공용부분 변경 2/3(권리변동이 있으면 4/5) · 재건축 결의 4/5(모두 구분소유자와 의결권 기준) / 대지사용권은 전유부분과 따로 처분 못 함(규약으로 달리 정하면 가능, 분리처분금지를 등기하지 않으면 선의 제3자에게 대항 못 함) / 구분소유자가 10인 이상이면 관리인 선임 의무",
+      "answer": "전유부분",
+      "aliases": []
+    },
+    {
+      "id": "cloze-041",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-72i158",
+      "unitId": "core-broker-72i158:compare-0",
+      "title": "핵심 숫자 · 보존기간",
+      "text": "숫자: 거래계약서 5년 · 확인설명서 3년 · 전속중개계약서 3년",
+      "answer": "5년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-042",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-72i158",
+      "unitId": "core-broker-72i158:compare-0",
+      "title": "핵심 숫자 · 보존기간",
+      "text": "숫자: 거래계약서 5년 · 확인설명서 3년 · 전속중개계약서 3년",
+      "answer": "3년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-043",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-72i158",
+      "unitId": "core-broker-72i158:compare-0",
+      "title": "핵심 숫자 · 보존기간",
+      "text": "숫자: 거래계약서 5년 · 확인설명서 3년 · 전속중개계약서 3년",
+      "answer": "3년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-044",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-18c90e6",
+      "unitId": "core-broker-18c90e6:compare-0",
+      "title": "핵심 숫자 · 전속중개",
+      "text": "숫자: 약정 없으면 3개월 · 7일 안에 정보공개 · 2주에 1회 이상 처리상황 통지",
+      "answer": "3개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-045",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-18c90e6",
+      "unitId": "core-broker-18c90e6:compare-0",
+      "title": "핵심 숫자 · 전속중개",
+      "text": "숫자: 약정 없으면 3개월 · 7일 안에 정보공개 · 2주에 1회 이상 처리상황 통지",
+      "answer": "7일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-046",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-18c90e6",
+      "unitId": "core-broker-18c90e6:compare-0",
+      "title": "핵심 숫자 · 전속중개",
+      "text": "숫자: 약정 없으면 3개월 · 7일 안에 정보공개 · 2주에 1회 이상 처리상황 통지",
+      "answer": "2주",
+      "aliases": []
+    },
+    {
+      "id": "cloze-047",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-manyp2",
+      "unitId": "core-broker-manyp2:compare-0",
+      "title": "핵심 숫자 · 신고기한",
+      "text": "숫자: 사무소 이전 10일 · 고용은 업무 시작 전, 고용 종료는 10일 · 인장은 업무 시작 전, 변경은 7일 · 3개월 넘는 휴업은 신고, 휴업은 최대 6개월(질병 요양·입영·취학·임신·출산 등은 예외)",
+      "answer": "10일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-048",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-manyp2",
+      "unitId": "core-broker-manyp2:compare-0",
+      "title": "핵심 숫자 · 신고기한",
+      "text": "숫자: 사무소 이전 10일 · 고용은 업무 시작 전, 고용 종료는 10일 · 인장은 업무 시작 전, 변경은 7일 · 3개월 넘는 휴업은 신고, 휴업은 최대 6개월(질병 요양·입영·취학·임신·출산 등은 예외)",
+      "answer": "7일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-049",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-manyp2",
+      "unitId": "core-broker-manyp2:compare-0",
+      "title": "핵심 숫자 · 신고기한",
+      "text": "숫자: 사무소 이전 10일 · 고용은 업무 시작 전, 고용 종료는 10일 · 인장은 업무 시작 전, 변경은 7일 · 3개월 넘는 휴업은 신고, 휴업은 최대 6개월(질병 요양·입영·취학·임신·출산 등은 예외)",
+      "answer": "6개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-050",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-wllo0m",
+      "unitId": "core-broker-wllo0m:compare-0",
+      "title": "핵심 숫자 · 업무보증",
+      "text": "숫자: 법인 4억 · 분사무소마다 2억 추가 · 개인 2억, 업무 시작 전 / 배상하면 15일 안에 다시 채움 / 공탁금은 폐업·사망 후 3년간 회수 불가",
+      "answer": "4억",
+      "aliases": [
+        "4억원",
+        "40000만원"
+      ]
+    },
+    {
+      "id": "cloze-051",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-wllo0m",
+      "unitId": "core-broker-wllo0m:compare-0",
+      "title": "핵심 숫자 · 업무보증",
+      "text": "숫자: 법인 4억 · 분사무소마다 2억 추가 · 개인 2억, 업무 시작 전 / 배상하면 15일 안에 다시 채움 / 공탁금은 폐업·사망 후 3년간 회수 불가",
+      "answer": "2억",
+      "aliases": [
+        "2억원",
+        "20000만원"
+      ]
+    },
+    {
+      "id": "cloze-052",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-wllo0m",
+      "unitId": "core-broker-wllo0m:compare-0",
+      "title": "핵심 숫자 · 업무보증",
+      "text": "숫자: 법인 4억 · 분사무소마다 2억 추가 · 개인 2억, 업무 시작 전 / 배상하면 15일 안에 다시 채움 / 공탁금은 폐업·사망 후 3년간 회수 불가",
+      "answer": "15일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-053",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-wllo0m",
+      "unitId": "core-broker-wllo0m:compare-0",
+      "title": "핵심 숫자 · 업무보증",
+      "text": "숫자: 법인 4억 · 분사무소마다 2억 추가 · 개인 2억, 업무 시작 전 / 배상하면 15일 안에 다시 채움 / 공탁금은 폐업·사망 후 3년간 회수 불가",
+      "answer": "3년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-054",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-19atqx4",
+      "unitId": "core-broker-19atqx4:compare-0",
+      "title": "핵심 숫자 · 중개보조원",
+      "text": "숫자: 개업공인중개사+소속공인중개사 수의 5배까지 · 현장에서 신분을 안 밝히면 과태료 500만원 이하",
+      "answer": "5배",
+      "aliases": []
+    },
+    {
+      "id": "cloze-055",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-1skevdr",
+      "unitId": "core-broker-1skevdr:compare-0",
+      "title": "핵심 숫자 · 공제",
+      "text": "숫자: 책임준비금은 공제료 수입액의 10% 이상",
+      "answer": "10%",
+      "aliases": []
+    },
+    {
+      "id": "cloze-056",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-sgyckr",
+      "unitId": "core-broker-sgyckr:point-0",
+      "title": "중개보수 (주택) · 월세는 보증금 + 월차임×100으로 환산하고",
+      "text": "월세는 보증금 + 월차임×100으로 환산하고, 그 값이 5천만 미만이면 ×70으로 다시 계산",
+      "answer": "100",
+      "aliases": []
+    },
+    {
+      "id": "cloze-057",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-sgyckr",
+      "unitId": "core-broker-sgyckr:point-0",
+      "title": "중개보수 (주택) · 월세는 보증금 + 월차임×100으로 환산하고",
+      "text": "월세는 보증금 + 월차임×100으로 환산하고, 그 값이 5천만 미만이면 ×70으로 다시 계산",
+      "answer": "70",
+      "aliases": []
+    },
+    {
+      "id": "cloze-058",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-1o4annu",
+      "unitId": "core-broker-1o4annu:point-0",
+      "title": "주거용 오피스텔(85㎡ 이하 + 부엌·화장실·목욕시설)",
+      "text": "주거용 오피스텔(85㎡ 이하 + 부엌·화장실·목욕시설): 매매 0.5%, 임대 0.4% / 주택·주거용 오피스텔 외 중개대상물(토지·상가 등)은 0.9% 이내에서 협의 / 지급시기는 약정대로, 약정이 없으면 잔금 지급이 끝난 날",
+      "answer": "잔금 지급이 끝난 날",
+      "aliases": []
+    },
+    {
+      "id": "cloze-059",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-1czq5d9",
+      "unitId": "core-broker-1czq5d9:point-0",
+      "title": "거래신고",
+      "text": "거래신고: 계약일부터 30일, 공동신고(상대가 거부하면 단독) / 중개했으면 개업공인중개사가 신고 / 국가 등은 단독 / 해제신고도 30일",
+      "answer": "30일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-060",
+      "subject": "공인중개사법령 및 중개실무",
+      "cardId": "core-broker-5baew8",
+      "unitId": "core-broker-5baew8:point-0",
+      "title": "주택임대차 신고",
+      "text": "주택임대차 신고: 보증금 6천만 초과 또는 월세 30만 초과, 30일 안에 / 금액 변동 없이 기간만 연장하면 신고 안 함 / 신고는 당사자가 함(중개사 의무 아님)",
+      "answer": "6천만",
+      "aliases": [
+        "6천만원",
+        "6000만원",
+        "6000만"
+      ]
+    },
+    {
+      "id": "cloze-061",
+      "subject": "부동산공법",
+      "cardId": "core-public-19loc1c",
+      "unitId": "core-public-19loc1c:point-0",
+      "title": "광역계획권 지정 2명만!",
+      "text": "광역계획권 지정 2명만!: 국토부장관 · 도지사 / 같은 도 안이면 도지사, 둘 이상 시·도에 걸치면 국토부장관",
+      "answer": "도지사",
+      "aliases": []
+    },
+    {
+      "id": "cloze-062",
+      "subject": "부동산공법",
+      "cardId": "core-public-9j53li",
+      "unitId": "core-public-9j53li:point-0",
+      "title": "공동수립(해야 한다)",
+      "text": "공동수립(해야 한다): 같은 도 안이면 시장·군수가 함께 / 둘 이상 시·도에 걸치면 시·도지사가 함께",
+      "answer": "시장·군수",
+      "aliases": []
+    },
+    {
+      "id": "cloze-063",
+      "subject": "부동산공법",
+      "cardId": "core-public-qt3br3",
+      "unitId": "core-public-qt3br3:point-0",
+      "title": "3년이 지나도 승인 신청이 없으면 단독수립(해야 한다)",
+      "text": "3년이 지나도 승인 신청이 없으면 단독수립(해야 한다): 시장·군수가 안 하면 도지사 / 시·도지사가 안 하면 국토부장관",
+      "answer": "국토부장관",
+      "aliases": [
+        "국토교통부장관"
+      ]
+    },
+    {
+      "id": "cloze-064",
+      "subject": "부동산공법",
+      "cardId": "core-public-1obt1vq",
+      "unitId": "core-public-1obt1vq:point-0",
+      "title": "테마02 도시·군기본계획 · 20년 단위로 세우고 5년마다 타당성 검토",
+      "text": "20년 단위로 세우고 5년마다 타당성 검토 있음",
+      "answer": "20년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-065",
+      "subject": "부동산공법",
+      "cardId": "core-public-1obt1vq",
+      "unitId": "core-public-1obt1vq:point-0",
+      "title": "테마02 도시·군기본계획 · 20년 단위로 세우고 5년마다 타당성 검토",
+      "text": "20년 단위로 세우고 5년마다 타당성 검토 있음",
+      "answer": "5년",
+      "aliases": []
+    },
+    {
+      "id": "cloze-066",
+      "subject": "부동산공법",
+      "cardId": "core-public-hgpyqa",
+      "unitId": "core-public-hgpyqa:point-0",
+      "title": "테마03 도시·군관리계획 · 5년마다 타당성 검토 있음 / 효력은 지형도",
+      "text": "5년마다 타당성 검토 있음 / 효력은 지형도면을 고시한 날부터",
+      "answer": "지형도면",
+      "aliases": []
+    },
+    {
+      "id": "cloze-067",
+      "subject": "부동산공법",
+      "cardId": "core-public-17wb0",
+      "unitId": "core-public-17wb0:point-0",
+      "title": "테마03 도시·군관리계획 · 제안 결과는 45일 안에 통보(1회 30일",
+      "text": "제안 결과는 45일 안에 통보(1회 30일 연장)",
+      "answer": "45일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-068",
+      "subject": "부동산공법",
+      "cardId": "core-public-17wb0",
+      "unitId": "core-public-17wb0:point-0",
+      "title": "테마03 도시·군관리계획 · 제안 결과는 45일 안에 통보(1회 30일",
+      "text": "제안 결과는 45일 안에 통보(1회 30일 연장)",
+      "answer": "30일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-069",
+      "subject": "부동산공법",
+      "cardId": "core-public-5pr30y",
+      "unitId": "core-public-5pr30y:point-0",
+      "title": "종류 도관농자",
+      "text": "종류 도관농자: 도시지역·관리지역·농림지역·자연환경보전지역",
+      "answer": "자연환경보전지역",
+      "aliases": []
+    },
+    {
+      "id": "cloze-070",
+      "subject": "부동산공법",
+      "cardId": "core-public-1kss7cj",
+      "unitId": "core-public-1kss7cj:point-0",
+      "title": "도시지역 세분 주상공녹",
+      "text": "도시지역 세분 주상공녹: 주거지역·상업지역·공업지역·녹지지역",
+      "answer": "녹지지역",
+      "aliases": []
+    },
+    {
+      "id": "cloze-071",
+      "subject": "부동산공법",
+      "cardId": "core-public-1bg2qza",
+      "unitId": "core-public-1bg2qza:point-0",
+      "title": "조합 면총",
+      "text": "조합 면총: 토지소유자 7명 이상이 정관 작성 → 지정권자 인가 / 설립 동의는 면적 2/3 + 총수 1/2 / 조합원은 토지소유자 전원(동의 여부와 무관) / 조합장·이사 자신과 조합의 계약·소송은 감사가 조합을 대표",
+      "answer": "토지소유자",
+      "aliases": []
+    },
+    {
+      "id": "cloze-072",
+      "subject": "부동산공법",
+      "cardId": "core-public-ulwr5z",
+      "unitId": "core-public-ulwr5z:point-0",
+      "title": "환지처분",
+      "text": "환지처분: 준공검사 후 60일 안에 / 공고일의 다음 날부터 환지를 종전 토지로 봄 / 환지를 정하지 않은 종전 토지의 권리는 공고일이 끝날 때 소멸 / 체비지는 시행자, 보류지는 환지계획에서 정한 자가 공고 다음 날 취득",
+      "answer": "다음 날",
+      "aliases": []
+    },
+    {
+      "id": "cloze-073",
+      "subject": "부동산공법",
+      "cardId": "core-public-s2spme",
+      "unitId": "core-public-s2spme:point-0",
+      "title": "재건축사업",
+      "text": "재건축사업: 공동주택 밀집 / 정비기반시설 양호",
+      "answer": "양호",
+      "aliases": []
+    },
+    {
+      "id": "cloze-074",
+      "subject": "부동산공법",
+      "cardId": "core-public-1m9hu88",
+      "unitId": "core-public-1m9hu88:point-0",
+      "title": "조합원",
+      "text": "조합원: 재개발은 토지등소유자 전원, 재건축은 동의한 사람만",
+      "answer": "동의한 사람만",
+      "aliases": []
+    },
+    {
+      "id": "cloze-075",
+      "subject": "부동산공법",
+      "cardId": "core-public-10u4b6b",
+      "unitId": "core-public-10u4b6b:point-0",
+      "title": "주요구조부 내 기준에는 바보지",
+      "text": "주요구조부 내 기준에는 바보지: 내력벽·기둥·주계단·바닥·보·지붕틀",
+      "answer": "지붕틀",
+      "aliases": []
+    },
+    {
+      "id": "cloze-076",
+      "subject": "부동산공법",
+      "cardId": "core-public-12f85xf",
+      "unitId": "core-public-12f85xf:point-0",
+      "title": "시설군 자산전문영교근주기",
+      "text": "시설군 자산전문영교근주기: 위쪽이 상위군 / 상위군으로 바꾸면 허가, 하위군으로 바꾸면 신고, 같은 군 안에서는 건축물대장 기재변경",
+      "answer": "허가",
+      "aliases": []
+    },
+    {
+      "id": "cloze-077",
+      "subject": "부동산공법",
+      "cardId": "core-public-13bbqvn",
+      "unitId": "core-public-13bbqvn:point-0",
+      "title": "국민주택",
+      "text": "국민주택: 국가·지자체·LH·지방공사가 짓거나, 국가·지자체 재정 또는 주택도시기금 지원으로 짓는 85㎡ 이하 주택 / 수도권 밖 도시지역이 아닌 읍·면은 100㎡ / 민영주택은 국민주택을 뺀 주택",
+      "answer": "85㎡",
+      "aliases": [
+        "85제곱미터"
+      ]
+    },
+    {
+      "id": "cloze-078",
+      "subject": "부동산공법",
+      "cardId": "core-public-r66zwa",
+      "unitId": "core-public-r66zwa:point-0",
+      "title": "준주택 오노기다",
+      "text": "준주택 오노기다: 오피스텔·노인복지주택·기숙사·다중생활시설 / 도시형 생활주택: 도시지역의 300세대 미만",
+      "answer": "기숙사",
+      "aliases": []
+    },
+    {
+      "id": "cloze-079",
+      "subject": "부동산공법",
+      "cardId": "core-public-4fcke8",
+      "unitId": "core-public-4fcke8:point-0",
+      "title": "소유 상한",
+      "text": "소유 상한: 상속받은 비농업인, 8년 이상 농사짓다 떠난 사람은 1만㎡ / 주말·체험영농은 세대 합계 1천㎡ 미만",
+      "answer": "1만㎡",
+      "aliases": [
+        "10000㎡"
+      ]
+    },
+    {
+      "id": "cloze-080",
+      "subject": "부동산공법",
+      "cardId": "core-public-1kjqgdf",
+      "unitId": "core-public-1kjqgdf:point-0",
+      "title": "농지취득자격증명",
+      "text": "농지취득자격증명: 7일(계획서 면제 시 4일, 농지위원회 심의 시 14일) / 필요 없는 경우: 상속·시효취득·수용·담보농지·공유농지 분할",
+      "answer": "상속",
+      "aliases": []
+    },
+    {
+      "id": "cloze-081",
+      "subject": "공시법",
+      "cardId": "core-registry-11k9up0",
+      "unitId": "core-registry-11k9up0:point-0",
+      "title": "지목 부호는 첫 글자. 예외 4개는 장차천원",
+      "text": "지목 부호는 첫 글자. 예외 4개는 장차천원: 공장용지(장)·주차장(차)·하천(천)·유원지(원)",
+      "answer": "공장용지",
+      "aliases": []
+    },
+    {
+      "id": "cloze-082",
+      "subject": "공시법",
+      "cardId": "core-registry-11k9up0",
+      "unitId": "core-registry-11k9up0:point-0",
+      "title": "지목 부호는 첫 글자. 예외 4개는 장차천원",
+      "text": "지목 부호는 첫 글자. 예외 4개는 장차천원: 공장용지(장)·주차장(차)·하천(천)·유원지(원)",
+      "answer": "주차장",
+      "aliases": []
+    },
+    {
+      "id": "cloze-083",
+      "subject": "공시법",
+      "cardId": "core-registry-1xkobpg",
+      "unitId": "core-registry-1xkobpg:point-0",
+      "title": "지목 함정",
+      "text": "지목 함정: 과수원·목장 안 주거용 건물 부지는 대 / 묘지 관리용 건물 부지는 대 / 연·왕골 재배지는 답 / 온수·약수·석유가 솟는 곳은 광천지(운송관·저장시설 부지는 제외) / 인공 수로와 자연 유수가 있는 소규모 수로는 구거, 그 밖의 자연 물길은 하천 / 저수지·연못은 유지 / 갈대밭·실외 적치장·변전소·도축장·쓰레기처리장은 잡종지 / 골프장·스키장·승마장은 체육용지 / 경마장·동물원·낚시터·야영장은 유원지",
+      "answer": "답",
+      "aliases": []
+    },
+    {
+      "id": "cloze-084",
+      "subject": "공시법",
+      "cardId": "core-registry-1xkobpg",
+      "unitId": "core-registry-1xkobpg:point-0",
+      "title": "지목 함정",
+      "text": "지목 함정: 과수원·목장 안 주거용 건물 부지는 대 / 묘지 관리용 건물 부지는 대 / 연·왕골 재배지는 답 / 온수·약수·석유가 솟는 곳은 광천지(운송관·저장시설 부지는 제외) / 인공 수로와 자연 유수가 있는 소규모 수로는 구거, 그 밖의 자연 물길은 하천 / 저수지·연못은 유지 / 갈대밭·실외 적치장·변전소·도축장·쓰레기처리장은 잡종지 / 골프장·스키장·승마장은 체육용지 / 경마장·동물원·낚시터·야영장은 유원지",
+      "answer": "유지",
+      "aliases": []
+    },
+    {
+      "id": "cloze-085",
+      "subject": "공시법",
+      "cardId": "core-registry-1xkobpg",
+      "unitId": "core-registry-1xkobpg:point-0",
+      "title": "지목 함정",
+      "text": "지목 함정: 과수원·목장 안 주거용 건물 부지는 대 / 묘지 관리용 건물 부지는 대 / 연·왕골 재배지는 답 / 온수·약수·석유가 솟는 곳은 광천지(운송관·저장시설 부지는 제외) / 인공 수로와 자연 유수가 있는 소규모 수로는 구거, 그 밖의 자연 물길은 하천 / 저수지·연못은 유지 / 갈대밭·실외 적치장·변전소·도축장·쓰레기처리장은 잡종지 / 골프장·스키장·승마장은 체육용지 / 경마장·동물원·낚시터·야영장은 유원지",
+      "answer": "체육용지",
+      "aliases": []
+    },
+    {
+      "id": "cloze-086",
+      "subject": "공시법",
+      "cardId": "core-registry-1xkobpg",
+      "unitId": "core-registry-1xkobpg:point-0",
+      "title": "지목 함정",
+      "text": "지목 함정: 과수원·목장 안 주거용 건물 부지는 대 / 묘지 관리용 건물 부지는 대 / 연·왕골 재배지는 답 / 온수·약수·석유가 솟는 곳은 광천지(운송관·저장시설 부지는 제외) / 인공 수로와 자연 유수가 있는 소규모 수로는 구거, 그 밖의 자연 물길은 하천 / 저수지·연못은 유지 / 갈대밭·실외 적치장·변전소·도축장·쓰레기처리장은 잡종지 / 골프장·스키장·승마장은 체육용지 / 경마장·동물원·낚시터·야영장은 유원지",
+      "answer": "유원지",
+      "aliases": []
+    },
+    {
+      "id": "cloze-087",
+      "subject": "공시법",
+      "cardId": "core-registry-1jirp75",
+      "unitId": "core-registry-1jirp75:point-0",
+      "title": "등록사항",
+      "text": "등록사항: 면적·토지등급·개별공시지가는 대장에만 / 경계는 도면에만 / 좌표는 경계점좌표등록부에만 / 소유자는 대장·공유지연명부·대지권등록부에 있고 도면에는 없음 / 대지권 비율은 대지권등록부 / 고유번호는 도면에 없음",
+      "answer": "대지권등록부",
+      "aliases": []
+    },
+    {
+      "id": "cloze-088",
+      "subject": "공시법",
+      "cardId": "core-registry-1jirp75",
+      "unitId": "core-registry-1jirp75:point-0",
+      "title": "등록사항",
+      "text": "등록사항: 면적·토지등급·개별공시지가는 대장에만 / 경계는 도면에만 / 좌표는 경계점좌표등록부에만 / 소유자는 대장·공유지연명부·대지권등록부에 있고 도면에는 없음 / 대지권 비율은 대지권등록부 / 고유번호는 도면에 없음",
+      "answer": "경계점좌표등록부",
+      "aliases": []
+    },
+    {
+      "id": "cloze-089",
+      "subject": "공시법",
+      "cardId": "core-registry-114ii4c",
+      "unitId": "core-registry-114ii4c:point-0",
+      "title": "축척",
+      "text": "축척: 지적도 7종(1/500·600·1000·1200·2400·3000·6000), 임야도 2종(1/3000·6000)",
+      "answer": "7종",
+      "aliases": []
+    },
+    {
+      "id": "cloze-090",
+      "subject": "공시법",
+      "cardId": "core-registry-114ii4c",
+      "unitId": "core-registry-114ii4c:point-0",
+      "title": "축척",
+      "text": "축척: 지적도 7종(1/500·600·1000·1200·2400·3000·6000), 임야도 2종(1/3000·6000)",
+      "answer": "2종",
+      "aliases": []
+    },
+    {
+      "id": "cloze-091",
+      "subject": "공시법",
+      "cardId": "core-registry-1djjfjo",
+      "unitId": "core-registry-1djjfjo:point-0",
+      "title": "신청기한 60일",
+      "text": "신청기한 60일: 신규등록·등록전환·지목변경 / 분할은 1필지 일부의 용도가 바뀐 경우만, 합병은 공동주택 부지·도로·제방·하천·구거·유지 등 합병해야 할 토지만 60일(그 밖의 분할·합병은 기한 없음) / 바다로 된 토지의 말소는 통지받은 날부터 90일",
+      "answer": "90일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-092",
+      "subject": "공시법",
+      "cardId": "core-registry-znc7gq",
+      "unitId": "core-registry-znc7gq:point-0",
+      "title": "축척변경",
+      "text": "축척변경: 소유자 2/3 동의 → 축척변경위원회(5~10명, 절반 이상이 소유자, 소유자가 5명 이하면 전원) → 시·도지사 또는 대도시 시장 승인 → 시행공고 20일 이상 → 청산금 납부·지급은 6개월 안에 / 이의신청 1개월",
+      "answer": "2/3",
+      "aliases": []
+    },
+    {
+      "id": "cloze-093",
+      "subject": "공시법",
+      "cardId": "core-registry-1rl1g79",
+      "unitId": "core-registry-1rl1g79:point-0",
+      "title": "지적측량",
+      "text": "지적측량: 측량 5일 + 검사 4일 / 지적기준점을 설치하면 측량·검사기간에 각각 더함: 15점 이하면 4일, 넘으면 4일 + 15점 초과분 4점마다 1일 / 기간을 합의하면 3/4은 측량, 1/4은 검사",
+      "answer": "5일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-094",
+      "subject": "공시법",
+      "cardId": "core-registry-1rl1g79",
+      "unitId": "core-registry-1rl1g79:point-0",
+      "title": "지적측량",
+      "text": "지적측량: 측량 5일 + 검사 4일 / 지적기준점을 설치하면 측량·검사기간에 각각 더함: 15점 이하면 4일, 넘으면 4일 + 15점 초과분 4점마다 1일 / 기간을 합의하면 3/4은 측량, 1/4은 검사",
+      "answer": "4일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-095",
+      "subject": "공시법",
+      "cardId": "core-registry-13mwfun",
+      "unitId": "core-registry-13mwfun:point-0",
+      "title": "등기 · 효력은 등기를 마치면 접수한 때로 거슬러 발",
+      "text": "효력은 등기를 마치면 접수한 때로 거슬러 발생 / 순위는 같은 구 안에서 순위번호, 다른 구끼리는 접수번호 / 부기등기의 순위는 주등기를 따름",
+      "answer": "순위번호",
+      "aliases": []
+    },
+    {
+      "id": "cloze-096",
+      "subject": "공시법",
+      "cardId": "core-registry-13mwfun",
+      "unitId": "core-registry-13mwfun:point-0",
+      "title": "등기 · 효력은 등기를 마치면 접수한 때로 거슬러 발",
+      "text": "효력은 등기를 마치면 접수한 때로 거슬러 발생 / 순위는 같은 구 안에서 순위번호, 다른 구끼리는 접수번호 / 부기등기의 순위는 주등기를 따름",
+      "answer": "접수번호",
+      "aliases": []
+    },
+    {
+      "id": "cloze-097",
+      "subject": "공시법",
+      "cardId": "core-registry-13mwfun",
+      "unitId": "core-registry-13mwfun:point-0",
+      "title": "등기 · 효력은 등기를 마치면 접수한 때로 거슬러 발",
+      "text": "효력은 등기를 마치면 접수한 때로 거슬러 발생 / 순위는 같은 구 안에서 순위번호, 다른 구끼리는 접수번호 / 부기등기의 순위는 주등기를 따름",
+      "answer": "주등기",
+      "aliases": []
+    },
+    {
+      "id": "cloze-098",
+      "subject": "공시법",
+      "cardId": "core-registry-x1lqc9",
+      "unitId": "core-registry-x1lqc9:point-0",
+      "title": "단독신청",
+      "text": "단독신청: 보존 · 상속·합병 · 판결(승소한 권리자·의무자, 공유물분할판결은 승패와 관계없이) · 부동산 표시변경 · 명의인 표시변경 · 수용 · 신탁(수탁자) · 가등기(의무자 승낙이나 가처분명령이 있을 때). 유증은 공동신청",
+      "answer": "공동신청",
+      "aliases": []
+    },
+    {
+      "id": "cloze-099",
+      "subject": "공시법",
+      "cardId": "core-registry-7ez3qi",
+      "unitId": "core-registry-7ez3qi:point-0",
+      "title": "이의신청",
+      "text": "이의신청: 관할 지방법원에 하되 신청서는 등기소에 제출 / 기간 제한 없음 / 집행정지 효력 없음 / 새로운 사실·증거는 못 냄",
+      "answer": "등기소",
+      "aliases": []
+    },
+    {
+      "id": "cloze-100",
+      "subject": "공시법",
+      "cardId": "core-registry-1t3mu0m",
+      "unitId": "core-registry-1t3mu0m:point-0",
+      "title": "가등기",
+      "text": "가등기: 본등기 순위는 가등기 순위를 따르고 물권변동은 본등기 때 / 물권적 청구권이나 보존등기는 가등기 못 함",
+      "answer": "본등기",
+      "aliases": []
+    },
+    {
+      "id": "cloze-101",
+      "subject": "세법",
+      "cardId": "core-tax-g9ryka",
+      "unitId": "core-tax-g9ryka:point-0",
+      "title": "성립·확정·가산세 · 성립",
+      "text": "성립: 취득세는 취득할 때 / 등록면허세는 등기할 때 / 재산세·종부세는 6월 1일 / 양도세는 과세기간이 끝날 때(예정신고분은 양도한 달 말일) / 지방교육세·농특세는 본세가 성립할 때",
+      "answer": "6월 1일",
+      "aliases": [
+        "6.1",
+        "6/1"
+      ]
+    },
+    {
+      "id": "cloze-102",
+      "subject": "세법",
+      "cardId": "core-tax-jd4noy",
+      "unitId": "core-tax-jd4noy:point-0",
+      "title": "성립·확정·가산세 · 확정",
+      "text": "확정: 취득세·등록면허세·양도세는 신고로 / 재산세는 부과로 / 종부세는 고지가 원칙이고 신고도 선택 가능",
+      "answer": "부과",
+      "aliases": []
+    },
+    {
+      "id": "cloze-103",
+      "subject": "세법",
+      "cardId": "core-tax-jd4noy",
+      "unitId": "core-tax-jd4noy:point-0",
+      "title": "성립·확정·가산세 · 확정",
+      "text": "확정: 취득세·등록면허세·양도세는 신고로 / 재산세는 부과로 / 종부세는 고지가 원칙이고 신고도 선택 가능",
+      "answer": "고지",
+      "aliases": []
+    },
+    {
+      "id": "cloze-104",
+      "subject": "세법",
+      "cardId": "core-tax-1ae9bja",
+      "unitId": "core-tax-1ae9bja:compare-2",
+      "title": "신고·납부·분납·물납 · 기준·신고",
+      "text": "양도세: 예정: 양도한 달 말일부터 2개월(부담부증여 3개월) / 확정: 다음 해 5월",
+      "answer": "2개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-105",
+      "subject": "세법",
+      "cardId": "core-tax-1ae9bja",
+      "unitId": "core-tax-1ae9bja:compare-2",
+      "title": "신고·납부·분납·물납 · 기준·신고",
+      "text": "양도세: 예정: 양도한 달 말일부터 2개월(부담부증여 3개월) / 확정: 다음 해 5월",
+      "answer": "5월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-106",
+      "subject": "세법",
+      "cardId": "core-tax-6o7dvt",
+      "unitId": "core-tax-6o7dvt:compare-0",
+      "title": "신고·납부·분납·물납 · 납기",
+      "text": "재산세: 건축물 7월 · 토지 9월 · 주택은 절반씩 7월·9월(20만원 이하면 7월에 한 번에)",
+      "answer": "7월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-107",
+      "subject": "세법",
+      "cardId": "core-tax-6o7dvt",
+      "unitId": "core-tax-6o7dvt:compare-0",
+      "title": "신고·납부·분납·물납 · 납기",
+      "text": "재산세: 건축물 7월 · 토지 9월 · 주택은 절반씩 7월·9월(20만원 이하면 7월에 한 번에)",
+      "answer": "9월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-108",
+      "subject": "세법",
+      "cardId": "core-tax-anhsd1",
+      "unitId": "core-tax-anhsd1:compare-0",
+      "title": "신고·납부·분납·물납 · 분납",
+      "text": "재산세: 250만 초과, 3개월",
+      "answer": "3개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-109",
+      "subject": "세법",
+      "cardId": "core-tax-anhsd1",
+      "unitId": "core-tax-anhsd1:compare-1",
+      "title": "신고·납부·분납·물납 · 분납",
+      "text": "종부세: 250만 초과, 6개월",
+      "answer": "6개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-110",
+      "subject": "세법",
+      "cardId": "core-tax-anhsd1",
+      "unitId": "core-tax-anhsd1:compare-2",
+      "title": "신고·납부·분납·물납 · 분납",
+      "text": "양도세: 1천만 초과, 2개월",
+      "answer": "2개월",
+      "aliases": []
+    },
+    {
+      "id": "cloze-111",
+      "subject": "세법",
+      "cardId": "core-tax-efknm2",
+      "unitId": "core-tax-efknm2:compare-0",
+      "title": "신고·납부·분납·물납 · 물납",
+      "text": "재산세: 1천만 초과, 관할 구역 안 부동산",
+      "answer": "1천만",
+      "aliases": [
+        "1천만원",
+        "1000만원",
+        "1000만"
+      ]
+    },
+    {
+      "id": "cloze-112",
+      "subject": "세법",
+      "cardId": "core-tax-1okv9w3",
+      "unitId": "core-tax-1okv9w3:point-0",
+      "title": "취득세 · 신고",
+      "text": "신고: 취득일부터 60일 · 증여(부담부증여 포함)는 취득한 달 말일부터 3개월 · 상속은 개시한 달 말일부터 6개월(외국에 주소가 있으면 9개월)",
+      "answer": "60일",
+      "aliases": []
+    },
+    {
+      "id": "cloze-113",
+      "subject": "세법",
+      "cardId": "core-tax-xva1uo",
+      "unitId": "core-tax-xva1uo:point-0",
+      "title": "취득세 · 세율",
+      "text": "세율: 상속 농지 2.3%, 그 밖 상속 2.8% / 증여 3.5%(비영리 2.8%) / 원시취득 2.8% / 공유물·합유물 분할 2.3% / 유상 농지 3%, 그 밖 유상 4% / 유상 주택 1~3%(6억 이하 1%, 9억 초과 3%)",
+      "answer": "2.3%",
+      "aliases": []
+    },
+    {
+      "id": "cloze-114",
+      "subject": "세법",
+      "cardId": "core-tax-xva1uo",
+      "unitId": "core-tax-xva1uo:point-0",
+      "title": "취득세 · 세율",
+      "text": "세율: 상속 농지 2.3%, 그 밖 상속 2.8% / 증여 3.5%(비영리 2.8%) / 원시취득 2.8% / 공유물·합유물 분할 2.3% / 유상 농지 3%, 그 밖 유상 4% / 유상 주택 1~3%(6억 이하 1%, 9억 초과 3%)",
+      "answer": "3%",
+      "aliases": []
+    },
+    {
+      "id": "cloze-115",
+      "subject": "세법",
+      "cardId": "core-tax-xva1uo",
+      "unitId": "core-tax-xva1uo:point-0",
+      "title": "취득세 · 세율",
+      "text": "세율: 상속 농지 2.3%, 그 밖 상속 2.8% / 증여 3.5%(비영리 2.8%) / 원시취득 2.8% / 공유물·합유물 분할 2.3% / 유상 농지 3%, 그 밖 유상 4% / 유상 주택 1~3%(6억 이하 1%, 9억 초과 3%)",
+      "answer": "4%",
+      "aliases": []
+    },
+    {
+      "id": "cloze-116",
+      "subject": "세법",
+      "cardId": "core-tax-6pec0m",
+      "unitId": "core-tax-6pec0m:point-0",
+      "title": "재산세 · 세율",
+      "text": "세율: 주택 0.1·0.15·0.25·0.4%(시가표준액 9억 이하 1세대1주택은 특례 0.05·0.1·0.2·0.35%) / 분리과세 토지는 전·답·과수원·목장·임야 0.07%, 공장용지 등 0.2%, 골프장·고급오락장 4% / 종합합산 0.2~0.5% · 별도합산 0.2~0.4% / 건축물 0.25%, 시 지역 주거지역 등의 공장 0.5%, 골프장·고급오락장 4%",
+      "answer": "0.25%",
+      "aliases": [
+        "2.5‰"
+      ]
+    },
+    {
+      "id": "cloze-117",
+      "subject": "세법",
+      "cardId": "core-tax-6pec0m",
+      "unitId": "core-tax-6pec0m:point-0",
+      "title": "재산세 · 세율",
+      "text": "세율: 주택 0.1·0.15·0.25·0.4%(시가표준액 9억 이하 1세대1주택은 특례 0.05·0.1·0.2·0.35%) / 분리과세 토지는 전·답·과수원·목장·임야 0.07%, 공장용지 등 0.2%, 골프장·고급오락장 4% / 종합합산 0.2~0.5% · 별도합산 0.2~0.4% / 건축물 0.25%, 시 지역 주거지역 등의 공장 0.5%, 골프장·고급오락장 4%",
+      "answer": "0.07%",
+      "aliases": [
+        "0.7‰"
+      ]
+    },
+    {
+      "id": "cloze-118",
+      "subject": "세법",
+      "cardId": "core-tax-6pec0m",
+      "unitId": "core-tax-6pec0m:point-0",
+      "title": "재산세 · 세율",
+      "text": "세율: 주택 0.1·0.15·0.25·0.4%(시가표준액 9억 이하 1세대1주택은 특례 0.05·0.1·0.2·0.35%) / 분리과세 토지는 전·답·과수원·목장·임야 0.07%, 공장용지 등 0.2%, 골프장·고급오락장 4% / 종합합산 0.2~0.5% · 별도합산 0.2~0.4% / 건축물 0.25%, 시 지역 주거지역 등의 공장 0.5%, 골프장·고급오락장 4%",
+      "answer": "0.2%",
+      "aliases": [
+        "2‰"
+      ]
+    },
+    {
+      "id": "cloze-119",
+      "subject": "세법",
+      "cardId": "core-tax-16tiin0",
+      "unitId": "core-tax-16tiin0:point-0",
+      "title": "성립·확정·가산세 · 제척기간 5년 · 무신고 7년 · 부정행위",
+      "text": "제척기간 5년 · 무신고 7년 · 부정행위 10년(국세 상속·증여세는 10년·15년, 지방세 상속·증여 취득 무신고는 10년) / 가산세: 무신고 20%(부정 40%) · 과소신고 10%(부정 40%) · 납부지연은 하루 0.022%",
+      "answer": "20%",
+      "aliases": []
+    },
+    {
+      "id": "cloze-120",
+      "subject": "세법",
+      "cardId": "core-tax-16tiin0",
+      "unitId": "core-tax-16tiin0:point-0",
+      "title": "성립·확정·가산세 · 제척기간 5년 · 무신고 7년 · 부정행위",
+      "text": "제척기간 5년 · 무신고 7년 · 부정행위 10년(국세 상속·증여세는 10년·15년, 지방세 상속·증여 취득 무신고는 10년) / 가산세: 무신고 20%(부정 40%) · 과소신고 10%(부정 40%) · 납부지연은 하루 0.022%",
+      "answer": "10%",
+      "aliases": []
+    }
+  ]
+}

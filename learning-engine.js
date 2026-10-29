@@ -105,7 +105,7 @@
     if (payload?.schema!=='realtor-study-backup'||payload.version!==1||!payload.data||typeof payload.data!=='object') throw new Error('이 앱에서 내보낸 학습 기록 파일을 선택해 주세요.');
     const d=payload.data;
     for(const field of ['history','mistakes','flashcards']) if(!Array.isArray(d[field]))throw new Error('학습 기록 파일의 형식이 올바르지 않습니다.');
-    for (const field of ['recallProgress','quickMemoryProgress','resolvedMistakes']) if(d[field] !== undefined && (!d[field] || typeof d[field] !== 'object' || Array.isArray(d[field]))) throw new Error('학습 기록 파일의 복습 정보 형식이 올바르지 않습니다.');
+    for (const field of ['recallProgress','quickMemoryProgress','clozeProgress','resolvedMistakes']) if(d[field] !== undefined && (!d[field] || typeof d[field] !== 'object' || Array.isArray(d[field]))) throw new Error('학습 기록 파일의 복습 정보 형식이 올바르지 않습니다.');
     if(d.questionIssues !== undefined && !Array.isArray(d.questionIssues)) throw new Error('신고 기록 형식이 올바르지 않습니다.');
     return d;
   }
@@ -120,7 +120,7 @@
     return {...current, history:histories, mistakes:mistakes.filter(m=>!(resolved[m.questionId] && resolved[m.questionId]>=String(m.attemptedAt||'')) && !(latestResult.get(m.questionId)?.correct && latestResult.get(m.questionId).at>=String(m.attemptedAt||''))),
       flashcards:[...new Set([...(current.flashcards||[]),...(incoming.flashcards||[])])], questionIssues:mergeList(current.questionIssues||[],incoming.questionIssues||[],x=>x.id),
       uncertainQuestions:[...new Set([...(current.uncertainQuestions||[]),...(Array.isArray(incoming.uncertainQuestions)?incoming.uncertainQuestions:[])])].filter(id=>typeof id==='string' && !(latestResult.get(id)?.correct && !latestResult.get(id)?.uncertain)),
-      recallProgress:recordMerge(current.recallProgress,incoming.recallProgress),quickMemoryProgress:recordMerge(current.quickMemoryProgress,incoming.quickMemoryProgress),resolvedMistakes:resolved};
+      recallProgress:recordMerge(current.recallProgress,incoming.recallProgress),quickMemoryProgress:recordMerge(current.quickMemoryProgress,incoming.quickMemoryProgress),clozeProgress:recordMerge(current.clozeProgress,incoming.clozeProgress),resolvedMistakes:resolved};
   }
   const api={plain,canonicalCards,conceptText,conceptCatalog,questionFingerprint,cardFingerprint,related,stageReadiness,firstAttemptAccuracy,reviewSchedule,readBackup,mergeBackup};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.LearningEngine=api;

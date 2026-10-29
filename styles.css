@@ -538,3 +538,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .flashcard-back .mistake-concept-answer{margin:0}
 .flashcard-back small{font-size:13px;color:#536459}
 .flashcard:has(.flashcard-back){min-height:0}
+
+/* Written retrieval: full context stays visible; the answer appears only after submission. */
+.memory-mode-switch.has-cloze { grid-template-columns:repeat(5,minmax(0,1fr)); }
+.cloze-view { max-width:860px;margin:0 auto 32px; }
+.cloze-settings { display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:28px; }
+.cloze-settings label { display:grid;gap:8px;max-width:100%; }
+.cloze-settings label:first-child { flex:1 1 220px;min-width:0; }
+.cloze-settings select { max-width:100%;width:100%; }
+.cloze-sentence { font-size:clamp(18px,3vw,23px);line-height:1.9;white-space:pre-line; }
+.cloze-gap { display:inline-block;min-width:64px;color:var(--forest,#214b39);background:#ecdfb9;border-radius:6px;padding:0 10px;letter-spacing:3px; }
+#cloze-form { margin-top:28px;display:grid;gap:12px; }
+#cloze-form label { display:grid;gap:6px;font-weight:700; }
+#cloze-form small { color:#667569;font-weight:400;font-size:13px; }
+#cloze-input { width:100%;min-width:0;font-size:20px;min-height:54px; }
+.cloze-actions { display:flex;flex-wrap:wrap;gap:10px; }
+.cloze-feedback { margin:24px 0;padding:20px;border-radius:14px;background:#f6edda;border:1px solid #d6bd7e;line-height:1.8; }
+.cloze-feedback.is-correct { background:#edf4ee;border-color:#b8cdbb; }
+.cloze-feedback p { white-space:pre-line;overflow-wrap:anywhere; }
+.cloze-unsure { display:flex;gap:8px;align-items:center;font-size:15px;margin-top:12px; }
+.cloze-unsure input { width:20px;height:20px;flex-shrink:0; }
+.cloze-next { width:100%;min-height:52px; }
+@media(max-width:720px) {
+ .memory-mode-switch.has-cloze { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .memory-mode-switch.has-cloze button:last-child { grid-column:1 / -1; }
+ .cloze-settings>.button { width:100%; }
+ .cloze-view { padding-bottom:20px; }
+ .cloze-card { padding:20px; }
+}

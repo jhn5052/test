@@ -29,6 +29,7 @@ jobs:
         run: |
           node --check app.js
           node --check quick-memory.js
+          node --check cloze-practice.js
           node --check learning-engine.js
           node --check sw.js
           node scripts/audit-concept-links.cjs --check
