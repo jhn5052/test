@@ -1,4 +1,4 @@
-const CACHE_NAME = "license-practice-v49";
+const CACHE_NAME = "license-practice-v50";
 const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./quick-memory.js", "./cloze-practice.js", "./data/essential-cloze.json", "./learning-engine.js", "./manifest.webmanifest", "./icon.svg", "./data/questions.json", "./data/study-types.json", "./data/concept-links.json", "./data/answer-keys.json", "./data/core-summary.json", "./data/summary-audio.json"];
 
 self.addEventListener("install", event => {

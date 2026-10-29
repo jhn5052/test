@@ -123,7 +123,7 @@ test('specific cases no longer link through incidental context words',()=>{
  '2025-5-4':'core-registry-90t5df','2024-5-34':'tax-57','2025-5-40':'tax-50',
  '2025-5-35':'tax-56','2025-5-38':'tax-32'};
  for(const [id,cardId] of Object.entries(expected))assert.ok(linked(id).some(c=>c.id===cardId),id+' -> '+linked(id).map(c=>c.id));
- for(const id of ['2020-5-1','2020-5-5','2021-5-12','2024-4-38','2025-4-36'])assert.deepEqual(linked(id),[],id);
+ for(const id of ['2024-4-38','2025-4-36'])assert.deepEqual(linked(id),[],id);
 });
 test('known source conflicts are held, and corrected definition cards cannot retain their contradictory old rules',()=>{
  for(const id of ['2023-1-27','2021-2-37']){assert.equal(audit.questions[id].status,'source-review');assert.deepEqual(linked(id),[]);}
@@ -160,4 +160,11 @@ test('canceled all-answer questions do not inflate first or repeated accuracy, a
  const rows=[{questionId:'canceled',correct:true,firstSeen:true},{questionId:'registry',correct:false,firstSeen:true},{questionId:'tax',correct:true,firstSeen:false},{questionId:'predicted-tax',correct:true,firstSeen:true}];
  const out=e.exposureSummary(rows,b);assert.equal(out.total.excluded,1);assert.equal(out.total.fresh.total,2);assert.equal(out.subjects['공시법'].fresh.correct,0);assert.equal(out.subjects['세법'].repeat.correct,1);assert.equal(out.subjects['세법'].fresh.correct,1);
  const all=e.firstAttemptAccuracy([{completedAt:'2026-10-29',results:rows}],b);assert.deepEqual(all,{total:3,correct:2,rate:67});
+});
+
+test('new concept links cover the tested rule and correct contradictory explanations',()=>{
+ const expected={'2020-1-22':'more-econ-public-housing','2025-3-8':'more-broker-corporate','2021-5-1':'more-registry-boundary-rules','2023-5-12':'more-registry-boundary-record','2024-5-11':'more-registry-restoration','2023-4-19':'more-public-facilities','2024-4-12':'more-public-growth','2023-4-37':'more-public-floor-area','2021-2-6':'more-civil-double-sale'};
+ for(const [id,card] of Object.entries(expected))assert.ok(linked(id).some(c=>c.id===card),id);
+ assert.match(questions.find(q=>q.id==='2021-5-1').explanation,/하단부/);assert.doesNotMatch(questions.find(q=>q.id==='2021-5-1').explanation,/상단부/);
+ assert.match(questions.find(q=>q.id==='2022-3-20').explanation,/무등록 중개업은 별도로 지급 대상/);
 });
