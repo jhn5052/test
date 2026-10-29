@@ -5,8 +5,8 @@
   "scope": "전 문항의 개념 연결 주제·참조·원문 변경 여부 점검. 법령 숫자 전수 검증이나 모든 선택지 해설 검증을 뜻하지 않음.",
   "stats": {
     "total": 1300,
-    "linked": 1131,
-    "unmapped": 167,
+    "linked": 1142,
+    "unmapped": 156,
     "source-review": 2,
     "bySubject": {
       "부동산학개론": {
@@ -35,8 +35,8 @@
       },
       "부동산공시에 관한 법령 및 부동산 관련 세법": {
         "total": 260,
-        "linked": 207,
-        "unmapped": 53,
+        "linked": 218,
+        "unmapped": 42,
         "source-review": 0
       }
     },
@@ -67,8 +67,8 @@
       },
       "공시법": {
         "total": 154,
-        "linked": 114,
-        "unmapped": 40,
+        "linked": 125,
+        "unmapped": 29,
         "source-review": 0
       },
       "세법": {
@@ -2229,17 +2229,27 @@
     },
     "2020-5-8": {
       "questionFingerprint": "1bpgsky",
-      "status": "unmapped",
-      "topic": "공시법 세부 쟁점",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-committee",
+          "fingerprint": "b7tfcs"
+        }
+      ]
     },
     "2020-5-9": {
       "questionFingerprint": "bn6jwm",
-      "status": "unmapped",
-      "topic": "공시법 세부 쟁점",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-development",
+          "fingerprint": "117iopy"
+        }
+      ]
     },
     "2020-5-10": {
       "questionFingerprint": "gi8rt6",
@@ -2271,10 +2281,15 @@
     },
     "2020-5-12": {
       "questionFingerprint": "1w71fwa",
-      "status": "unmapped",
-      "topic": "지적기준점",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-control-points",
+          "fingerprint": "1dv43bz"
+        }
+      ]
     },
     "2020-5-13": {
       "questionFingerprint": "1oczc6s",
@@ -4826,10 +4841,15 @@
     },
     "2021-5-9": {
       "questionFingerprint": "kup4d0",
-      "status": "unmapped",
-      "topic": "지적측량수행자에게지적측량을의뢰",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-control-points",
+          "fingerprint": "1dv43bz"
+        }
+      ]
     },
     "2021-5-10": {
       "questionFingerprint": "i8nsa2",
@@ -7381,10 +7401,15 @@
     },
     "2022-5-8": {
       "questionFingerprint": "ffzt68",
-      "status": "unmapped",
-      "topic": "지적측량의의뢰",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-control-points",
+          "fingerprint": "1dv43bz"
+        }
+      ]
     },
     "2022-5-9": {
       "questionFingerprint": "1adw6sp",
@@ -9981,17 +10006,27 @@
     },
     "2023-5-1": {
       "questionFingerprint": "1sjikbi",
-      "status": "unmapped",
-      "topic": "지적측량수행자가지적측량의뢰",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-control-points",
+          "fingerprint": "1dv43bz"
+        }
+      ]
     },
     "2023-5-2": {
       "questionFingerprint": "1q1soun",
-      "status": "unmapped",
-      "topic": "공시법 세부 쟁점",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-development",
+          "fingerprint": "117iopy"
+        }
+      ]
     },
     "2023-5-3": {
       "questionFingerprint": "1xvw0eq",
@@ -10038,10 +10073,15 @@
     },
     "2023-5-7": {
       "questionFingerprint": "13do9yg",
-      "status": "unmapped",
-      "topic": "공시법 세부 쟁점",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-control-points",
+          "fingerprint": "1dv43bz"
+        }
+      ]
     },
     "2023-5-8": {
       "questionFingerprint": "1erurcu",
@@ -10057,10 +10097,15 @@
     },
     "2023-5-9": {
       "questionFingerprint": "10ku2om",
-      "status": "unmapped",
-      "topic": "공시법 세부 쟁점",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-committee",
+          "fingerprint": "b7tfcs"
+        }
+      ]
     },
     "2023-5-10": {
       "questionFingerprint": "1wtwgq0",
@@ -15328,10 +15373,15 @@
     },
     "2025-5-5": {
       "questionFingerprint": "1sb1sou",
-      "status": "unmapped",
-      "topic": "공시법 세부 쟁점",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-development",
+          "fingerprint": "117iopy"
+        }
+      ]
     },
     "2025-5-6": {
       "questionFingerprint": "diiks4",
@@ -15400,11 +15450,16 @@
       ]
     },
     "2025-5-12": {
-      "questionFingerprint": "r8w9p0",
-      "status": "unmapped",
-      "topic": "공시법 세부 쟁점",
-      "reason": "질문·조건을 설명하는 카드가 없어 해설로 복습. 관련 없는 카드 연결은 보류.",
-      "cards": []
+      "questionFingerprint": "i1579z",
+      "status": "linked",
+      "topic": "개념 비교 보강",
+      "reason": "문항의 주요 개념과 비교 카드의 내용을 대조해 지정",
+      "cards": [
+        {
+          "id": "more-registry-committee",
+          "fingerprint": "b7tfcs"
+        }
+      ]
     },
     "2025-5-13": {
       "questionFingerprint": "1ulhgi6",
